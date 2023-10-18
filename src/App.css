@@ -1,7 +1,17 @@
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
+:root {
+	--font: "Lato", sans-serif;
+	--font-light: "Lato-Light", sans-serif;
+	--font-bold: "Lato-Bold", sans-serif;
+	--font-wall-e: "Arial", sans-serif;
+	--font-mono: "Courier New", Courier, monospace;
+	--background-color-primary: #000;
+	--foreground-color-primary: #fff;
+	--text-color-primary: #006d09;
 }
 
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafb);
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background-color-primary: #000;
+		--foreground-color-primary: #fff;
+	}
 }
