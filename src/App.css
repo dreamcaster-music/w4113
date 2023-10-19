@@ -6,12 +6,42 @@
 	--font-mono: "Courier New", Courier, monospace;
 	--background-color-primary: #000;
 	--foreground-color-primary: #fff;
+	--background-color-secondary: #222;
+	--foreground-color-secondary: #fff;
 	--text-color-primary: #006d09;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--background-color-primary: #000;
-		--foreground-color-primary: #fff;
-	}
+html,
+body,
+:root,
+.root,
+.container {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	top: 0;
+	left: 0;
+	margin: 0;
+	padding: 0;
+
+	background-color: var(--background-color-primary);
+	overflow: hidden;
+}
+
+.console-input {
+	position: absolute;
+	bottom: 0px;
+	padding: 10px;
+	left: 0;
+	width: 100%;
+	height: 20px;
+
+	border: none;
+	outline: none;
+	background-color: var(--background-color-secondary);
+
+	font-family: var(--font-mono);
+	font-size: 1rem;
+	font-weight: 900;
+	color: var(--text-color-primary);
 }
