@@ -61,7 +61,7 @@ function App() {
 			case "about":
 				outputConsole("w4113.exe version 0.0.1");
 				outputConsole("created by: w4113");
-				outputConsole("prepare to get vaporized meatbag");
+				outputConsoleError("prepare to get vaporized meatbag");
 				break;
 			case "host":
 				if (split[1] === "list") {
