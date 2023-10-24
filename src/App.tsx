@@ -73,11 +73,16 @@ function App() {
 						outputConsole("Use 'host select [hostname]' to select a host.");
 					});
 				} else if (split[1] === "select") {
-					if (split[2]) {
+					let name = "";
+					for (let i = 2; i < split.length; i++) {
+						name += split[i] + " ";
+					}
+					name = name.trim();
+					if (name !== "") {
 						let hosts = invoke("host_list").then((result: any) => {
-							if (result.includes(split[2])) {
-								setSelectedHost(split[2]);
-								outputConsole("Selected host: " + split[2]);
+							if (result.includes(name)) {
+								setSelectedHost(name);
+								outputConsole("Selected host: " + name);
 								outputConsole("Use 'device list' to view available devices for this host.");
 							} else {
 								outputConsoleError("Host not found.");
