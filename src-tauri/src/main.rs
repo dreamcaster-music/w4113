@@ -46,12 +46,19 @@ fn device_list(hostname: String) -> Vec<String> {
 	output_devices
 }
 
+#[tauri::command]
+fn exit() {
+	debug!("Exit command invoked");
+	std::process::exit(0);
+}
+
 fn main() {
     tauri::Builder::default()
 		.plugin(tauri_plugin_log::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
 			host_list,
 			device_list,
+			exit,
 		])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

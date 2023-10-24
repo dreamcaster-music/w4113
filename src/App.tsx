@@ -46,7 +46,7 @@ function App() {
 
 		switch (split[0]) {
 			case "help":
-				outputConsole("Available commands: help, clear, about, host, device");
+				outputConsole("Available commands: help, clear, about, host, device, exit");
 				break;
 			case "clear":
 				let output = document.querySelector(".console-output");
@@ -112,6 +112,9 @@ function App() {
 						outputConsoleError("Invalid arguments for 'device' command.\nSyntax: device [list]");
 					}
 				}
+				break;
+			case "exit":
+				invoke("exit");
 				break;
 			default:
 				outputConsoleError("Command not found. Type 'help' for a list of commands.");
