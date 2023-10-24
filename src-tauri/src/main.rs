@@ -4,9 +4,11 @@
 use log::debug;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-	use std::f32::consts::PI;
-	use std::thread;
-	use std::time::Duration;
+use std::f32::consts::PI;
+use std::thread;
+use std::time::Duration;
+
+mod config;
 
 #[tauri::command]
 fn host_list() -> Vec<String> {
