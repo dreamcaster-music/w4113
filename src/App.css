@@ -40,11 +40,11 @@ body,
 
 .console-output {
 	position: absolute;
-	top: 0;
+	bottom: 40px;
 	left: 0;
 	width: 100%;
-	height: 380px;
-	max-height: 380px;
+	height: 360px;
+	max-height: 360px;
 	overflow-y: scroll;
 	overflow-x: hidden;
 	padding: 10px;
@@ -52,8 +52,6 @@ body,
 	font-family: var(--font-mono);
 	font-size: 1rem;
 	font-weight: 900;
-	/* line-height: 0px; */
-	padding-bottom: 20px;
 	color: var(--text-color-primary);
 }
 
