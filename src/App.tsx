@@ -4,8 +4,23 @@ import "./App.css";
 import { debug } from "tauri-plugin-log-api";
 
 function App() {
-	const [selectedHost, setSelectedHost] = useState<string>("");
+	const outputAny = (output: any) => {
+		switch (output.kind) {
+			case "User":
+				userConsole(output.message);
+				break;
+			case "Console":
+				outputConsole(output.message);
+				break;
+			case "Error":
+				outputConsoleError(output.message);
+				break;
+			default:
+				break;
+		}
+	}
 
+	// Output to console
 	const outputConsole = (output: string) => {
 		const outputDiv = document.querySelector(".console-output");
 		const outputP = document.createElement("p");
@@ -17,6 +32,7 @@ function App() {
 		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
 	}
 
+	// Output error to console
 	const outputConsoleError = (output: string) => {
 		const outputDiv = document.querySelector(".console-output");
 		const outputP = document.createElement("p");
@@ -28,6 +44,7 @@ function App() {
 		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
 	}
 
+	// Output user command to console
 	const userConsole = (output: string) => {
 		const outputDiv = document.querySelector(".console-output");
 		const outputP = document.createElement("p");
@@ -42,11 +59,12 @@ function App() {
 	const runCommand = (command: string) => {
 		debug("Command invoked from w4113 console:\n " + command);
 
+		// Split command into array of strings
 		let split = command.split(" ");
 
 		switch (split[0]) {
 			case "help":
-				outputConsole("Available commands: help, clear, about, host, device, exit");
+				outputConsole("Available commands: help, clear, about, host, device, config, exit");
 				break;
 			case "clear":
 				let output = document.querySelector(".console-output");
@@ -66,51 +84,53 @@ function App() {
 			case "host":
 				if (split[1] === "list") {
 					invoke("host_list").then((result: any) => {
-						outputConsole("Available Hosts:");
-						for (const host of result) {
-							outputConsole("- " + host);
-						}
-						outputConsole("Use 'host select [hostname]' to select a host.");
+						outputAny(result);
 					});
 				} else if (split[1] === "select") {
-					let name = "";
-					for (let i = 2; i < split.length; i++) {
-						name += split[i] + " ";
-					}
-					name = name.trim();
-					if (name !== "") {
-						let hosts = invoke("host_list").then((result: any) => {
-							if (result.includes(name)) {
-								setSelectedHost(name);
-								outputConsole("Selected host: " + name);
-								outputConsole("Use 'device list' to view available devices for this host.");
-							} else {
-								outputConsoleError("Host not found.");
-							}
+					let host = split[2];
+					if (host !== undefined) {
+						invoke("host_select", { host: host }).then((result: any) => {
+							outputAny(result);
 						});
 					} else {
-						outputConsoleError("Invalid arguments for 'host select' command.\nSyntax: host select [hostname]");
+						outputConsoleError("Invalid arguments for 'host' command.\nSyntax: host [list|select] [hostname]");
 					}
 				} else {
 					outputConsoleError("Invalid arguments for 'host' command.\nSyntax: host [list|select] [hostname]");
 				}
 				break;
 			case "device":
-				if (selectedHost === "") {
-					outputConsoleError("No host selected. Use 'host select [hostname]' to select a host.");
-					break;
+				if (split[1] === "list") {
+					invoke("device_list").then((result: any) => {
+						outputAny(result);
+					});
 				} else {
-					if (split[1] === "list") {
-						invoke("device_list", { hostname: selectedHost }).then((result: any) => {
-							outputConsole("Available Devices:");
-							for (const device of result) {
-								outputConsole("- " + device);
-							}
-							outputConsole("Use 'device select [device]' to select a device.");
+					outputConsoleError("Invalid arguments for 'device' command.\nSyntax: device [list]");
+				}
+				break;
+			case "config":
+				if (split[1] === "save") {
+					if (split[2] !== undefined) {
+						invoke("config_save", { path: split[2] }).then((result: any) => {
+							outputAny(result);
 						});
 					} else {
-						outputConsoleError("Invalid arguments for 'device' command.\nSyntax: device [list]");
+						outputConsoleError("Invalid arguments for 'config' command.\nSyntax: config [save|load]");
 					}
+				} else if (split[1] === "load") {
+					if (split[2] !== undefined) {
+						invoke("config_load", { path: split[2] }).then((result: any) => {
+							outputAny(result);
+						});
+					} else {
+						outputConsoleError("Invalid arguments for 'config' command.\nSyntax: config [save|load]");
+					}
+				} else if (split[1] === "show") {
+					invoke("config_show").then((result: any) => {
+						outputAny(result);
+					});
+				} else {
+					outputConsoleError("Invalid arguments for 'config' command.\nSyntax: config [save|load]");
 				}
 				break;
 			case "exit":
@@ -122,6 +142,7 @@ function App() {
 		}
 	}
 
+	// Function to handle enter key press in console input
 	const handleInput = (event: any) => {
 		if (event.key === "Enter") {
 			// Add command to output
