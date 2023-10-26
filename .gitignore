@@ -1,3 +1,6 @@
+# Stuff added manually by Wesley
+src-tauri/target
+
 # Logs
 logs
 *.log

@@ -3,60 +3,39 @@ import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 import { debug } from "tauri-plugin-log-api";
 
+import { ConsoleMessage } from "./bindings/ConsoleMessage";
+
 function App() {
-	const outputAny = (output: any) => {
-		switch (output.kind) {
-			case "User":
-				userConsole(output.message);
-				break;
-			case "Console":
-				outputConsole(output.message);
-				break;
-			case "Error":
-				outputConsoleError(output.message);
-				break;
-			default:
-				break;
-		}
+	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
+
+	function outputMessage(output: ConsoleMessage) {
+		setConsoleOutput((prev) => [...prev, output]);
 	}
 
-	// Output to console
-	const outputConsole = (output: string) => {
+	function outputStr(type: string, output: string) {
+		// Create new paragraph element
 		const outputDiv = document.querySelector(".console-output");
 		const outputP = document.createElement("p");
-		outputP.innerHTML = output;
-		outputP.className = "console-command";
-		outputDiv?.appendChild(outputP);
 
-		// scroll to bottom
-		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
-	}
-
-	// Output error to console
-	const outputConsoleError = (output: string) => {
-		const outputDiv = document.querySelector(".console-output");
-		const outputP = document.createElement("p");
+		// Add text to paragraph
 		outputP.innerHTML = output;
 		outputP.className = "console-error";
+		if (type === "User") {
+			outputP.className = "console-user";
+		} else if (type === "Console") {
+			outputP.className = "console-command";
+		} else if (type === "Error") {
+			outputP.className = "console-error";
+		}
+
+		// Append paragraph to output div
 		outputDiv?.appendChild(outputP);
 
 		// scroll to bottom
 		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
 	}
 
-	// Output user command to console
-	const userConsole = (output: string) => {
-		const outputDiv = document.querySelector(".console-output");
-		const outputP = document.createElement("p");
-		outputP.innerHTML = "> " + output;
-		outputP.className = "console-user";
-		outputDiv?.appendChild(outputP);
-
-		// scroll to bottom
-		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
-	}
-
-	const runCommand = (command: string) => {
+	function runCommand(command: string) {
 		debug("Command invoked from w4113 console:\n " + command);
 
 		// Split command into array of strings
@@ -64,91 +43,40 @@ function App() {
 
 		switch (split[0]) {
 			case "help":
-				outputConsole("Available commands: help, clear, about, host, device, config, exit");
+				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, device, config, exit" });
 				break;
 			case "clear":
-				let output = document.querySelector(".console-output");
-				output?.remove();
-				output = document.createElement("div");
-				output.className = "console-output";
-				const container = document.querySelector(".console");
-				container?.appendChild(output);
-
-				userConsole("clear");
+				setConsoleOutput([{ kind: "User", message: "clear" }]);
 				break;
 			case "about":
-				outputConsole("w4113.exe version 0.0.1");
-				outputConsole("created by: w4113");
-				outputConsoleError("prepare to get vaporized meatbag");
+				outputMessage({ kind: "Console", message: "(w4113 pre-alpha) by dreamcaster: written by ronin beaver and wesley studt" });
+				outputMessage({ kind: "Console", message: "prepare to get vaporized meatbags" });
 				break;
 			case "host":
-				if (split[1] === "list") {
-					invoke("host_list").then((result: any) => {
-						outputAny(result);
-					});
-				} else if (split[1] === "select") {
-					let host = split[2];
-					if (host !== undefined) {
-						invoke("host_select", { host: host }).then((result: any) => {
-							outputAny(result);
-						});
-					} else {
-						outputConsoleError("Invalid arguments for 'host' command.\nSyntax: host [list|select] [hostname]");
-					}
-				} else {
-					outputConsoleError("Invalid arguments for 'host' command.\nSyntax: host [list|select] [hostname]");
-				}
+
 				break;
 			case "device":
-				if (split[1] === "list") {
-					invoke("device_list").then((result: any) => {
-						outputAny(result);
-					});
-				} else {
-					outputConsoleError("Invalid arguments for 'device' command.\nSyntax: device [list]");
-				}
+
 				break;
 			case "config":
-				if (split[1] === "save") {
-					if (split[2] !== undefined) {
-						invoke("config_save", { path: split[2] }).then((result: any) => {
-							outputAny(result);
-						});
-					} else {
-						outputConsoleError("Invalid arguments for 'config' command.\nSyntax: config [save|load]");
-					}
-				} else if (split[1] === "load") {
-					if (split[2] !== undefined) {
-						invoke("config_load", { path: split[2] }).then((result: any) => {
-							outputAny(result);
-						});
-					} else {
-						outputConsoleError("Invalid arguments for 'config' command.\nSyntax: config [save|load]");
-					}
-				} else if (split[1] === "show") {
-					invoke("config_show").then((result: any) => {
-						outputAny(result);
-					});
-				} else {
-					outputConsoleError("Invalid arguments for 'config' command.\nSyntax: config [save|load]");
-				}
+
 				break;
 			case "exit":
-				invoke("exit");
+
 				break;
 			default:
-				outputConsoleError("Command not found. Type 'help' for a list of commands.");
+				outputMessage({ kind: "Error", message: "Command not found: " + command });
 				break;
 		}
 	}
 
 	// Function to handle enter key press in console input
-	const handleInput = (event: any) => {
+	function handleInput(event: any) {
 		if (event.key === "Enter") {
 			// Add command to output
-			userConsole(event.target.value);
+			outputMessage({ kind: "User", message: event.target.value });
 
-			// Send command to backend
+			// Send command to command handler
 			runCommand(event.target.value);
 
 			// Clear input
@@ -156,12 +84,29 @@ function App() {
 		}
 	}
 
+	let output =
+		<>
+			{consoleOutput.map((message, index) => {
+				switch (message.kind) {
+					case "User":
+						return <p key={index} className="console-user"> {"> " + message.message}</p>;
+					case "Console":
+						return <p key={index} className="console-command">{message.message}</p>;
+					case "Error":
+						return <p key={index} className="console-error">{message.message}</p>;
+					default:
+						return <></>;
+				}
+			})}
+		</>;
+
 	return (
 		<>
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
 					<div className="console">
 						<div className="console-output">
+							{output}
 						</div>
 						<input className="console-input" type="text" placeholder="Enter command" onKeyDown={handleInput} />
 					</div>
