@@ -43,7 +43,8 @@
 				"titleBarStyle": "Overlay",
 				"title": "w4113-console",
 				"width": 800,
-				"height": 600
+				"height": 600,
+				"visible": false
 			}
 		]
 	}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 import { debug } from "tauri-plugin-log-api";
@@ -83,6 +83,15 @@ function App() {
 			event.target.value = "";
 		}
 	}
+
+	useEffect(() => {
+		debug("React App finished loading, now calling Tauri.")
+		invoke("tauri_init").then((response) => {
+			debug("Result from tauri_init" + response);
+			outputMessage({ kind: "Console", message: "Welcome to w4113. Type 'help' for a list of commands." });
+		});
+	}, []);
+
 
 	let output =
 		<>
