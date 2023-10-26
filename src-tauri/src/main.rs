@@ -100,7 +100,7 @@ fn save_config(config: &Config) -> Result<(), String> {
 
 /// Global config variable based on serde_json
 /// This allows it to be saved and loaded from file
-static mut GLOBAL_CONFIG: Option<serde_json::Value> = None;
+static mut GLOBAL_CONFIG: Option<Config> = None;
 
 /// Initializes Rust once the Tauri app is ready
 #[tauri::command]
@@ -111,14 +111,14 @@ fn tauri_init(window: tauri::Window) -> Result<(), String> {
 	std::fs::create_dir_all(CONFIG_ROOT).map_err(|e| e.to_string())?;
 
 	// Load the config
-	let config = load_config("w4113.json")?;
+	let w4413_config = load_config("w4113.json")?;
 
 	// Save the config
-	save_config(&config)?;
+	save_config(&w4413_config)?;
 
 	// Get default audio config location from the config
 	// defaults.audio
-	let default_audio_config_location = &config.config["defaults"]["audio"].as_str();
+	let default_audio_config_location = &w4413_config.config["defaults"]["audio"].as_str();
 
 	match default_audio_config_location {
 		Some(location) => {
@@ -131,7 +131,7 @@ fn tauri_init(window: tauri::Window) -> Result<(), String> {
 
 	// Set the global config
 	unsafe {
-		GLOBAL_CONFIG = Some(config.config);
+		GLOBAL_CONFIG = Some(w4413_config);
 	}
 
 	// Make the window visible
@@ -141,11 +141,91 @@ fn tauri_init(window: tauri::Window) -> Result<(), String> {
 	Ok(())
 }
 
+fn tauri_call_config(window: tauri::Window, args: Vec<String>) -> ConsoleMessage {
+	if args.len() < 1 {
+		return ConsoleMessage {
+			kind: MessageKind::Error,
+			message: "Usage: config [show|load|save]".to_owned()
+		};
+	} else {
+		match args[0].as_str() {
+			"show" => {
+				// Show the config
+				unsafe {
+					let config = match &GLOBAL_CONFIG {
+						Some(config) => config,
+						None => {
+							return ConsoleMessage {
+								kind: MessageKind::Error,
+								message: "Config not loaded".to_owned()
+							};
+						}
+					};
+					let message = serde_json::to_string_pretty(&config.config);
+
+					match message {
+						Ok(message) => {
+							return ConsoleMessage {
+								kind: MessageKind::Console,
+								message: "Config ".to_owned() + &config.config_path + ": " + &message
+							};
+						},
+						Err(e) => {
+							return ConsoleMessage {
+								kind: MessageKind::Error,
+								message: format!("Error serializing config: {}", e)
+							};
+						}
+					}
+				}
+			},
+			"load" => {
+				// TODO load config
+				return ConsoleMessage {
+					kind: MessageKind::Error,
+					message: "Not implemented".to_owned()
+				};
+			}, 
+			"save" => {
+				// TODO save config
+				return ConsoleMessage {
+					kind: MessageKind::Error,
+					message: "Not implemented".to_owned()
+				};
+			},
+			_ => {}
+		}
+	}
+
+	return ConsoleMessage {
+		kind: MessageKind::Error,
+		message: format!("Usage: config [show|load|save]")
+	};
+}
+
+#[tauri::command]
+fn tauri_call(window: tauri::Window, command: String, args: Vec<String>) -> ConsoleMessage {
+	let default_message =  ConsoleMessage {
+				kind: MessageKind::Error,
+				message: format!("Command not found: {}", command)
+			};
+
+	match command.as_str() {
+		"config" => {
+			return tauri_call_config(window, args);
+		},
+		_ => {}
+	}
+
+	return default_message;
+}
+
 fn main() {
     tauri::Builder::default()
 		.plugin(tauri_plugin_log::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
-			tauri_init
+			tauri_init,
+			tauri_call
 		])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -35,11 +35,14 @@ function App() {
 		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
 	}
 
-	function runCommand(command: string) {
-		debug("Command invoked from w4113 console:\n " + command);
+	function runCommand(executeCommand: string) {
+		debug("Command invoked from w4113 console:\n " + executeCommand);
 
 		// Split command into array of strings
-		let split = command.split(" ");
+		let split = executeCommand.split(" ");
+
+		let command = split[0];
+		let args = split.slice(1);
 
 		switch (split[0]) {
 			case "help":
@@ -59,8 +62,9 @@ function App() {
 
 				break;
 			case "config":
-
-				break;
+				invoke("tauri_call", { command: "config", args: args }).then((response) => {
+					outputMessage(response as ConsoleMessage);
+				});
 			case "exit":
 
 				break;
@@ -84,6 +88,7 @@ function App() {
 		}
 	}
 
+	// Runs once on app load
 	useEffect(() => {
 		debug("React App finished loading, now calling Tauri.")
 		invoke("tauri_init").then((response) => {
@@ -91,6 +96,13 @@ function App() {
 			outputMessage({ kind: "Console", message: "Welcome to w4113. Type 'help' for a list of commands." });
 		});
 	}, []);
+
+	// Runs every time consoleOutput changes
+	useEffect(() => {
+		// scroll to bottom
+		const outputDiv = document.querySelector(".console-output");
+		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
+	}, [consoleOutput]);
 
 
 	let output =
