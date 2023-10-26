@@ -65,6 +65,7 @@ function App() {
 				invoke("tauri_call", { command: "config", args: args }).then((response) => {
 					outputMessage(response as ConsoleMessage);
 				});
+				break;
 			case "exit":
 
 				break;
