@@ -8,34 +8,11 @@ import { ConsoleMessage } from "./bindings/ConsoleMessage";
 // Main app component
 function App() {
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
+	const [textSize, setTextSize] = useState<number>(16);
 
 	// Function to handle console output
 	function outputMessage(output: ConsoleMessage) {
 		setConsoleOutput((prev) => [...prev, output]);
-	}
-
-	// Function to handle console output
-	function outputStr(type: string, output: string) {
-		// Create new paragraph element
-		const outputDiv = document.querySelector(".console-output");
-		const outputP = document.createElement("p");
-
-		// Add text to paragraph
-		outputP.innerHTML = output;
-		outputP.className = "console-error";
-		if (type === "User") {
-			outputP.className = "console-user";
-		} else if (type === "Console") {
-			outputP.className = "console-command";
-		} else if (type === "Error") {
-			outputP.className = "console-error";
-		}
-
-		// Append paragraph to output div
-		outputDiv?.appendChild(outputP);
-
-		// scroll to bottom
-		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
 	}
 
 	function runCommand(executeCommand: string) {
@@ -71,7 +48,7 @@ function App() {
 			}
 		}
 
-		switch (split[0]) {
+		switch (command) {
 			case "help":
 				/*
 				 * Help command
@@ -80,7 +57,7 @@ function App() {
 				 * Displays list of available commands
 				 * Displays help for command -- requires command
 				 */
-				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, output, input, config, exit" });
+				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, output, input, config, reave, exit" });
 				break;
 			case "clear":
 				/*
@@ -152,6 +129,17 @@ function App() {
 			case "exit":
 
 				break;
+			case "reave":
+				outputMessage({ kind: "Console", message: "You have been reaved." });
+				invoke("reave", { qwerty: "hello" }).then((response) => {
+					outputMessage(response as ConsoleMessage);
+				});
+				break;
+			case "text":
+				setTextSize(parseInt(args[0]));
+				break;
+			case "":
+				break;
 			default:
 				outputMessage({ kind: "Error", message: "Command not found: " + command });
 				break;
@@ -188,17 +176,16 @@ function App() {
 		outputDiv?.scrollTo(0, outputDiv.scrollHeight);
 	}, [consoleOutput]);
 
-
 	let output =
 		<>
 			{consoleOutput.map((message, index) => {
 				switch (message.kind) {
 					case "User":
-						return <p key={index} className="console-user"> {"> " + message.message}</p>;
+						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-user"> {"> " + message.message}</p>;
 					case "Console":
-						return <p key={index} className="console-command">{message.message}</p>;
+						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-command">{message.message}</p>;
 					case "Error":
-						return <p key={index} className="console-error">{message.message}</p>;
+						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-error">{message.message}</p>;
 					default:
 						return <></>;
 				}

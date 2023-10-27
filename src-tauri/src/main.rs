@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::fmt::{Display, Formatter};
+
 use log::debug;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -55,11 +57,25 @@ struct Config {
 
 static CONFIG_ROOT: &str = "target/config/";
 
+enum Color {
+	Red,
+	Green,
+	Blue,
+}
+
+struct Car1 {
+	color: Color,
+}
+
+struct Car2 {
+	color: String,
+}
+
 /// Loads the config from the given path
 ///
 /// If the config does not exist, it will be created.
 fn load_config(path: &str) -> Result<Config, String> {
-    debug!("Loading config from {}", path);
+	debug!("Loading config from {}", path);
 
     if !std::path::Path::new(&(CONFIG_ROOT.to_owned() + path)).exists() {
         // Config does not exist, create the config
@@ -568,8 +584,8 @@ fn tauri_call_input(window: tauri::Window, args: Vec<String>) -> ConsoleMessage 
 					}
 
 					return ConsoleMessage {
-						kind: MessageKind::Error,
 						message: format!("input not found: {}", args[1]),
+						kind: MessageKind::Error,
 					};
                 }
             }
@@ -611,7 +627,10 @@ fn tauri_call(window: tauri::Window, command: String, args: Vec<String>) -> Cons
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default().build())
-        .invoke_handler(tauri::generate_handler![tauri_init, tauri_call])
+        .invoke_handler(tauri::generate_handler![
+			tauri_init,
+			tauri_call
+			])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
