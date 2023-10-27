@@ -5,13 +5,16 @@ import { debug } from "tauri-plugin-log-api";
 
 import { ConsoleMessage } from "./bindings/ConsoleMessage";
 
+// Main app component
 function App() {
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 
+	// Function to handle console output
 	function outputMessage(output: ConsoleMessage) {
 		setConsoleOutput((prev) => [...prev, output]);
 	}
 
+	// Function to handle console output
 	function outputStr(type: string, output: string) {
 		// Create new paragraph element
 		const outputDiv = document.querySelector(".console-output");
@@ -41,27 +44,107 @@ function App() {
 		// Split command into array of strings
 		let split = executeCommand.split(" ");
 
+		// format command
 		let command = split[0];
-		let args = split.slice(1);
+		let args: string[] = [];
+		let arg = "";
+		let section = "";
+		let inQuotes = false;
+		for (let i = 1; i < split.length; i++) {
+			let arg = split[i];
+			if (inQuotes) {
+				if (arg.endsWith('"')) {
+					inQuotes = false;
+					section += " " + arg.substring(0, arg.length - 1);
+					args.push(section.substring(1));
+					section = "";
+				} else {
+					section += " " + arg;
+				}
+			} else {
+				if (arg.startsWith('"')) {
+					inQuotes = true;
+					section = arg;
+				} else {
+					args.push(arg);
+				}
+			}
+		}
 
 		switch (split[0]) {
 			case "help":
-				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, device, config, exit" });
+				/*
+				 * Help command
+				 * Usage: help [command]
+				 * 
+				 * Displays list of available commands
+				 * Displays help for command -- requires command
+				 */
+				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, output, input, config, exit" });
 				break;
 			case "clear":
+				/*
+				 * Clear command
+				 * Usage: clear
+				 * 
+				 * Clears the console
+				 */
 				setConsoleOutput([{ kind: "User", message: "clear" }]);
 				break;
 			case "about":
+				/*
+				 * About command
+				 * Usage: about
+				 * 
+				 * Displays about message
+				 */
 				outputMessage({ kind: "Console", message: "(w4113 pre-alpha) by dreamcaster: written by ronin beaver and wesley studt" });
 				outputMessage({ kind: "Console", message: "prepare to get vaporized meatbags" });
 				break;
 			case "host":
-
+				/*
+				 * Host command
+				 * Usage: host [list|select|clear] [host]
+				 * 
+				 * list: list all hosts
+				 * select: select host -- requires host
+				 * clear: clear selected host
+				 */
+				invoke("tauri_call", { command: "host", args: args }).then((response) => {
+					outputMessage(response as ConsoleMessage);
+				});
 				break;
-			case "device":
-
+			case "output":
+				/*
+				 * Output command
+				 * Usage: output [list]
+				 * 
+				 * list: list all outputs
+				 */
+				invoke("tauri_call", { command: "output", args: args }).then((response) => {
+					outputMessage(response as ConsoleMessage);
+				});
+				break;
+			case "input":
+				/*
+				 * Output command
+				 * Usage: output [list]
+				 * 
+				 * list: list all outputs
+				 */
+				invoke("tauri_call", { command: "input", args: args }).then((response) => {
+					outputMessage(response as ConsoleMessage);
+				});
 				break;
 			case "config":
+				/*
+				 * Config command
+				 * Usage: config [show|load|save] [filename]
+				 * 
+				 * show: show current config
+				 * load: load config from file -- requires filename
+				 * save: save config to file -- requires filename
+				 */
 				invoke("tauri_call", { command: "config", args: args }).then((response) => {
 					outputMessage(response as ConsoleMessage);
 				});
