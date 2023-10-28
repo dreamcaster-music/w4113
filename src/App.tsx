@@ -57,7 +57,7 @@ function App() {
 				 * Displays list of available commands
 				 * Displays help for command -- requires command
 				 */
-				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, output, input, config, reave, exit" });
+				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, output, input, config, sine, reave, exit" });
 				break;
 			case "clear":
 				/*
@@ -131,12 +131,11 @@ function App() {
 				break;
 			case "reave":
 				outputMessage({ kind: "Console", message: "You have been reaved." });
-				invoke("reave", { qwerty: "hello" }).then((response) => {
+				break;
+			case "sine":
+				invoke("tauri_call", { command: "sine", args: args }).then((response) => {
 					outputMessage(response as ConsoleMessage);
 				});
-				break;
-			case "text":
-				setTextSize(parseInt(args[0]));
 				break;
 			case "":
 				break;

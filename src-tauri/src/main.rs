@@ -56,19 +56,117 @@ struct Config {
 }
 
 static CONFIG_ROOT: &str = "target/config/";
+static mut HOST: Option<cpal::Host> = None;
+static mut OUTPUT_DEVICE: Option<cpal::Device> = None;
+static mut INPUT_DEVICE: Option<cpal::Device> = None;
+static mut OUTPUT_STREAM: Option<cpal::Stream> = None;
+static mut INPUT_STREAM: Option<cpal::Stream> = None;
+static mut FREQ: f32 = 440.0;
 
-enum Color {
-	Red,
-	Green,
-	Blue,
-}
+fn load_from_config(config: &Config) -> Result<(), String> {
+	debug!("Loading from config");
 
-struct Car1 {
-	color: Color,
-}
+	// Get host from config
+	let host_name = config.config["audio"]["host"].as_str();
+	let host_name = match host_name {
+		Some(host_name) => host_name,
+		None => {
+			return Err("No host selected".to_owned());
+		}
+	};
 
-struct Car2 {
-	color: String,
+	// Get host
+	let hosts = cpal::available_hosts();
+	let host = hosts.iter().find(|h| h.name() == host_name);
+	let host = match host {
+		Some(host) => host,
+		None => {
+			return Err(format!("Host not found: {}", host_name));
+		}
+	};
+
+	// Get host from hostID
+	let host = match cpal::host_from_id(*host) {
+		Ok(host) => host,
+		Err(e) => {
+			return Err(format!("Error getting host: {}", e));
+		}
+	};
+
+	// Get devices
+	let devices = match host.output_devices() {
+		Ok(devices) => devices,
+		Err(e) => {
+			return Err(format!("Error getting devices: {}", e));
+		}
+	};
+
+	// Get output device from config
+	let output_device_name = config.config["audio"]["output"].as_str();
+	let output_device_name = match output_device_name {
+		Some(output_device_name) => output_device_name,
+		None => {
+			return Err("No output device selected".to_owned());
+		}
+	};
+
+	// Get output device
+	for device in devices {
+		let device_name = match device.name() {
+			Ok(device_name) => device_name,
+			Err(e) => {
+				return Err(format!("Error getting device name: {}", e));
+			}
+		};
+
+		if device_name == output_device_name {
+			unsafe {
+				OUTPUT_DEVICE = Some(device);
+			}
+			break;
+		}
+	}
+
+	// get input devices
+	let devices = match host.input_devices() {
+		Ok(devices) => devices,
+		Err(e) => {
+			return Err(format!("Error getting devices: {}", e));
+		}
+	};
+
+	// Get input device from config
+	let input_device_name = config.config["audio"]["input"].as_str();
+	let input_device_name = match input_device_name {
+		Some(input_device_name) => input_device_name,
+		None => {
+			return Err("No input device selected".to_owned());
+		}
+	};
+
+	// Get input device
+	for device in devices {
+		let device_name = match device.name() {
+			Ok(device_name) => device_name,
+			Err(e) => {
+				return Err(format!("Error getting device name: {}", e));
+			}
+		};
+
+		if device_name == input_device_name {
+			unsafe {
+				INPUT_DEVICE = Some(device);
+			}
+			break;
+		}
+	}
+
+	// Set statics
+	unsafe {
+		HOST = Some(host);
+	}
+
+	Ok(())
 }
 
 /// Loads the config from the given path
@@ -137,7 +235,9 @@ fn tauri_init(window: tauri::Window) -> Result<(), String> {
         CONFIG = match default_audio_config_location {
             Some(location) => {
                 debug!("Default audio config location: {}", location);
-                Some(load_config(location)?)
+                let config = load_config(location)?;
+				let _load = load_from_config(&config);
+				Some(config)
             }
             None => {
                 debug!("No default audio config specified");
@@ -596,6 +696,166 @@ fn tauri_call_input(window: tauri::Window, args: Vec<String>) -> ConsoleMessage 
     return default_message;
 }
 
+fn tauri_call_sine(window: tauri::Window, args: Vec<String>) -> ConsoleMessage {
+	let default_message = ConsoleMessage {
+		kind: MessageKind::Error,
+		message: "Usage: sine [start|stop|freq] <frequency in hz>".to_owned(),
+	};
+
+	if args.len() < 1 {
+		return default_message;
+	} else {
+		match args[0].as_str() {
+			"start" => {
+				// Start sine wave using output device
+				let host = unsafe { HOST.as_ref().unwrap() };
+				let output_device = unsafe { OUTPUT_DEVICE.as_ref().unwrap() };
+				let mut supported_configs_range = output_device.supported_output_configs();
+				let mut supported_configs_range = match supported_configs_range {
+					Ok(supported_configs_range) => supported_configs_range,
+					Err(e) => {
+						return ConsoleMessage {
+							kind: MessageKind::Error,
+							message: format!("Error getting supported configs: {}", e),
+						};
+					}
+				};
+
+				let supported_config = supported_configs_range.next();
+				let supported_config = match supported_config {
+					Some(supported_config) => supported_config,
+					None => {
+						return ConsoleMessage {
+							kind: MessageKind::Error,
+							message: "No supported configs".to_owned(),
+						};
+					}
+				};
+				
+				debug!("Max sample rate: {:?}", supported_config.max_sample_rate());
+				debug!("Min sample rate: {:?}", supported_config.min_sample_rate());
+
+				let config = supported_config.with_sample_rate(cpal::SampleRate(44100)).config();
+
+				let freq = match args.len() > 1 {
+					true => match args[1].parse::<f32>() {
+						Ok(freq) => freq,
+						Err(e) => {
+							return ConsoleMessage {
+								kind: MessageKind::Error,
+								message: format!("Error parsing frequency: {}", e),
+							};
+						}
+					},
+					false => 440.0
+				};
+
+				let freq = freq / 2.0;
+
+				let sample_rate = config.sample_rate.0 as f32;
+
+				// Produce a sinusoid of maximum amplitude.
+        let mut sample_clock = 0f32;
+        let mut next_value = move || {
+            sample_clock = (sample_clock + freq / sample_rate) % 1.0;
+			(sample_clock * 2.0 * std::f32::consts::PI).sin()
+        };
+
+
+let stream = output_device.build_output_stream(
+    &config,
+    move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+		for sample in data.iter_mut() {
+			*sample = next_value();
+		}
+    },
+    move |err| {
+        // react to errors here.
+    },
+    None // None=blocking, Some(Duration)=timeout
+);
+
+match stream {
+	Ok(stream) => {
+		// Start the stream
+		let _stream = stream.play();
+		match _stream {
+			Ok(_stream) => {
+				unsafe {
+					OUTPUT_STREAM = Some(stream);
+				}
+				debug!("Stream started");
+				return ConsoleMessage {
+					kind: MessageKind::Console,
+					message: "Stream started".to_owned(),
+				};
+			}
+			Err(err) => {
+				debug!("Error starting stream: {}", err);
+				return ConsoleMessage {
+					kind: MessageKind::Error,
+					message: format!("Error starting stream: {}", err),
+				};
+			}
+		}
+
+	}
+	Err(err) => {
+		return ConsoleMessage {
+			kind: MessageKind::Error,
+			message: format!("Error building stream: {}", err),
+		};
+	}
+};
+			}
+			"stop" => {
+				// stop OUTPUT_STREAM
+				unsafe {
+					match OUTPUT_STREAM.as_ref() {
+						Some(stream) => {
+							stream.pause().unwrap();
+							OUTPUT_STREAM = None;
+						}
+						None => {
+							return ConsoleMessage {
+								kind: MessageKind::Error,
+								message: "No stream to stop".to_owned(),
+							};
+						}
+					}
+				}
+			}
+			"freq" => {
+				if args.len() < 2 {
+					return default_message;
+				} else {
+					let freq = match args[1].parse::<f32>() {
+						Ok(freq) => freq,
+						Err(e) => {
+							return ConsoleMessage {
+								kind: MessageKind::Error,
+								message: format!("Error parsing frequency: {}", e),
+							};
+						}
+					};
+
+					unsafe {
+						FREQ = freq;
+					}
+
+					return ConsoleMessage {
+						kind: MessageKind::Console,
+						message: format!("Frequency set to {}", freq),
+					};
+				}
+			}
+			_ => {}
+		}
+	}
+
+	return default_message;
+}
+
 #[tauri::command]
 fn tauri_call(window: tauri::Window, command: String, args: Vec<String>) -> ConsoleMessage {
     debug!("tauri_call\ncommand:{}\nargs:{:?}", command, args);
@@ -618,6 +878,9 @@ fn tauri_call(window: tauri::Window, command: String, args: Vec<String>) -> Cons
         "input" => {
             return tauri_call_input(window, args);
         }
+		"sine" => {
+			return tauri_call_sine(window, args);
+		}
         _ => {}
     }
 
