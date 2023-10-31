@@ -5,16 +5,43 @@ import { debug } from "tauri-plugin-log-api";
 
 import { ConsoleMessage } from "./bindings/ConsoleMessage";
 
-// Main app component
+/**
+ * ## App()
+ * 
+ * Main React component for the app
+ * 
+ * @returns w4113 app element
+ */
 function App() {
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 	const [textSize, setTextSize] = useState<number>(16);
 
-	// Function to handle console output
+	/**
+	 * ## outputMessage(output: ConsoleMessage)
+	 * 
+	 * Outputs a message to the console
+	 * 
+	 * ### Parameters
+	 * @param output - The message to output to the console
+	 * 
+	 * ### Returns
+	 * @returns void
+	 */
 	function outputMessage(output: ConsoleMessage) {
 		setConsoleOutput((prev) => [...prev, output]);
 	}
 
+	/**
+	 * ## runCommand(executeCommand: string)
+	 * 
+	 * Runs the command specified by executeCommand
+	 * 
+	 * ### Parameters
+	 * @param executeCommand - The command to run
+	 * 
+	 * ### Returns
+	 * @returns void
+	 */
 	function runCommand(executeCommand: string) {
 		debug("Command invoked from w4113 console:\n " + executeCommand);
 
@@ -145,7 +172,17 @@ function App() {
 		}
 	}
 
-	// Function to handle enter key press in console input
+	/**
+	 * ## handleInput(event: any)
+	 * 
+	 * Handles input from the console
+	 * 
+	 * ### Parameters
+	 * @param event - The event that triggered the input
+	 * 
+	 * ### Returns
+	 * @returns void
+	 */
 	function handleInput(event: any) {
 		if (event.key === "Enter") {
 			// Add command to output
