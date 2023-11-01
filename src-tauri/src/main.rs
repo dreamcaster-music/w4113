@@ -7,9 +7,13 @@ mod config;
 use config::Config;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use lazy_static::lazy_static;
-use log::debug;
+use log::{debug, LevelFilter};
+use std::{
+    fmt::{Display, Formatter},
+    sync::Mutex,
+};
 use tauri::Manager;
-use std::{fmt::{Display, Formatter}, sync::Mutex};
+use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
 /// ## MessageKind
 ///
@@ -130,15 +134,15 @@ async fn event_loop(window: tauri::Window) -> Result<(), String> {
 
     // create event loop
     tauri::async_runtime::spawn(async move {
-		loop {
-			window.listen("audio-test", | event | {
-				let message = event.payload().unwrap();
-				debug!("Received event: {}", message);
-			});
+        loop {
+            window.listen("audio-test", |event| {
+                let message = event.payload().unwrap();
+                debug!("Received event: {}", message);
+            });
 
-			std::thread::sleep(std::time::Duration::from_millis(100));
-		}
-	});
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+    });
 
     Ok(())
 }
@@ -149,11 +153,14 @@ async fn event_loop(window: tauri::Window) -> Result<(), String> {
 /// This function is called when the program is run. This should not be used to initialize the program, that should be done in `event_loop`.
 fn main() {
     tauri::Builder::default()
-	.setup(| app | {
-		
-		Ok(())
-	})
-        .plugin(tauri_plugin_log::Builder::default().build())
+        .setup(|app| Ok(()))
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .targets([LogTarget::Stdout, LogTarget::Webview])
+                .with_colors(ColoredLevelConfig::default())
+                .level(LevelFilter::Debug)
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![run])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
