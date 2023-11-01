@@ -21,6 +21,7 @@ fundsp = "0.15.0"
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
 log = "^0.4"
 ts-rs = "7.0.0"
+lazy_static = "1.4.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

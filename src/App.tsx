@@ -4,6 +4,8 @@ import "./App.css";
 import { debug } from "tauri-plugin-log-api";
 
 import { ConsoleMessage } from "./bindings/ConsoleMessage";
+import { appWindow } from "@tauri-apps/api/window";
+import { emit } from "@tauri-apps/api/event";
 
 /**
  * ## App()
@@ -114,9 +116,7 @@ function App() {
 				 * select: select host -- requires host
 				 * clear: clear selected host
 				 */
-				invoke("tauri_call", { command: "host", args: args }).then((response) => {
-					outputMessage(response as ConsoleMessage);
-				});
+
 				break;
 			case "output":
 				/*
@@ -125,9 +125,7 @@ function App() {
 				 * 
 				 * list: list all outputs
 				 */
-				invoke("tauri_call", { command: "output", args: args }).then((response) => {
-					outputMessage(response as ConsoleMessage);
-				});
+
 				break;
 			case "input":
 				/*
@@ -136,9 +134,7 @@ function App() {
 				 * 
 				 * list: list all outputs
 				 */
-				invoke("tauri_call", { command: "input", args: args }).then((response) => {
-					outputMessage(response as ConsoleMessage);
-				});
+
 				break;
 			case "config":
 				/*
@@ -149,9 +145,7 @@ function App() {
 				 * load: load config from file -- requires filename
 				 * save: save config to file -- requires filename
 				 */
-				invoke("tauri_call", { command: "config", args: args }).then((response) => {
-					outputMessage(response as ConsoleMessage);
-				});
+
 				break;
 			case "exit":
 
@@ -160,9 +154,7 @@ function App() {
 				outputMessage({ kind: "Console", message: "You have been reaved." });
 				break;
 			case "sine":
-				invoke("tauri_call", { command: "sine", args: args }).then((response) => {
-					outputMessage(response as ConsoleMessage);
-				});
+				appWindow.emit("audio-test", { payload: args.join(" ") });
 				break;
 			case "":
 				break;
@@ -199,8 +191,8 @@ function App() {
 	// Runs once on app load
 	useEffect(() => {
 		debug("React App finished loading, now calling Tauri.")
-		invoke("tauri_init").then((response) => {
-			debug("Result from tauri_init" + response);
+		invoke("run").then((response) => {
+			debug("Result from run: " + response);
 			outputMessage({ kind: "Console", message: "Welcome to w4113. Type 'help' for a list of commands." });
 		});
 	}, []);

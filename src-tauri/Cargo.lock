@@ -3875,6 +3875,7 @@ version = "0.0.0"
 dependencies = [
  "cpal",
  "fundsp",
+ "lazy_static",
  "log",
  "serde",
  "serde_json",
