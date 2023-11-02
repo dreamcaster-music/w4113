@@ -1,19 +1,29 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod audio;
 mod config;
 
-use config::Config;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use lazy_static::lazy_static;
 use log::{debug, LevelFilter};
 use std::{
     fmt::{Display, Formatter},
-    sync::Mutex,
+    sync::{Mutex, Arc}, time::Duration,
 };
 use tauri::Manager;
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
+
+static CONFIG_FILE: &str = "target/config.json";
+static CONFIG_ROOT: &str = "target/config/";
+
+// The current configuration
+lazy_static!{
+	static ref CONFIG: Mutex<config::Config> = Mutex::new(config::Config::empty());
+
+	static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
+	static ref OUTPUT: Mutex<Option<cpal::Device>> = Mutex::new(None);
+	static ref INPUT: Mutex<Option<cpal::Device>> = Mutex::new(None);
+}	
 
 /// ## MessageKind
 ///
@@ -72,78 +82,75 @@ struct ConsoleMessage {
 ///
 /// * `String` - The result of the command, formatted as a string
 #[tauri::command]
-async fn run(window: tauri::Window) -> String {
-    let result = match event_loop(window).await {
+fn run(window: tauri::Window) -> String {
+    let result = match init(window) {
         Ok(()) => "Initialization ran successfully".to_owned(),
         Err(e) => format!("Error in initialization: {}", e),
     };
+	
+	// make sure CONFIG_ROOT exists; do nothing if it already exists
+	std::fs::create_dir_all(CONFIG_ROOT).unwrap_or_default();
+
+	let config = config::Config::load_from_file(CONFIG_FILE);
+	let config_path = match config {
+		Ok(mut config) => {
+			debug!("Loaded config from {}", CONFIG_FILE);
+			match config.get_or("config", || "default.json".to_owned()) {
+				Ok(config_path) => {
+					let path = CONFIG_ROOT.to_owned() + &config_path;
+					let _ = config.save_to_file(CONFIG_FILE);
+					path
+				},
+				Err(e) => {
+					debug!("Error loading config: {}", e);
+					let _ = config.save_to_file(CONFIG_FILE);
+					CONFIG_ROOT.to_owned() + "default.json"
+				}
+			}
+		}
+		Err(e) => {
+			debug!("Error loading config: {}", e);
+			CONFIG_ROOT.to_owned() + "default.json"
+		}
+	};
+
+	let config = config::Config::load_from_file(&config_path);
+	let mut config = match config {
+		Ok(config) => {
+			debug!("Loaded config from {}", config_path);
+			config
+		}
+		Err(e) => {
+			debug!("Error loading config: {}", e);
+			config::Config::empty()
+		}
+	};
+
+	let _ = config.save_to_file(config_path.as_str());
 
     debug!("{}", result);
     result
 }
 
-/// ## event_loop(window: tauri::Window) -> Result<(), String>
-///
-/// The event loop
-///
+/// ## init(window: tauri::Window) -> Result<(), String>
+/// 
+/// Initializes the program.
+/// 
 /// ### Arguments
-///
+/// 
 /// * `window: tauri::Window` - The window
-///
+/// 
 /// ### Returns
-///
-/// * `Ok(())` - The event loop ran successfully
-/// * `Err(String)` - The error message
-async fn event_loop(window: tauri::Window) -> Result<(), String> {
+/// 
+/// * `Result<(), String>` - The result of the command
+fn init(window: tauri::Window) -> Result<(), String> {
     debug!("Initializing Tauri");
-    let mut audio_properties: Option<audio::Properties> = None;
+    
 
-    // Create the config directory if it does not exist
-    std::fs::create_dir_all(config::CONFIG_ROOT).map_err(|e| e.to_string())?;
-
-    // The w4113 config ONLY stores the location of the default config
-    let config = Config::load("../config.json")?;
-    let config_location = &config.json()["config"].as_str();
-    let config = match config_location {
-        Some(location) => {
-            debug!("Config location: {}", location);
-            let config = Config::load(location)?;
-            audio_properties = Some(audio::Properties::from_config(&config)?);
-            Some(config)
-        }
-        None => {
-            debug!("No config location specified");
-            audio_properties = Some(audio::Properties::empty());
-            None
-        }
-    };
-
-    debug!("Loading audio properties");
-
-    let mut audio_properties = match audio_properties {
-        Some(properties) => properties,
-        None => {
-            debug!("No audio properties found");
-            return Err("Could not load audio properties".to_owned());
-        }
-    };
 
     // Make the window visible
     debug!("Calling window.show()");
     window.show().map_err(|e| e.to_string())?;
-
-    // create event loop
-    tauri::async_runtime::spawn(async move {
-        loop {
-            window.listen("audio-test", |event| {
-                let message = event.payload().unwrap();
-                debug!("Received event: {}", message);
-            });
-
-            std::thread::sleep(std::time::Duration::from_millis(100));
-        }
-    });
-
     Ok(())
 }
 
@@ -161,7 +168,9 @@ fn main() {
                 .level(LevelFilter::Debug)
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![run])
+        .invoke_handler(tauri::generate_handler![
+			run
+			])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

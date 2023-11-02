@@ -6,6 +6,7 @@ import { debug } from "tauri-plugin-log-api";
 import { ConsoleMessage } from "./bindings/ConsoleMessage";
 import { appWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
+import { FreqMessage } from "./bindings/FreqMessage";
 
 /**
  * ## App()
@@ -86,7 +87,7 @@ function App() {
 				 * Displays list of available commands
 				 * Displays help for command -- requires command
 				 */
-				outputMessage({ kind: "Console", message: "Available commands: help, clear, about, host, output, input, config, sine, reave, exit" });
+				outputMessage({ kind: "Console", message: ["Available commands: help, clear, about, host, output, input, config, sine, reave, exit"] });
 				break;
 			case "clear":
 				/*
@@ -95,7 +96,7 @@ function App() {
 				 * 
 				 * Clears the console
 				 */
-				setConsoleOutput([{ kind: "User", message: "clear" }]);
+				setConsoleOutput([{ kind: "User", message: ["clear"] }]);
 				break;
 			case "about":
 				/*
@@ -104,8 +105,8 @@ function App() {
 				 * 
 				 * Displays about message
 				 */
-				outputMessage({ kind: "Console", message: "(w4113 pre-alpha) by dreamcaster: written by ronin beaver and wesley studt" });
-				outputMessage({ kind: "Console", message: "prepare to get vaporized meatbags" });
+				outputMessage({ kind: "Console", message: ["(w4113 alpha) by dreamcaster: written by ronin beaver and wesley studt"] });
+				outputMessage({ kind: "Console", message: ["prepare to get vaporized meatbags"] });
 				break;
 			case "host":
 				/*
@@ -145,21 +146,80 @@ function App() {
 				 * load: load config from file -- requires filename
 				 * save: save config to file -- requires filename
 				 */
+				if (args.length < 1) {
+					outputMessage({ kind: "Error", message: ["Not enough arguments for config command."] });
+					outputMessage({ kind: "Error", message: ["Usage: config [show|load|save] [filename]"] });
+					break;
+				}
 
+				let configCommand = args[0];
+
+				switch (configCommand) {
+					case "show":
+						invoke("config_show").then((response) => {
+							debug("Result from config show: " + response);
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					case "load":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for load config command."] });
+							outputMessage({ kind: "Error", message: ["Usage: config load [filename]"] });
+							break;
+						}
+						let loadConfigFilename = args[1];
+						invoke("config_load", { filename: loadConfigFilename }).then((response) => {
+							debug("Result from config load: " + response);
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					case "save":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for save config command."] });
+							outputMessage({ kind: "Error", message: ["Usage: config save [filename]"] });
+							break;
+						}
+						let saveConfigFilename = args[1];
+						invoke("config_save", { filename: saveConfigFilename }).then((response) => {
+							debug("Result from config save: " + response);
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					default:
+						outputMessage({ kind: "Error", message: ["Invalid config command: " + configCommand] });
+						outputMessage({ kind: "Error", message: ["Usage: config [show|load|save] [filename]"] });
+						break;
+				}
 				break;
 			case "exit":
 
 				break;
 			case "reave":
-				outputMessage({ kind: "Console", message: "You have been reaved." });
+				outputMessage({ kind: "Console", message: ["You have been reaved."] });
 				break;
 			case "sine":
-				appWindow.emit("audio-test", { payload: args.join(" ") });
+				/*
+				 * Sine command
+				 * Usage: sine [frequency] [amplitude] [duration]
+				 * 
+				 * Plays a sine wave of frequency [frequency] Hz, amplitude [amplitude], and duration [duration] seconds
+				 */
+				if (args.length < 3) {
+					outputMessage({ kind: "Error", message: ["Not enough arguments for sine command."] });
+					outputMessage({ kind: "Error", message: ["Usage: sine [frequency] [amplitude] [duration]"] });
+					break;
+				}
+				let freq = parseFloat(args[0]);
+				let amp = parseFloat(args[1]);
+				let dur = parseFloat(args[2]);
+				invoke("sine", { frequency: freq, amplitude: amp, duration: dur }).then((response) => {
+					debug("Result from sine: " + response);
+				});
 				break;
 			case "":
 				break;
 			default:
-				outputMessage({ kind: "Error", message: "Command not found: " + command });
+				outputMessage({ kind: "Error", message: ["Command not found: " + command] });
 				break;
 		}
 	}
@@ -193,7 +253,7 @@ function App() {
 		debug("React App finished loading, now calling Tauri.")
 		invoke("run").then((response) => {
 			debug("Result from run: " + response);
-			outputMessage({ kind: "Console", message: "Welcome to w4113. Type 'help' for a list of commands." });
+			outputMessage({ kind: "Console", message: ["Welcome to w4113. Type 'help' for a list of commands."] });
 		});
 	}, []);
 
