@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod config;
+mod audio;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use lazy_static::lazy_static;
