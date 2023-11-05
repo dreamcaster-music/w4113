@@ -68,6 +68,64 @@ struct ConsoleMessage {
     message: Vec<String>,
 }
 
+fn on_config_update(config: &mut config::Config) {
+	let host_name = match config.get_or("audio.host", || "default".to_owned()) {
+		Ok(host_name) => host_name,
+		Err(e) => {
+			debug!("Error getting audio.host: {}", e);
+			"default".to_owned()
+		}
+	};
+
+	let host = audio::get_host(&host_name);
+
+	let input_name = match config.get_or("audio.input", || "default".to_owned()) {
+		Ok(input_name) => input_name,
+		Err(e) => {
+			debug!("Error getting audio.input: {}", e);
+			"default".to_owned()
+		}
+	};
+
+	let output_name = match config.get_or("audio.output", || "default".to_owned()) {
+		Ok(output_name) => output_name,
+		Err(e) => {
+			debug!("Error getting audio.output: {}", e);
+			"default".to_owned()
+		}
+	};
+
+	let input_device = audio::get_input_device(&input_name, &host);
+	let output_device = audio::get_output_device(&output_name, &host);
+
+	match audio::HOST.lock() {
+		Ok(mut host_mutex) => {
+			*host_mutex = Some(host);
+		}
+		Err(e) => {
+			debug!("Error locking HOST: {}", e);
+		}
+	}
+
+	match audio::INPUT.lock() {
+		Ok(mut input_device_mutex) => {
+			*input_device_mutex = input_device;
+		}
+		Err(e) => {
+			debug!("Error locking INPUT_DEVICE: {}", e);
+		}
+	}
+
+	match audio::OUTPUT.lock() {
+		Ok(mut output_device_mutex) => {
+			*output_device_mutex = output_device;
+		}
+		Err(e) => {
+			debug!("Error locking OUTPUT_DEVICE: {}", e);
+		}
+	}
+}
+
 /// ## run(_window: tauri::Window) -> String
 ///
 /// The run command
@@ -125,6 +183,7 @@ fn run(window: tauri::Window) -> String {
     };
 
     let _ = config.save_to_file(config_path.as_str());
+	config.on_update(on_config_update);
 
     // Set CONFIG to the loaded config
     match CONFIG.lock() {
@@ -259,17 +318,19 @@ fn config_load(filename: &str) -> ConsoleMessage {
         }
     };
 
+	let config_partial_clone = config.partial_clone();
+
     // Set CONFIG to the loaded config
     match CONFIG.lock() {
         Ok(mut config_mutex) => {
-            *config_mutex = config.clone();
+            *config_mutex = config;
         }
         Err(e) => {
             debug!("Error locking CONFIG: {}", e);
         }
     }
 
-    let json = config.json().to_string();
+    let json = config_partial_clone.json().to_string();
     ConsoleMessage {
         kind: MessageKind::Console,
         message: json.lines().map(|s| s.to_owned()).collect(),
@@ -400,10 +461,18 @@ fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage {
 			let device = audio::get_output_device(device_name, host);
 			match device {
 				Some(device) => {
-					let _ = set_global_config_value("audio.output", device_name);
+					let actual_device_name = match device.name() {
+						Ok(name) => name,
+						Err(e) => {
+							debug!("Error getting device name: {}", e);
+							device_name.to_owned()
+						}
+					};
+					
+					let _ = set_global_config_value("audio.output", actual_device_name.as_str());
 					ConsoleMessage {
 						kind: MessageKind::Console,
-						message: vec![format!("Selected output device {}", device_name)],
+						message: vec![format!("Selected output device {}", actual_device_name)],
 					}
 				}
 				None => ConsoleMessage {
@@ -488,10 +557,18 @@ fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
 			let device = audio::get_input_device(device_name, host);
 			match device {
 				Some(device) => {
-					let _ = set_global_config_value("audio.input", device_name);
+					let actual_device_name = match device.name() {
+						Ok(name) => name,
+						Err(e) => {
+							debug!("Error getting device name: {}", e);
+							device_name.to_owned()
+						}
+					};
+
+					let _ = set_global_config_value("audio.input", actual_device_name.as_str());
 					ConsoleMessage {
 						kind: MessageKind::Console,
-						message: vec![format!("Selected input device {}", device_name)],
+						message: vec![format!("Selected input device {}", actual_device_name)],
 					}
 				}
 				None => ConsoleMessage {

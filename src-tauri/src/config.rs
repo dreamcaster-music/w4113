@@ -3,7 +3,6 @@
 //! This module is used for anything related to configuration and in the filesystem.
 
 use log::debug;
-use serde_json::Value;
 
 /// ## State
 ///
@@ -25,6 +24,7 @@ pub enum State {
 ///
 /// ### Fields
 ///
+/// * `on_update: Option<Box<dyn Fn(&mut Config)>>` - The function to call when the config is updated
 /// * `state: State` - The state of the config
 /// * `json: serde_json::Value` - The JSON value of the config
 ///
@@ -36,8 +36,8 @@ pub enum State {
 /// * `empty() -> Self` - Creates an empty config
 /// * `load_from_file(path: &str) -> Result<Self, String>` - Loads a config from a file
 /// * `save_to_file(&mut self, path: &str) -> Result<(), String>` - Saves a config to a file
-#[derive(Clone)]
 pub struct Config {
+	on_update: Option<Box<dyn Fn(&mut Config) + Send>>,
     state: State,
     json: serde_json::Value,
 }
@@ -142,6 +142,7 @@ impl Config {
             Ok(json) => {
                 *json = serde_json::Value::String(value.to_string());
                 self.state = State::Unsaved;
+				self.run_update();
             }
             Err(err) => {
                 debug!("Error setting config key {}: {}", key, err);
@@ -202,6 +203,7 @@ impl Config {
     /// * `Self` - The config
     pub fn empty() -> Self {
         Self {
+			on_update: None,
             state: State::Unsaved,
             json: serde_json::Value::Null,
         }
@@ -235,6 +237,7 @@ impl Config {
         let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
         let json = serde_json::from_reader(file).map_err(|e| e.to_string())?;
         Ok(Self {
+			on_update: None,
             state: State::Saved,
             json,
         })
@@ -264,6 +267,67 @@ impl Config {
         let file = std::fs::File::create(path).map_err(|e| e.to_string())?;
         serde_json::to_writer_pretty(file, &self.json).map_err(|e| e.to_string())?;
         self.state = State::Saved;
+		self.run_update();
         Ok(())
     }
+
+	/// ## on_update(&mut self, f: impl Fn(&mut Config) + 'static)
+	/// 
+	/// Sets the function to call when the config is updated.
+	/// Note that on_update is called once after being set.
+	/// on_update is called when the config is saved or changed.
+	/// Note that on_update is always called AFTER a change.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&mut self` - The config
+	/// * `f: impl Fn(&mut Config) + 'static` - The function to call
+	/// 
+	/// ### Examples
+	/// 
+	/// ```
+	/// let mut config = config::Config::empty();
+	/// config.on_update(|config| {
+	/// 	println!("Config updated!");
+	/// });
+	pub fn on_update(&mut self, f: impl Fn(&mut Config) + Send + 'static) {
+		self.on_update = Some(Box::new(f));
+		self.run_update();
+	}
+
+	/// ## run_update(&mut self)
+	/// 
+	/// Private function which runs the on_update function.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&mut self` - The config
+	fn run_update(&mut self) {
+		let mut partial_clone = self.partial_clone();
+		match &self.on_update {
+			Some(f) => f(&mut partial_clone),
+			None => (),
+		}
+		self.state = partial_clone.state;
+		self.json = partial_clone.json;
+	}
+
+	/// ## partial_clone(&self) -> Self
+	/// 
+	/// Clones the config, but without the on_update function.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&self` - The config
+	/// 
+	/// ### Returns
+	/// 
+	/// * `Self` - The config
+	pub fn partial_clone(&self) -> Self {
+		Self {
+			on_update: None,
+			state: self.state.clone(),
+			json: self.json.clone(),
+		}
+	}
 }
