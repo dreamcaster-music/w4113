@@ -117,7 +117,37 @@ function App() {
 				 * select: select host -- requires host
 				 * clear: clear selected host
 				 */
+				if (args.length < 1) {
+					outputMessage({ kind: "Error", message: ["Not enough arguments for host command."] });
+					outputMessage({ kind: "Error", message: ["Usage: host [list|select|clear] [host]"] });
+					break;
+				}
 
+				let hostCommand = args[0];
+				switch (hostCommand) {
+					case "list":
+						invoke("host_list").then((response) => {
+							debug("Result from host list: " + response);
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					case "select":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for select host command."] });
+							outputMessage({ kind: "Error", message: ["Usage: host select [host]"] });
+							break;
+						}
+						let selectHost = args[1];
+						invoke("host_select", { host: selectHost }).then((response) => {
+							debug("Result from host select: " + response);
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					default:
+						outputMessage({ kind: "Error", message: ["Invalid host command: " + hostCommand] });
+						outputMessage({ kind: "Error", message: ["Usage: host [list|select|clear] [host]"] });
+						break;
+				}
 				break;
 			case "output":
 				/*
@@ -126,7 +156,25 @@ function App() {
 				 * 
 				 * list: list all outputs
 				 */
+				if (args.length < 1) {
+					outputMessage({ kind: "Error", message: ["Not enough arguments for output command."] });
+					outputMessage({ kind: "Error", message: ["Usage: output [list]"] });
+					break;
+				}
 
+				let outputCommand = args[0];
+				switch (outputCommand) {
+					case "list":
+						invoke("output_list").then((response) => {
+							debug("Result from output list: " + response);
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					default:
+						outputMessage({ kind: "Error", message: ["Invalid output command: " + outputCommand] });
+						outputMessage({ kind: "Error", message: ["Usage: output [list]"] });
+						break;
+				}
 				break;
 			case "input":
 				/*
@@ -136,6 +184,25 @@ function App() {
 				 * list: list all outputs
 				 */
 
+				if (args.length < 1) {
+					outputMessage({ kind: "Error", message: ["Not enough arguments for input command."] });
+					outputMessage({ kind: "Error", message: ["Usage: input [list]"] });
+					break;
+				}
+
+				let inputCommand = args[0];
+				switch (inputCommand) {
+					case "list":
+						invoke("input_list").then((response) => {
+							debug("Result from input list: " + response);
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					default:
+						outputMessage({ kind: "Error", message: ["Invalid input command: " + inputCommand] });
+						outputMessage({ kind: "Error", message: ["Usage: input [list]"] });
+						break;
+				}
 				break;
 			case "config":
 				/*
@@ -238,7 +305,7 @@ function App() {
 	function handleInput(event: any) {
 		if (event.key === "Enter") {
 			// Add command to output
-			outputMessage({ kind: "User", message: event.target.value });
+			outputMessage({ kind: "User", message: [event.target.value] });
 
 			// Send command to command handler
 			runCommand(event.target.value);
@@ -267,13 +334,21 @@ function App() {
 	let output =
 		<>
 			{consoleOutput.map((message, index) => {
+				let content = "";
+				for (let i = 0; i < message.message.length; i++) {
+					content += message.message[i];
+					if (i < message.message.length - 1) {
+						content += "\n";
+					}
+				}
+
 				switch (message.kind) {
 					case "User":
-						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-user"> {"> " + message.message}</p>;
+						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-user"> {"> " + content}</p>;
 					case "Console":
-						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-command">{message.message}</p>;
+						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-command">{content}</p>;
 					case "Error":
-						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-error">{message.message}</p>;
+						return <p key={index} style={{ fontSize: textSize + "px" }} className="console-error">{content}</p>;
 					default:
 						return <></>;
 				}
