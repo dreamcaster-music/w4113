@@ -323,7 +323,7 @@ function App() {
 				let freq = parseFloat(args[0]);
 				let amp = parseFloat(args[1]);
 				let dur = parseFloat(args[2]);
-				invoke("sine", { frequency: freq, amplitude: amp, duration: dur }).then((response) => {
+				invoke("sine").then((response) => {
 					debug("Result from sine: " + strValue(response as ConsoleMessage));
 				});
 				break;

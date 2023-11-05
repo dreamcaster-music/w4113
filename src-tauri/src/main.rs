@@ -69,61 +69,61 @@ struct ConsoleMessage {
 }
 
 fn on_config_update(config: &mut config::Config) {
-	let host_name = match config.get_or("audio.host", || "default".to_owned()) {
-		Ok(host_name) => host_name,
-		Err(e) => {
-			debug!("Error getting audio.host: {}", e);
-			"default".to_owned()
-		}
-	};
+    let host_name = match config.get_or("audio.host", || "default".to_owned()) {
+        Ok(host_name) => host_name,
+        Err(e) => {
+            debug!("Error getting audio.host: {}", e);
+            "default".to_owned()
+        }
+    };
 
-	let host = audio::get_host(&host_name);
+    let host = audio::get_host(&host_name);
 
-	let input_name = match config.get_or("audio.input", || "default".to_owned()) {
-		Ok(input_name) => input_name,
-		Err(e) => {
-			debug!("Error getting audio.input: {}", e);
-			"default".to_owned()
-		}
-	};
+    let input_name = match config.get_or("audio.input", || "default".to_owned()) {
+        Ok(input_name) => input_name,
+        Err(e) => {
+            debug!("Error getting audio.input: {}", e);
+            "default".to_owned()
+        }
+    };
 
-	let output_name = match config.get_or("audio.output", || "default".to_owned()) {
-		Ok(output_name) => output_name,
-		Err(e) => {
-			debug!("Error getting audio.output: {}", e);
-			"default".to_owned()
-		}
-	};
+    let output_name = match config.get_or("audio.output", || "default".to_owned()) {
+        Ok(output_name) => output_name,
+        Err(e) => {
+            debug!("Error getting audio.output: {}", e);
+            "default".to_owned()
+        }
+    };
 
-	let input_device = audio::get_input_device(&input_name, &host);
-	let output_device = audio::get_output_device(&output_name, &host);
+    let input_device = audio::get_input_device(&input_name, &host);
+    let output_device = audio::get_output_device(&output_name, &host);
 
-	match audio::HOST.lock() {
-		Ok(mut host_mutex) => {
-			*host_mutex = Some(host);
-		}
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-		}
-	}
+    match audio::HOST.lock() {
+        Ok(mut host_mutex) => {
+            *host_mutex = Some(host);
+        }
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+        }
+    }
 
-	match audio::INPUT.lock() {
-		Ok(mut input_device_mutex) => {
-			*input_device_mutex = input_device;
-		}
-		Err(e) => {
-			debug!("Error locking INPUT_DEVICE: {}", e);
-		}
-	}
+    match audio::INPUT_DEVICE.lock() {
+        Ok(mut input_device_mutex) => {
+            *input_device_mutex = input_device;
+        }
+        Err(e) => {
+            debug!("Error locking INPUT_DEVICE: {}", e);
+        }
+    }
 
-	match audio::OUTPUT.lock() {
-		Ok(mut output_device_mutex) => {
-			*output_device_mutex = output_device;
-		}
-		Err(e) => {
-			debug!("Error locking OUTPUT_DEVICE: {}", e);
-		}
-	}
+    match audio::OUTPUT_DEVICE.lock() {
+        Ok(mut output_device_mutex) => {
+            *output_device_mutex = output_device;
+        }
+        Err(e) => {
+            debug!("Error locking OUTPUT_DEVICE: {}", e);
+        }
+    }
 }
 
 /// ## run(_window: tauri::Window) -> String
@@ -138,7 +138,7 @@ fn on_config_update(config: &mut config::Config) {
 ///
 /// * `String` - The result of the command, formatted as a string
 #[tauri::command]
-fn run(window: tauri::Window) -> String {
+async fn run(window: tauri::Window) -> String {
     let result = match init(window) {
         Ok(()) => "Initialization ran successfully".to_owned(),
         Err(e) => format!("Error in initialization: {}", e),
@@ -183,7 +183,7 @@ fn run(window: tauri::Window) -> String {
     };
 
     let _ = config.save_to_file(config_path.as_str());
-	config.on_update(on_config_update);
+    config.on_update(on_config_update);
 
     // Set CONFIG to the loaded config
     match CONFIG.lock() {
@@ -227,7 +227,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
 ///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn config_show() -> ConsoleMessage {
+async fn config_show() -> ConsoleMessage {
     let config = CONFIG.lock();
     let config = match config {
         Ok(config) => config,
@@ -259,7 +259,7 @@ fn config_show() -> ConsoleMessage {
 ///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn config_save(filename: &str) -> ConsoleMessage {
+async fn config_save(filename: String) -> ConsoleMessage {
     let filename = match filename.strip_suffix(".json") {
         Some(filename) => format!("{}.json", filename),
         None => format!("{}.json", filename),
@@ -287,18 +287,18 @@ fn config_save(filename: &str) -> ConsoleMessage {
 }
 
 /// ## config_load(filename: &str) -> ConsoleMessage
-/// 
+///
 /// Loads a config from a file.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `filename: &str` - The name of the file to load from
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn config_load(filename: &str) -> ConsoleMessage {
+async fn config_load(filename: String) -> ConsoleMessage {
     let filename = match filename.strip_suffix(".json") {
         Some(filename) => format!("{}.json", filename),
         None => format!("{}.json", filename),
@@ -318,7 +318,7 @@ fn config_load(filename: &str) -> ConsoleMessage {
         }
     };
 
-	let config_partial_clone = config.partial_clone();
+    let config_partial_clone = config.partial_clone();
 
     // Set CONFIG to the loaded config
     match CONFIG.lock() {
@@ -345,7 +345,7 @@ fn config_load(filename: &str) -> ConsoleMessage {
 ///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn host_list(_window: tauri::Window) -> ConsoleMessage {
+async fn host_list(_window: tauri::Window) -> ConsoleMessage {
     let hosts = audio::list_hosts();
 
     ConsoleMessage {
@@ -355,18 +355,18 @@ fn host_list(_window: tauri::Window) -> ConsoleMessage {
 }
 
 /// ## host_select(_window: tauri::Window, host_name: &str) -> ConsoleMessage
-/// 
+///
 /// Selects a host.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `host_name: &str` - The name of the host to select
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
+async fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
     let host = audio::get_host(&host);
     let host_name = &host.id().name();
 
@@ -393,14 +393,14 @@ fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
 }
 
 /// ## output_list(_window: tauri::Window) -> ConsoleMessage
-/// 
+///
 /// Lists all available output devices.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn output_list(_window: tauri::Window) -> ConsoleMessage {
+async fn output_list(_window: tauri::Window) -> ConsoleMessage {
     let host = audio::HOST.lock();
 
     let host = match host {
@@ -430,73 +430,73 @@ fn output_list(_window: tauri::Window) -> ConsoleMessage {
 }
 
 /// ## output_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage
-/// 
+///
 /// Selects an output device.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `device_name: &str` - The name of the device to select
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage {
-	let host = audio::HOST.lock();
-	let device_name = output.as_str();
+async fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage {
+    let host = audio::HOST.lock();
+    let device_name = output.as_str();
 
-	let host = match host {
-		Ok(host) => host,
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking HOST: {}", e)],
-			};
-		}
-	};
+    let host = match host {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking HOST: {}", e)],
+            };
+        }
+    };
 
-	match host.as_ref() {
-		Some(host) => {
-			let device = audio::get_output_device(device_name, host);
-			match device {
-				Some(device) => {
-					let actual_device_name = match device.name() {
-						Ok(name) => name,
-						Err(e) => {
-							debug!("Error getting device name: {}", e);
-							device_name.to_owned()
-						}
-					};
-					
-					let _ = set_global_config_value("audio.output", actual_device_name.as_str());
-					ConsoleMessage {
-						kind: MessageKind::Console,
-						message: vec![format!("Selected output device {}", actual_device_name)],
-					}
-				}
-				None => ConsoleMessage {
-					kind: MessageKind::Error,
-					message: vec![format!("No output device named {}", device_name)],
-				},
-			}
-		}
-		None => ConsoleMessage {
-			kind: MessageKind::Error,
-			message: vec![format!("No host selected")],
-		},
-	}
+    match host.as_ref() {
+        Some(host) => {
+            let device = audio::get_output_device(device_name, host);
+            match device {
+                Some(device) => {
+                    let actual_device_name = match device.name() {
+                        Ok(name) => name,
+                        Err(e) => {
+                            debug!("Error getting device name: {}", e);
+                            device_name.to_owned()
+                        }
+                    };
+
+                    let _ = set_global_config_value("audio.output", actual_device_name.as_str());
+                    ConsoleMessage {
+                        kind: MessageKind::Console,
+                        message: vec![format!("Selected output device {}", actual_device_name)],
+                    }
+                }
+                None => ConsoleMessage {
+                    kind: MessageKind::Error,
+                    message: vec![format!("No output device named {}", device_name)],
+                },
+            }
+        }
+        None => ConsoleMessage {
+            kind: MessageKind::Error,
+            message: vec![format!("No host selected")],
+        },
+    }
 }
 
 /// ## input_list(_window: tauri::Window) -> ConsoleMessage
-/// 
+///
 /// Lists all available input devices.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn input_list(_window: tauri::Window) -> ConsoleMessage {
+async fn input_list(_window: tauri::Window) -> ConsoleMessage {
     let host = audio::HOST.lock();
 
     let host = match host {
@@ -526,75 +526,75 @@ fn input_list(_window: tauri::Window) -> ConsoleMessage {
 }
 
 /// ## input_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage
-/// 
+///
 /// Selects an input device.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `device_name: &str` - The name of the device to select
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
-	let host = audio::HOST.lock();
-	let device_name = input.as_str();
+async fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
+    let host = audio::HOST.lock();
+    let device_name = input.as_str();
 
-	let host = match host {
-		Ok(host) => host,
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking HOST: {}", e)],
-			};
-		}
-	};
+    let host = match host {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking HOST: {}", e)],
+            };
+        }
+    };
 
-	match host.as_ref() {
-		Some(host) => {
-			let device = audio::get_input_device(device_name, host);
-			match device {
-				Some(device) => {
-					let actual_device_name = match device.name() {
-						Ok(name) => name,
-						Err(e) => {
-							debug!("Error getting device name: {}", e);
-							device_name.to_owned()
-						}
-					};
+    match host.as_ref() {
+        Some(host) => {
+            let device = audio::get_input_device(device_name, host);
+            match device {
+                Some(device) => {
+                    let actual_device_name = match device.name() {
+                        Ok(name) => name,
+                        Err(e) => {
+                            debug!("Error getting device name: {}", e);
+                            device_name.to_owned()
+                        }
+                    };
 
-					let _ = set_global_config_value("audio.input", actual_device_name.as_str());
-					ConsoleMessage {
-						kind: MessageKind::Console,
-						message: vec![format!("Selected input device {}", actual_device_name)],
-					}
-				}
-				None => ConsoleMessage {
-					kind: MessageKind::Error,
-					message: vec![format!("No input device named {}", device_name)],
-				},
-			}
-		}
-		None => ConsoleMessage {
-			kind: MessageKind::Error,
-			message: vec![format!("No host selected")],
-		},
-	}
+                    let _ = set_global_config_value("audio.input", actual_device_name.as_str());
+                    ConsoleMessage {
+                        kind: MessageKind::Console,
+                        message: vec![format!("Selected input device {}", actual_device_name)],
+                    }
+                }
+                None => ConsoleMessage {
+                    kind: MessageKind::Error,
+                    message: vec![format!("No input device named {}", device_name)],
+                },
+            }
+        }
+        None => ConsoleMessage {
+            kind: MessageKind::Error,
+            message: vec![format!("No host selected")],
+        },
+    }
 }
 
 /// ## set_global_config_value(key: &str, value: &str) -> Result<(), String>
-/// 
+///
 /// Sets a value in the global config.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `key: &str` - The key to set
 /// * `value: &str` - The value to set
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Ok(())` - The result of the command
 /// * `Err(String)` - The result of the command
 fn set_global_config_value(key: &str, value: &str) -> Result<(), String> {
@@ -609,6 +609,9 @@ fn set_global_config_value(key: &str, value: &str) -> Result<(), String> {
     config.set(key, value);
     Ok(())
 }
+
+#[tauri::command]
+async fn sine() {}
 
 /// ## main()
 ///
@@ -632,9 +635,9 @@ fn main() {
             host_list,
             host_select,
             output_list,
-			output_select,
+            output_select,
             input_list,
-			input_select,
+            input_select,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
