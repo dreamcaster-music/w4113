@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke as tauri_invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 import { debug } from "tauri-plugin-log-api";
 
@@ -7,6 +7,11 @@ import { ConsoleMessage } from "./bindings/ConsoleMessage";
 import { appWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { FreqMessage } from "./bindings/FreqMessage";
+
+function invoke<T>(command: string, args?: any): Promise<T> {
+	debug("Invoking Tauri command \"" + command + "\" with args [" + JSON.stringify(args) + "]");
+	return tauri_invoke(command, args);
+}
 
 /**
  * ## App()
@@ -34,6 +39,17 @@ function App() {
 		setConsoleOutput((prev) => [...prev, output]);
 	}
 
+	function strValue(message: ConsoleMessage): string {
+		let content = "";
+		for (let i = 0; i < message.message.length; i++) {
+			content += message.message[i];
+			if (i < message.message.length - 1) {
+				content += "\n";
+			}
+		}
+		return content;
+	}
+
 	/**
 	 * ## runCommand(executeCommand: string)
 	 * 
@@ -46,7 +62,9 @@ function App() {
 	 * @returns void
 	 */
 	function runCommand(executeCommand: string) {
-		debug("Command invoked from w4113 console:\n " + executeCommand);
+		// Replace “ and ” with "
+		executeCommand = executeCommand.replaceAll("“", "\"");
+		executeCommand = executeCommand.replaceAll("”", "\"");
 
 		// Split command into array of strings
 		let split = executeCommand.split(" ");
@@ -77,6 +95,8 @@ function App() {
 				}
 			}
 		}
+
+		debug("Command " + command + " with args [" + args + "] invoked from console");
 
 		switch (command) {
 			case "help":
@@ -127,7 +147,7 @@ function App() {
 				switch (hostCommand) {
 					case "list":
 						invoke("host_list").then((response) => {
-							debug("Result from host list: " + response);
+							debug("Result from host list: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
@@ -139,7 +159,7 @@ function App() {
 						}
 						let selectHost = args[1];
 						invoke("host_select", { host: selectHost }).then((response) => {
-							debug("Result from host select: " + response);
+							debug("Result from host select: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
@@ -166,7 +186,19 @@ function App() {
 				switch (outputCommand) {
 					case "list":
 						invoke("output_list").then((response) => {
-							debug("Result from output list: " + response);
+							debug("Result from output list: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					case "select":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for select output command."] });
+							outputMessage({ kind: "Error", message: ["Usage: output select [output]"] });
+							break;
+						}
+						let selectOutput = args[1];
+						invoke("output_select", { output: selectOutput }).then((response) => {
+							debug("Result from output select: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
@@ -194,7 +226,19 @@ function App() {
 				switch (inputCommand) {
 					case "list":
 						invoke("input_list").then((response) => {
-							debug("Result from input list: " + response);
+							debug("Result from input list: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					case "select":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for select input command."] });
+							outputMessage({ kind: "Error", message: ["Usage: input select [input]"] });
+							break;
+						}
+						let selectInput = args[1];
+						invoke("input_select", { input: selectInput }).then((response) => {
+							debug("Result from input select: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
@@ -224,7 +268,7 @@ function App() {
 				switch (configCommand) {
 					case "show":
 						invoke("config_show").then((response) => {
-							debug("Result from config show: " + response);
+							debug("Result from config show: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
@@ -236,7 +280,7 @@ function App() {
 						}
 						let loadConfigFilename = args[1];
 						invoke("config_load", { filename: loadConfigFilename }).then((response) => {
-							debug("Result from config load: " + response);
+							debug("Result from config load: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
@@ -248,7 +292,7 @@ function App() {
 						}
 						let saveConfigFilename = args[1];
 						invoke("config_save", { filename: saveConfigFilename }).then((response) => {
-							debug("Result from config save: " + response);
+							debug("Result from config save: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
@@ -280,7 +324,7 @@ function App() {
 				let amp = parseFloat(args[1]);
 				let dur = parseFloat(args[2]);
 				invoke("sine", { frequency: freq, amplitude: amp, duration: dur }).then((response) => {
-					debug("Result from sine: " + response);
+					debug("Result from sine: " + strValue(response as ConsoleMessage));
 				});
 				break;
 			case "":

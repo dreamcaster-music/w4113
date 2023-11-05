@@ -220,88 +220,105 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
 }
 
 /// ## list_hosts() -> Vec<String>
-/// 
+///
 /// Lists all available hosts.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Vec<String>` - The list of hosts
 pub fn list_hosts() -> Vec<String> {
-	let mut hosts = Vec::new();
-	let host_ids = cpal::available_hosts();
-	for host_id in host_ids {
-		let host_id_name = host_id.name();
-		hosts.push(host_id_name.to_owned());
-	}
-	hosts
+    let mut hosts = Vec::new();
+    let host_ids = cpal::available_hosts();
+    for host_id in host_ids {
+        let host_id_name = host_id.name();
+        hosts.push(host_id_name.to_owned());
+    }
+    hosts
 }
 
 /// ## list_output_devices(host: &Host) -> Vec<String>
-/// 
+///
 /// Lists all available output devices on a host.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `host: &Host` - The host to search for devices on
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Vec<String>` - The list of output devices
 pub fn list_output_devices(host: &Host) -> Vec<String> {
-	let mut devices = Vec::new();
-	let output_devices = host.output_devices();
-	let output_devices = match output_devices {
-		Ok(output_devices) => output_devices,
-		Err(err) => {
-			debug!("Error getting output devices: {}", err);
-			return devices;
-		}
-	};
-	for output_device in output_devices {
-		let output_device_name = output_device.name();
-		let output_device_name = match output_device_name {
-			Ok(output_device_name) => output_device_name,
-			Err(err) => {
-				debug!("Error getting output device name: {}", err);
-				continue;
-			}
-		};
-		devices.push(output_device_name);
-	}
-	devices
+    let mut devices = Vec::new();
+    let output_devices = host.output_devices();
+    let output_devices = match output_devices {
+        Ok(output_devices) => output_devices,
+        Err(err) => {
+            debug!("Error getting output devices: {}", err);
+            return devices;
+        }
+    };
+    for output_device in output_devices {
+        let output_device_name = output_device.name();
+        let output_device_name = match output_device_name {
+            Ok(output_device_name) => output_device_name,
+            Err(err) => {
+                debug!("Error getting output device name: {}", err);
+                continue;
+            }
+        };
+        devices.push(output_device_name);
+    }
+    devices
 }
 
 /// ## list_input_devices(host: &Host) -> Vec<String>
-/// 
+///
 /// Lists all available input devices on a host.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `host: &Host` - The host to search for devices on
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Vec<String>` - The list of input devices
 pub fn list_input_devices(host: &Host) -> Vec<String> {
-	let mut devices = Vec::new();
-	let input_devices = host.input_devices();
-	let input_devices = match input_devices {
-		Ok(input_devices) => input_devices,
-		Err(err) => {
-			debug!("Error getting input devices: {}", err);
-			return devices;
-		}
-	};
-	for input_device in input_devices {
-		let input_device_name = input_device.name();
-		let input_device_name = match input_device_name {
-			Ok(input_device_name) => input_device_name,
-			Err(err) => {
-				debug!("Error getting input device name: {}", err);
-				continue;
-			}
-		};
-		devices.push(input_device_name);
-	}
-	devices
+    let mut devices = Vec::new();
+    let input_devices = host.input_devices();
+    let input_devices = match input_devices {
+        Ok(input_devices) => input_devices,
+        Err(err) => {
+            debug!("Error getting input devices: {}", err);
+            return devices;
+        }
+    };
+    for input_device in input_devices {
+        let input_device_name = input_device.name();
+        let input_device_name = match input_device_name {
+            Ok(input_device_name) => input_device_name,
+            Err(err) => {
+                debug!("Error getting input device name: {}", err);
+                continue;
+            }
+        };
+        devices.push(input_device_name);
+    }
+    devices
+}
+
+struct Channel {
+    direction: Direction,
+    channel_id: u16,
+}
+
+enum Direction {
+    Input,
+    Output,
+    None,
+}
+
+enum Channels {
+    Mono(Channel),
+    Stereo(Channel, Channel),
+    Custom(u16),
 }

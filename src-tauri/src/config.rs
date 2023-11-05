@@ -2,6 +2,9 @@
 //!
 //! This module is used for anything related to configuration and in the filesystem.
 
+use log::debug;
+use serde_json::Value;
+
 /// ## State
 ///
 /// Represents the state of a config.
@@ -40,6 +43,52 @@ pub struct Config {
 }
 
 impl Config {
+    /// ## translate(&mut self, string_value: &str) -> Result<&mut serde_json::Value, String>
+    ///
+    /// Private function which translates a string value into a JSON value.
+    /// JSON values are typically accessed by using a string value, such as "key.subkey.subsubkey",
+    /// but serde_json::Value does not support this, it does it by calling it like this:
+    /// ```
+    /// let mut config = config::load_from_file("config.json");
+    /// let value = config.json["key"]["subkey"]["subsubkey"];
+    /// ```
+    /// This function allows you to translate a string value into a JSON value that can be used by serde_json::Value.
+    ///
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `string_value: &str` - The string value
+    ///
+    /// ### Returns
+    ///
+    /// * `Ok(&mut serde_json::Value)` - The JSON value
+    /// * `Err(String)` - The result of the command
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// let mut config = config::load_from_file("config.json");
+    /// let value = config.translate("key.subkey.subsubkey");
+    /// ```
+    fn translate(&mut self, string_value: &str) -> Result<&mut serde_json::Value, String> {
+        let string_value = string_value.to_string();
+        let split: Vec<&str> = string_value.split(".").collect::<Vec<&str>>();
+
+        let mut value = &mut self.json;
+
+        for i in 0..split.len() {
+            let key = split[i];
+            match value[key] {
+                _ => {
+                    value = &mut value[key];
+                }
+            }
+        }
+
+        Ok(value)
+    }
+
     /// ## state(&self) -> &State
     ///
     /// Returns the state of the config.
@@ -55,20 +104,20 @@ impl Config {
         &self.state
     }
 
-	/// ## json(&self) -> &serde_json::Value
-	/// 
-	/// Returns the JSON value of the config.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&self` - The config
-	/// 
-	/// ### Returns
-	/// 
-	/// * `&serde_json::Value` - The JSON value of the config
-	pub fn json(&self) -> &serde_json::Value {
-		&self.json
-	}
+    /// ## json(&self) -> &serde_json::Value
+    ///
+    /// Returns the JSON value of the config.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&self` - The config
+    ///
+    /// ### Returns
+    ///
+    /// * `&serde_json::Value` - The JSON value of the config
+    pub fn json(&self) -> &serde_json::Value {
+        &self.json
+    }
 
     /// ## set(&mut self, key: &str, value: &str)
     ///
@@ -87,8 +136,17 @@ impl Config {
     /// config.set("key", "value");
     /// ```
     pub fn set(&mut self, key: &str, value: &str) {
-        self.json[key] = serde_json::Value::String(value.to_string());
-        self.state = State::Unsaved;
+        let json = self.translate(key);
+
+        match json {
+            Ok(json) => {
+                *json = serde_json::Value::String(value.to_string());
+                self.state = State::Unsaved;
+            }
+            Err(err) => {
+                debug!("Error setting config key {}: {}", key, err);
+            }
+        }
     }
 
     /// ## get_or(&mut self, key: &str, default: impl Fn() -> String) -> Result<String, String>
@@ -115,15 +173,21 @@ impl Config {
     /// let value = config.get_or("key", || "default".to_string());
     /// ```
     pub fn get_or(&mut self, key: &str, default: impl Fn() -> String) -> Result<String, String> {
-        let value = self.json.get(key);
+        let value = self.translate(key);
         match value {
-            Some(value) => match value.as_str() {
+            Ok(value) => match value.as_str() {
                 Some(value) => Ok(value.to_string()),
-                None => Err(format!("{} is not a string", key)),
+                None => {
+                    let default = default();
+                    self.set(key, &default);
+                    debug!("{} is not set. Setting to default value {}.", key, default);
+                    Ok(default)
+                }
             },
-            None => {
+            Err(err) => {
                 let default = default();
                 self.set(key, &default);
+                debug!("{} is not set. Setting to default value {}.", key, default);
                 Ok(default)
             }
         }

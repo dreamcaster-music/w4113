@@ -68,13 +68,13 @@ struct ConsoleMessage {
     message: Vec<String>,
 }
 
-/// ## run(window: tauri::Window) -> String
+/// ## run(_window: tauri::Window) -> String
 ///
 /// The run command
 ///
 /// ### Arguments
 ///
-/// * `window: tauri::Window` - The window
+/// * `_window: tauri::Window` - The window
 ///
 /// ### Returns
 ///
@@ -126,27 +126,27 @@ fn run(window: tauri::Window) -> String {
 
     let _ = config.save_to_file(config_path.as_str());
 
-	// Set CONFIG to the loaded config
-	match CONFIG.lock() {
-		Ok(mut config_mutex) => {
-			*config_mutex = config;
-		}
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-		}
-	}
+    // Set CONFIG to the loaded config
+    match CONFIG.lock() {
+        Ok(mut config_mutex) => {
+            *config_mutex = config;
+        }
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+        }
+    }
 
     debug!("{}", result);
     result
 }
 
-/// ## init(window: tauri::Window) -> Result<(), String>
+/// ## init(_window: tauri::Window) -> Result<(), String>
 ///
 /// Initializes the program.
 ///
 /// ### Arguments
 ///
-/// * `window: tauri::Window` - The window
+/// * `_window: tauri::Window` - The window
 ///
 /// ### Returns
 ///
@@ -161,153 +161,139 @@ fn init(window: tauri::Window) -> Result<(), String> {
 }
 
 /// ## config_show() -> ConsoleMessage
-/// 
+///
 /// Shows the current config.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
 fn config_show() -> ConsoleMessage {
-	let config = CONFIG.lock();
-	let config = match config {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking CONFIG: {}", e)],
-			};
-		}
-	};
+    let config = CONFIG.lock();
+    let config = match config {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking CONFIG: {}", e)],
+            };
+        }
+    };
 
-	let json = config.json().to_string();
-	ConsoleMessage {
-		kind: MessageKind::Console,
-		message: json.lines().map(|s| s.to_owned()).collect(),
-	}
+    let json = config.json().to_string();
+    ConsoleMessage {
+        kind: MessageKind::Console,
+        message: json.lines().map(|s| s.to_owned()).collect(),
+    }
 }
 
 /// ## config_save(filename: &str) -> ConsoleMessage
-/// 
+///
 /// Saves the current config to a file.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `filename: &str` - The name of the file to save to
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
 fn config_save(filename: &str) -> ConsoleMessage {
-	let filename = match filename.strip_suffix(".json") {
-		Some(filename) => format!("{}.json", filename),
-		None => format!("{}.json", filename),
-	};
-	let filename = format!("{}{}", CONFIG_ROOT, filename);
-	let filename = &filename;
+    let filename = match filename.strip_suffix(".json") {
+        Some(filename) => format!("{}.json", filename),
+        None => format!("{}.json", filename),
+    };
+    let filename = format!("{}{}", CONFIG_ROOT, filename);
+    let filename = &filename;
 
-	let config = CONFIG.lock();
-	let mut config = match config {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking CONFIG: {}", e)],
-			};
-		}
-	};
-	let result = config.save_to_file(filename);
-	let json = config.json().to_string();
-	ConsoleMessage {
-		kind: MessageKind::Console,
-		message: json.lines().map(|s| s.to_owned()).collect(),
-	}
+    let config = CONFIG.lock();
+    let mut config = match config {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking CONFIG: {}", e)],
+            };
+        }
+    };
+    let result = config.save_to_file(filename);
+    let json = config.json().to_string();
+    ConsoleMessage {
+        kind: MessageKind::Console,
+        message: json.lines().map(|s| s.to_owned()).collect(),
+    }
 }
 
+/// ## config_load(filename: &str) -> ConsoleMessage
+/// 
+/// Loads a config from a file.
+/// 
+/// ### Arguments
+/// 
+/// * `filename: &str` - The name of the file to load from
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
 #[tauri::command]
 fn config_load(filename: &str) -> ConsoleMessage {
-	let filename = match filename.strip_suffix(".json") {
-		Some(filename) => format!("{}.json", filename),
-		None => format!("{}.json", filename),
-	};
-	let filename = format!("{}{}", CONFIG_ROOT, filename);
-	let filename = &filename;
+    let filename = match filename.strip_suffix(".json") {
+        Some(filename) => format!("{}.json", filename),
+        None => format!("{}.json", filename),
+    };
+    let filename = format!("{}{}", CONFIG_ROOT, filename);
+    let filename = &filename;
 
-	let config = config::Config::load_from_file(filename);
-	let mut config = match config {
-		Ok(config) => {
-			debug!("Loaded config from {}", filename);
-			config
-		}
-		Err(e) => {
-			debug!("Error loading config: {}", e);
-			config::Config::empty()
-		}
-	};
+    let config = config::Config::load_from_file(filename);
+    let mut config = match config {
+        Ok(config) => {
+            debug!("Loaded config from {}", filename);
+            config
+        }
+        Err(e) => {
+            debug!("Error loading config: {}", e);
+            config::Config::empty()
+        }
+    };
 
-	// Set CONFIG to the loaded config
-	match CONFIG.lock() {
-		Ok(mut config_mutex) => {
-			*config_mutex = config.clone();
-		}
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-		}
-	}
+    // Set CONFIG to the loaded config
+    match CONFIG.lock() {
+        Ok(mut config_mutex) => {
+            *config_mutex = config.clone();
+        }
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+        }
+    }
 
-	let json = config.json().to_string();
-	ConsoleMessage {
-		kind: MessageKind::Console,
-		message: json.lines().map(|s| s.to_owned()).collect(),
-	}
+    let json = config.json().to_string();
+    ConsoleMessage {
+        kind: MessageKind::Console,
+        message: json.lines().map(|s| s.to_owned()).collect(),
+    }
 }
 
-/// ## host_list(window: tauri::Window) -> ConsoleMessage
-/// 
+/// ## host_list(_window: tauri::Window) -> ConsoleMessage
+///
 /// Lists all available hosts.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn host_list(window: tauri::Window) -> ConsoleMessage {
-	let hosts = audio::list_hosts();
+fn host_list(_window: tauri::Window) -> ConsoleMessage {
+    let hosts = audio::list_hosts();
 
-	ConsoleMessage {
-		kind: MessageKind::Console,
-		message: hosts,
-	}
+    ConsoleMessage {
+        kind: MessageKind::Console,
+        message: hosts,
+    }
 }
 
-#[tauri::command]
-fn host_select(window: tauri::Window, host: String) -> ConsoleMessage {
-	let host = audio::get_host(&host);
-	let host_name = &host.id().name();
-
-	// Set audio::HOST to host
-	match audio::HOST.lock() {
-		Ok(mut host_mutex) => {
-			*host_mutex = Some(host);
-		}
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking HOST: {}", e)],
-			};
-		}
-	}
-
-	return ConsoleMessage {
-		kind: MessageKind::Console,
-		message: vec![format!("Selected host {}", host_name)],
-	};
-}
-
-/// ## host_select(window: tauri::Window, host_name: &str) -> ConsoleMessage
+/// ## host_select(_window: tauri::Window, host_name: &str) -> ConsoleMessage
 /// 
 /// Selects a host.
 /// 
@@ -319,8 +305,84 @@ fn host_select(window: tauri::Window, host: String) -> ConsoleMessage {
 /// 
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn output_list(window: tauri::Window) -> ConsoleMessage {
+fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
+    let host = audio::get_host(&host);
+    let host_name = &host.id().name();
+
+    // Set audio::HOST to host
+    match audio::HOST.lock() {
+        Ok(mut host_mutex) => {
+            *host_mutex = Some(host);
+        }
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking HOST: {}", e)],
+            };
+        }
+    }
+
+    let _ = set_global_config_value("audio.host", host_name);
+
+    return ConsoleMessage {
+        kind: MessageKind::Console,
+        message: vec![format!("Selected host {}", host_name)],
+    };
+}
+
+/// ## output_list(_window: tauri::Window) -> ConsoleMessage
+/// 
+/// Lists all available output devices.
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
+#[tauri::command]
+fn output_list(_window: tauri::Window) -> ConsoleMessage {
+    let host = audio::HOST.lock();
+
+    let host = match host {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking HOST: {}", e)],
+            };
+        }
+    };
+
+    match host.as_ref() {
+        Some(host) => {
+            let devices = audio::list_output_devices(host);
+            ConsoleMessage {
+                kind: MessageKind::Console,
+                message: devices,
+            }
+        }
+        None => ConsoleMessage {
+            kind: MessageKind::Error,
+            message: vec![format!("No host selected")],
+        },
+    }
+}
+
+/// ## output_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage
+/// 
+/// Selects an output device.
+/// 
+/// ### Arguments
+/// 
+/// * `device_name: &str` - The name of the device to select
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
+#[tauri::command]
+fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage {
 	let host = audio::HOST.lock();
+	let device_name = output.as_str();
 
 	let host = match host {
 		Ok(host) => host,
@@ -335,33 +397,80 @@ fn output_list(window: tauri::Window) -> ConsoleMessage {
 
 	match host.as_ref() {
 		Some(host) => {
-			let devices = audio::list_output_devices(host);
-			ConsoleMessage {
-				kind: MessageKind::Console,
-				message: devices,
+			let device = audio::get_output_device(device_name, host);
+			match device {
+				Some(device) => {
+					let _ = set_global_config_value("audio.output", device_name);
+					ConsoleMessage {
+						kind: MessageKind::Console,
+						message: vec![format!("Selected output device {}", device_name)],
+					}
+				}
+				None => ConsoleMessage {
+					kind: MessageKind::Error,
+					message: vec![format!("No output device named {}", device_name)],
+				},
 			}
 		}
 		None => ConsoleMessage {
 			kind: MessageKind::Error,
 			message: vec![format!("No host selected")],
-		}
+		},
 	}
 }
 
-/// ## host_select(window: tauri::Window, host_name: &str) -> ConsoleMessage
+/// ## input_list(_window: tauri::Window) -> ConsoleMessage
 /// 
-/// Selects a host.
-/// 
-/// ### Arguments
-/// 
-/// * `host_name: &str` - The name of the host to select
+/// Lists all available input devices.
 /// 
 /// ### Returns
 /// 
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
-fn input_list(window: tauri::Window) -> ConsoleMessage {
+fn input_list(_window: tauri::Window) -> ConsoleMessage {
+    let host = audio::HOST.lock();
+
+    let host = match host {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking HOST: {}", e)],
+            };
+        }
+    };
+
+    match host.as_ref() {
+        Some(host) => {
+            let devices = audio::list_input_devices(host);
+            ConsoleMessage {
+                kind: MessageKind::Console,
+                message: devices,
+            }
+        }
+        None => ConsoleMessage {
+            kind: MessageKind::Error,
+            message: vec![format!("No host selected")],
+        },
+    }
+}
+
+/// ## input_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage
+/// 
+/// Selects an input device.
+/// 
+/// ### Arguments
+/// 
+/// * `device_name: &str` - The name of the device to select
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
+#[tauri::command]
+fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
 	let host = audio::HOST.lock();
+	let device_name = input.as_str();
 
 	let host = match host {
 		Ok(host) => host,
@@ -376,17 +485,52 @@ fn input_list(window: tauri::Window) -> ConsoleMessage {
 
 	match host.as_ref() {
 		Some(host) => {
-			let devices = audio::list_input_devices(host);
-			ConsoleMessage {
-				kind: MessageKind::Console,
-				message: devices,
+			let device = audio::get_input_device(device_name, host);
+			match device {
+				Some(device) => {
+					let _ = set_global_config_value("audio.input", device_name);
+					ConsoleMessage {
+						kind: MessageKind::Console,
+						message: vec![format!("Selected input device {}", device_name)],
+					}
+				}
+				None => ConsoleMessage {
+					kind: MessageKind::Error,
+					message: vec![format!("No input device named {}", device_name)],
+				},
 			}
 		}
 		None => ConsoleMessage {
 			kind: MessageKind::Error,
 			message: vec![format!("No host selected")],
-		}
+		},
 	}
+}
+
+/// ## set_global_config_value(key: &str, value: &str) -> Result<(), String>
+/// 
+/// Sets a value in the global config.
+/// 
+/// ### Arguments
+/// 
+/// * `key: &str` - The key to set
+/// * `value: &str` - The value to set
+/// 
+/// ### Returns
+/// 
+/// * `Ok(())` - The result of the command
+/// * `Err(String)` - The result of the command
+fn set_global_config_value(key: &str, value: &str) -> Result<(), String> {
+    let mut config = CONFIG.lock();
+    let mut config = match config {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
+    config.set(key, value);
+    Ok(())
 }
 
 /// ## main()
@@ -404,15 +548,17 @@ fn main() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-			run,
-			config_show,
-			config_save,
-			config_load,
-			host_list,
-			host_select,
-			output_list,
-			input_list,
-			])
+            run,
+            config_show,
+            config_save,
+            config_load,
+            host_list,
+            host_select,
+            output_list,
+			output_select,
+            input_list,
+			input_select,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
