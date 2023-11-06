@@ -124,6 +124,7 @@ fn on_config_update(config: &mut config::Config) {
             debug!("Error locking OUTPUT_DEVICE: {}", e);
         }
 	}
+	
 }
 
 /// ## run(_window: tauri::Window) -> String
