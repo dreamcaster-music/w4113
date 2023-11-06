@@ -69,7 +69,7 @@ struct ConsoleMessage {
 }
 
 fn on_config_update(config: &mut config::Config) {
-    let host_name = match config.get_or("audio.host", || "default".to_owned()) {
+    let host_name = match config.get_str_or("audio.host", || "default".to_owned()) {
         Ok(host_name) => host_name,
         Err(e) => {
             debug!("Error getting audio.host: {}", e);
@@ -79,7 +79,7 @@ fn on_config_update(config: &mut config::Config) {
 
     let host = audio::get_host(&host_name);
 
-    let input_name = match config.get_or("audio.input", || "default".to_owned()) {
+    let input_name = match config.get_str_or("audio.input", || "default".to_owned()) {
         Ok(input_name) => input_name,
         Err(e) => {
             debug!("Error getting audio.input: {}", e);
@@ -87,7 +87,7 @@ fn on_config_update(config: &mut config::Config) {
         }
     };
 
-    let output_name = match config.get_or("audio.output", || "default".to_owned()) {
+    let output_name = match config.get_str_or("audio.output", || "default".to_owned()) {
         Ok(output_name) => output_name,
         Err(e) => {
             debug!("Error getting audio.output: {}", e);
@@ -123,7 +123,7 @@ fn on_config_update(config: &mut config::Config) {
         Err(e) => {
             debug!("Error locking OUTPUT_DEVICE: {}", e);
         }
-    }
+	}
 }
 
 /// ## run(_window: tauri::Window) -> String
@@ -151,7 +151,7 @@ async fn run(window: tauri::Window) -> String {
     let config_path = match config {
         Ok(mut config) => {
             debug!("Loaded config from {}", CONFIG_FILE);
-            match config.get_or("config", || "default.json".to_owned()) {
+            match config.get_str_or("config", || "default.json".to_owned()) {
                 Ok(config_path) => {
                     let path = CONFIG_ROOT.to_owned() + &config_path;
                     let _ = config.save_to_file(CONFIG_FILE);
@@ -606,7 +606,7 @@ fn set_global_config_value(key: &str, value: &str) -> Result<(), String> {
             return Err(format!("Error locking CONFIG: {}", e));
         }
     };
-    config.set(key, value);
+    config.set_str(key, value);
     Ok(())
 }
 

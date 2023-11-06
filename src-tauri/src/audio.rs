@@ -134,16 +134,6 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
         match device.name() {
             Ok(name) => {
                 if name.to_lowercase() == device_name.to_lowercase() {
-					let config = get_output_config(&device, Preference::Exact(2, PreferenceAlt::Higher), Preference::Exact(44100, PreferenceAlt::Higher), Preference::Exact(1024, PreferenceAlt::Higher));
-					match config {
-						Some(config) => {
-							debug!("Found a supported output config for device {}", name);
-							debug!("Config properties:\n\tChannels: {}\n\tSample Rate: {}\n\tBuffer Size: {:?}", config.channels(), config.sample_rate().0, config.buffer_size());
-						}
-						None => {
-							debug!("No supported output configs found for device {}", name);
-						}
-					}
                     debug!("Returning output device {}", name);
                     return Some(device);
                 }
@@ -214,16 +204,6 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
         match device.name() {
             Ok(name) => {
                 if name.to_lowercase() == device_name.to_lowercase() {
-					let config = get_input_config(&device, Preference::Exact(2, PreferenceAlt::Higher), Preference::Exact(44100, PreferenceAlt::Higher), Preference::Exact(1024, PreferenceAlt::Higher));
-					match config {
-						Some(config) => {
-							debug!("Found a supported input config for device {}", name);
-							debug!("Config properties:\n\tChannels: {}\n\tSample Rate: {}\n\tBuffer Size: {:?}", config.channels(), config.sample_rate().0, config.buffer_size());
-						}
-						None => {
-							debug!("No supported input configs found for device {}", name);
-						}
-					}
                     debug!("Returning input device {}", name);
                     return Some(device);
                 }
