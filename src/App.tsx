@@ -431,6 +431,13 @@ function App() {
 					debug("Result from sine: " + strValue(response as ConsoleMessage));
 				});
 				break;
+			case "midi":
+				//list midi devices
+				invoke("midi_list").then((response) => {
+					debug("Available Midi Devices: " + strValue(response as ConsoleMessage));
+					outputMessage(response as ConsoleMessage);
+				});
+				break;
 			case "":
 				break;
 			default:
