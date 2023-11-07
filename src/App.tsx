@@ -172,13 +172,25 @@ function App() {
 			case "output":
 				/*
 				 * Output command
-				 * Usage: output [list]
+
+				 * Usage:
+				 * output list
+				 * 		list all outputs
+				 * 
+				 * output select <output>
+				 * 		select output
+				 * 
+				 * output stream show
+				 * 		show available stream configurations
+				 * 
+				 * output stream set <# of channels> <sample rate> <buffer size>
+				 * 		set stream configuration
 				 * 
 				 * list: list all outputs
 				 */
 				if (args.length < 1) {
 					outputMessage({ kind: "Error", message: ["Not enough arguments for output command."] });
-					outputMessage({ kind: "Error", message: ["Usage: output [list]"] });
+					outputMessage({ kind: "Error", message: ["Usage: output [list|select|stream]"] });
 					break;
 				}
 
@@ -202,6 +214,40 @@ function App() {
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
+					case "stream":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for stream command."] });
+							outputMessage({ kind: "Error", message: ["Usage: output stream [show|set]"] });
+							break;
+						}
+						let streamCommand = args[1];
+						switch (streamCommand) {
+							case "show":
+								invoke("output_stream_show").then((response) => {
+									debug("Result from output stream show: " + strValue(response as ConsoleMessage));
+									outputMessage(response as ConsoleMessage);
+								});
+								break;
+							case "set":
+								if (args.length < 5) {
+									outputMessage({ kind: "Error", message: ["Not enough arguments for set stream command."] });
+									outputMessage({ kind: "Error", message: ["Usage: output stream set [channels] [sample rate] [buffer size]"] });
+									break;
+								}
+								let numChannels = parseInt(args[2]);
+								let sampleRate = parseInt(args[3]);
+								let bufferSize = parseInt(args[4]);
+								invoke("output_stream_set", { channels: numChannels, samples: sampleRate, bufferSize: bufferSize }).then((response) => {
+									debug("Result from stream channel set: " + strValue(response as ConsoleMessage));
+									outputMessage(response as ConsoleMessage);
+								});
+								break;
+							default:
+								outputMessage({ kind: "Error", message: ["Invalid stream command: " + streamCommand] });
+								outputMessage({ kind: "Error", message: ["Usage: output stream [show|set]"] });
+								break;
+						}
+						break;
 					default:
 						outputMessage({ kind: "Error", message: ["Invalid output command: " + outputCommand] });
 						outputMessage({ kind: "Error", message: ["Usage: output [list]"] });
@@ -210,15 +256,24 @@ function App() {
 				break;
 			case "input":
 				/*
-				 * Output command
-				 * Usage: output [list]
+				 * Input command
 				 * 
-				 * list: list all outputs
+				 * Usage:
+				 * input list
+				 * 		list all inputs
+				 * 
+				 * input select <input>
+				 * 		select input
+				 * 
+				 * list: list all inputs
+				 * 
+				 * select: select input
+				 * 		requires input
 				 */
 
 				if (args.length < 1) {
 					outputMessage({ kind: "Error", message: ["Not enough arguments for input command."] });
-					outputMessage({ kind: "Error", message: ["Usage: input [list]"] });
+					outputMessage({ kind: "Error", message: ["Usage: input [list|select]"] });
 					break;
 				}
 
@@ -244,7 +299,7 @@ function App() {
 						break;
 					default:
 						outputMessage({ kind: "Error", message: ["Invalid input command: " + inputCommand] });
-						outputMessage({ kind: "Error", message: ["Usage: input [list]"] });
+						outputMessage({ kind: "Error", message: ["Usage: input [list|select]"] });
 						break;
 				}
 				break;

@@ -539,7 +539,7 @@ fn filter_config(
 /// let device = audio::get_output_device("Macbook Air Speakers", &host);
 /// let config = audio::get_output_config(device, Preference::Exact(2, PreferenceAlt::Higher), Preference::Exact(44100, PreferenceAlt::Higher), Preference::Exact(1024, PreferenceAlt::Higher));
 /// ```
-fn get_output_config(
+pub fn get_output_config(
     device: &Device,
     channels: Preference,
     sample_rate: Preference,
@@ -575,9 +575,18 @@ fn get_output_config(
 		}
 	};
 
+	let max = first.max_sample_rate().0;
+	let min = first.min_sample_rate().0;
+
 	let config = match sample_rate {
 		Preference::Exact(value, _preference_alt) => {
-			first.with_sample_rate(cpal::SampleRate(value))
+			if value > max {
+				first.with_sample_rate(cpal::SampleRate(max))
+			} else if value < min {
+				first.with_sample_rate(cpal::SampleRate(min))
+			} else {
+				first.with_sample_rate(cpal::SampleRate(value))
+			}
 		},
 		Preference::Max => {
 			first.with_max_sample_rate()
@@ -613,7 +622,7 @@ fn get_output_config(
 /// let device = audio::get_input_device("Macbook Air Microphone", &host);
 /// let config = audio::get_input_config(device, Preference::Exact(2, PreferenceAlt::Higher), Preference::Exact(44100, PreferenceAlt::Higher), Preference::Exact(1024, PreferenceAlt::Higher));
 /// ```
-fn get_input_config(
+pub fn get_input_config(
 	device: &Device,
 	channels: Preference,
 	sample_rate: Preference,
@@ -649,9 +658,18 @@ fn get_input_config(
 		}
 	};
 
+	let max = first.max_sample_rate().0;
+	let min = first.min_sample_rate().0;
+
 	let config = match sample_rate {
 		Preference::Exact(value, _preference_alt) => {
-			first.with_sample_rate(cpal::SampleRate(value))
+			if value > max {
+				first.with_sample_rate(cpal::SampleRate(max))
+			} else if value < min {
+				first.with_sample_rate(cpal::SampleRate(min))
+			} else {
+				first.with_sample_rate(cpal::SampleRate(value))
+			}
 		},
 		Preference::Max => {
 			first.with_max_sample_rate()
@@ -663,6 +681,84 @@ fn get_input_config(
 	};
 	
 	Some(config)
+}
+
+/// ## list_output_streams(device: &Device) -> Result<Vec<String>, String>
+/// 
+/// Lists all available output stream configurations for a device.
+/// 
+/// ### Arguments
+/// 
+/// * `device: &Device` - The device to list the output stream configurations for
+/// 
+/// ### Returns
+/// 
+/// * `Result<Vec<String>, String>` - The list of output stream configurations, or an error message
+pub fn list_output_streams(device: &Device) -> Result<Vec<String>, String> {
+	let supported_configs = match device.supported_output_configs() {
+		Ok(supported_configs) => supported_configs,
+		Err(err) => {
+			return Err(format!("Error getting supported output configs: {}", err));
+		}
+	};
+
+	let mut streams = Vec::new();
+	for config in supported_configs {
+		let channels = config.channels();
+		let sample_rate = config.min_sample_rate().0;
+		let buffer_size = config.buffer_size();
+		let buffer_size = match buffer_size {
+			cpal::SupportedBufferSize::Range { min, max } => {
+				(*min, *max)
+			}
+			cpal::SupportedBufferSize::Unknown => {
+				(0, 0)
+			}
+		};
+		let stream = format!("{} Channels, {} Hz, {}-{} Buffer Size", channels, sample_rate, buffer_size.0, buffer_size.1);
+		streams.push(stream);
+	}
+
+	Ok(streams)
+}
+
+/// ## list_input_streams(device: &Device) -> Result<Vec<String>, String>
+/// 
+/// Lists all available input stream configurations for a device.
+/// 
+/// ### Arguments
+/// 
+/// * `device: &Device` - The device to list the input stream configurations for
+/// 
+/// ### Returns
+/// 
+/// * `Result<Vec<String>, String>` - The list of input stream configurations, or an error message
+pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
+	let supported_configs = match device.supported_input_configs() {
+		Ok(supported_configs) => supported_configs,
+		Err(err) => {
+			return Err(format!("Error getting supported input configs: {}", err));
+		}
+	};
+
+	let mut streams = Vec::new();
+	for config in supported_configs {
+		let channels = config.channels();
+		let sample_rate = config.min_sample_rate().0;
+		let buffer_size = config.buffer_size();
+		let buffer_size = match buffer_size {
+			cpal::SupportedBufferSize::Range { min, max } => {
+				(*min, *max)
+			}
+			cpal::SupportedBufferSize::Unknown => {
+				(0, 0)
+			}
+		};
+		let stream = format!("{} Channels, {} Samples, {}-{} Buffer Size", channels, sample_rate, buffer_size.0, buffer_size.1);
+		streams.push(stream);
+	}
+
+	Ok(streams)
 }
 
 /*

@@ -4,6 +4,7 @@
 mod audio;
 mod config;
 
+use audio::Preference;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use lazy_static::lazy_static;
 use log::{debug, LevelFilter};
@@ -124,7 +125,7 @@ fn on_config_update(config: &mut config::Config) {
             debug!("Error locking OUTPUT_DEVICE: {}", e);
         }
 	}
-	
+
 }
 
 /// ## run(_window: tauri::Window) -> String
@@ -489,6 +490,142 @@ async fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage
     }
 }
 
+/// ## output_stream_show(_window: tauri::Window) -> ConsoleMessage
+/// 
+/// Lists all available output stream configurations.
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
+#[tauri::command]
+async fn output_stream_show(_window: tauri::Window) -> ConsoleMessage {
+	let output_device = audio::OUTPUT_DEVICE.lock();
+	let output_device = match output_device {
+		Ok(output_device) => output_device,
+		Err(e) => {
+			debug!("Error locking OUTPUT_DEVICE: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking OUTPUT_DEVICE: {}", e)],
+			};
+		}
+	};
+
+	let output_device = match output_device.as_ref() {
+		Some(output_device) => output_device,
+		None => {
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("No output device selected")],
+			};
+		}
+	};
+
+	let output_channels = audio::list_output_streams(output_device);
+	let mut output_channels = match output_channels {
+		Ok(output_channels) => output_channels,
+		Err(e) => {
+			debug!("Error getting output channels: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error getting output channels: {}", e)],
+			};
+		}
+	};
+
+	output_channels.insert(0, "Available output stream configurations:".to_owned());
+
+	ConsoleMessage {
+		kind: MessageKind::Console,
+		message: output_channels,
+	}
+}
+
+/// ## output_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage
+/// 
+/// Sets the output stream configuration.
+/// 
+/// ### Arguments
+/// 
+/// * `channels: u32` - The number of channels
+/// * `samples: u32` - The number of samples
+/// * `buffer_size: u32` - The buffer size
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
+#[tauri::command]
+async fn output_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage {
+	let output_device = audio::OUTPUT_DEVICE.lock();
+	let output_device = match output_device {
+		Ok(output_device) => output_device,
+		Err(e) => {
+			debug!("Error locking OUTPUT_DEVICE: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking OUTPUT_DEVICE: {}", e)],
+			};
+		}
+	};
+
+	let output_device = match output_device.as_ref() {
+		Some(output_device) => output_device,
+		None => {
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("No output device selected")],
+			};
+		}
+	};
+
+	let config = audio::get_output_config(
+		&output_device,
+		Preference::Exact(channels as u32, audio::PreferenceAlt::Higher),
+		Preference::Exact(samples as u32, audio::PreferenceAlt::Higher),
+		Preference::Exact(buffer_size as u32, audio::PreferenceAlt::Higher),
+		);
+
+	let result = match &config {
+		Some(config) => {
+			(config.channels() as i64, config.sample_rate().0 as i64, match config.buffer_size() {
+				cpal::SupportedBufferSize::Range { min, max } => {
+					(*min as i64, *max as i64)
+				}
+				cpal::SupportedBufferSize::Unknown => {
+					(0, 0)
+				}
+			})
+		}
+		None => {
+			(0, 0, (0,0))
+		}
+	};
+
+	let channel_result = result.0;
+	let sample_result = result.1;
+	let buffer_min_result = result.2.0;
+	let buffer_max_result = result.2.1;
+
+	// set OUTPUT_CONFIG to config
+	match audio::OUTPUT_CONFIG.lock() {
+		Ok(mut output_config_mutex) => {
+			*output_config_mutex = config;
+		}
+		Err(e) => {
+			debug!("Error locking OUTPUT_CONFIG: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking OUTPUT_CONFIG: {}", e)],
+			};
+		}
+	}
+
+	ConsoleMessage {
+		kind: MessageKind::Console,
+		message: vec![format!("Set output stream to {} channels, {} samples, {}-{} buffer size", channel_result, sample_result, buffer_min_result, buffer_max_result)],
+	}
+}
+
 /// ## input_list(_window: tauri::Window) -> ConsoleMessage
 ///
 /// Lists all available input devices.
@@ -585,6 +722,142 @@ async fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
     }
 }
 
+/// ## input_stream_show(_window: tauri::Window) -> ConsoleMessage
+/// 
+/// Lists all available input stream configurations.
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
+#[tauri::command]
+async fn input_stream_show(_window: tauri::Window) -> ConsoleMessage {
+	let input_device = audio::INPUT_DEVICE.lock();
+	let input_device = match input_device {
+		Ok(input_device) => input_device,
+		Err(e) => {
+			debug!("Error locking INPUT_DEVICE: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking INPUT_DEVICE: {}", e)],
+			};
+		}
+	};
+
+	let input_device = match input_device.as_ref() {
+		Some(input_device) => input_device,
+		None => {
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("No input device selected")],
+			};
+		}
+	};
+
+	let input_channels = audio::list_input_streams(input_device);
+	let mut input_channels = match input_channels {
+		Ok(input_channels) => input_channels,
+		Err(e) => {
+			debug!("Error getting input channels: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error getting input channels: {}", e)],
+			};
+		}
+	};
+
+	input_channels.insert(0, "Available input stream configurations:".to_owned());
+
+	ConsoleMessage {
+		kind: MessageKind::Console,
+		message: input_channels,
+	}
+}
+
+/// ## input_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage
+/// 
+/// Sets the input stream configuration.
+/// 
+/// ### Arguments
+/// 
+/// * `channels: u32` - The number of channels
+/// * `samples: u32` - The number of samples
+/// * `buffer_size: u32` - The buffer size
+/// 
+/// ### Returns
+/// 
+/// * `ConsoleMessage` - The result of the command
+#[tauri::command]
+async fn input_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage {
+	let input_device = audio::INPUT_DEVICE.lock();
+	let input_device = match input_device {
+		Ok(input_device) => input_device,
+		Err(e) => {
+			debug!("Error locking INPUT_DEVICE: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking INPUT_DEVICE: {}", e)],
+			};
+		}
+	};
+
+	let input_device = match input_device.as_ref() {
+		Some(input_device) => input_device,
+		None => {
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("No input device selected")],
+			};
+		}
+	};
+
+	let config = audio::get_input_config(
+		&input_device,
+		Preference::Exact(channels as u32, audio::PreferenceAlt::Higher),
+		Preference::Exact(samples as u32, audio::PreferenceAlt::Higher),
+		Preference::Exact(buffer_size as u32, audio::PreferenceAlt::Higher),
+		);
+
+	let result = match &config {
+		Some(config) => {
+			(config.channels() as i64, config.sample_rate().0 as i64, match config.buffer_size() {
+				cpal::SupportedBufferSize::Range { min, max } => {
+					(*min as i64, *max as i64)
+				}
+				cpal::SupportedBufferSize::Unknown => {
+					(0, 0)
+				}
+			})
+		}
+		None => {
+			(0, 0, (0,0))
+		}
+	};
+
+	let channel_result = result.0;
+	let sample_result = result.1;
+	let buffer_min_result = result.2.0;
+	let buffer_max_result = result.2.1;
+
+	// set INPUT_CONFIG to config
+	match audio::INPUT_CONFIG.lock() {
+		Ok(mut input_config_mutex) => {
+			*input_config_mutex = config;
+		}
+		Err(e) => {
+			debug!("Error locking INPUT_CONFIG: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking INPUT_CONFIG: {}", e)],
+			};
+		}
+	}
+
+	ConsoleMessage {
+		kind: MessageKind::Console,
+		message: vec![format!("Set input stream to {} channels, {} samples, {}-{} buffer size", channel_result, sample_result, buffer_min_result, buffer_max_result)],
+	}
+}
+
 /// ## set_global_config_value(key: &str, value: &str) -> Result<(), String>
 ///
 /// Sets a value in the global config.
@@ -637,8 +910,13 @@ fn main() {
             host_select,
             output_list,
             output_select,
+			output_stream_show,
+			output_stream_set,
             input_list,
             input_select,
+			input_stream_show,
+			input_stream_set,
+			sine,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
