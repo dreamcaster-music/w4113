@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { invoke as tauri_invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 import { debug } from "tauri-plugin-log-api";
 
@@ -7,11 +7,6 @@ import { ConsoleMessage } from "./bindings/ConsoleMessage";
 import { appWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { FreqMessage } from "./bindings/FreqMessage";
-
-function invoke<T>(command: string, args?: any): Promise<T> {
-	debug("Invoking Tauri command \"" + command + "\" with args [" + JSON.stringify(args) + "]");
-	return tauri_invoke(command, args);
-}
 
 /**
  * ## App()
@@ -21,6 +16,7 @@ function invoke<T>(command: string, args?: any): Promise<T> {
  * @returns w4113 app element
  */
 function App() {
+	const [confirmExit, setConfirmExit] = useState<boolean>(false);
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 	const [textSize, setTextSize] = useState<number>(16);
 
@@ -398,19 +394,20 @@ function App() {
 				 * 
 				 * Exits the application
 				 */
-				invoke("exit").then((response) => {
-					debug("Result from exit: " + strValue(response as ConsoleMessage));
-					outputMessage(response as ConsoleMessage);
-
-					// Ask user to confirm exit
-					let confirmExit = window.confirm("Are you sure you want to exit?");
-					if (confirmExit) {
-						// Exit
-						invoke("exit_confirm").then((response) => {
+				if (confirmExit) {
+					outputMessage({ kind: "Console", message: ["Exiting..."] });
+					setTimeout(() => {
+						invoke("confirm_exit").then((response) => {
 
 						});
-					}
-				});
+					}, 500);
+				} else {
+					setConfirmExit(true);
+					invoke("exit").then((response) => {
+						debug("Result from exit: " + strValue(response as ConsoleMessage));
+						outputMessage(response as ConsoleMessage);
+					});
+				}
 				break;
 			case "reave":
 				outputMessage({ kind: "Console", message: ["You have been reaved."] });
