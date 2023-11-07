@@ -3,6 +3,7 @@
 
 mod audio;
 mod config;
+mod midi;
 
 use audio::Preference;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
