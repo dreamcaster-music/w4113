@@ -896,7 +896,7 @@ async fn exit() -> ConsoleMessage {
 			return ConsoleMessage {
 				kind: MessageKind::Error,
 				message: vec![format!("Error locking CONFIG: {}", e)],
-			};co
+			};
 		}
 	};
 
