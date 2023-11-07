@@ -297,6 +297,40 @@ function App() {
 							outputMessage(response as ConsoleMessage);
 						});
 						break;
+					case "stream":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for stream command."] });
+							outputMessage({ kind: "Error", message: ["Usage: input stream [show|set]"] });
+							break;
+						}
+						let streamCommand = args[1];
+						switch (streamCommand) {
+							case "show":
+								invoke("input_stream_show").then((response) => {
+									debug("Result from input stream show: " + strValue(response as ConsoleMessage));
+									outputMessage(response as ConsoleMessage);
+								});
+								break;
+							case "set":
+								if (args.length < 5) {
+									outputMessage({ kind: "Error", message: ["Not enough arguments for set stream command."] });
+									outputMessage({ kind: "Error", message: ["Usage: input stream set [channels] [sample rate] [buffer size]"] });
+									break;
+								}
+								let numChannels = parseInt(args[2]);
+								let sampleRate = parseInt(args[3]);
+								let bufferSize = parseInt(args[4]);
+								invoke("input_stream_set", { channels: numChannels, samples: sampleRate, bufferSize: bufferSize }).then((response) => {
+									debug("Result from stream channel set: " + strValue(response as ConsoleMessage));
+									outputMessage(response as ConsoleMessage);
+								});
+								break;
+							default:
+								outputMessage({ kind: "Error", message: ["Invalid stream command: " + streamCommand] });
+								outputMessage({ kind: "Error", message: ["Usage: input stream [show|set]"] });
+								break;
+						}
+						break;
 					default:
 						outputMessage({ kind: "Error", message: ["Invalid input command: " + inputCommand] });
 						outputMessage({ kind: "Error", message: ["Usage: input [list|select]"] });
@@ -358,7 +392,25 @@ function App() {
 				}
 				break;
 			case "exit":
+				/*
+				 * Exit command
+				 * Usage: exit
+				 * 
+				 * Exits the application
+				 */
+				invoke("exit").then((response) => {
+					debug("Result from exit: " + strValue(response as ConsoleMessage));
+					outputMessage(response as ConsoleMessage);
 
+					// Ask user to confirm exit
+					let confirmExit = window.confirm("Are you sure you want to exit?");
+					if (confirmExit) {
+						// Exit
+						invoke("exit_confirm").then((response) => {
+
+						});
+					}
+				});
 				break;
 			case "reave":
 				outputMessage({ kind: "Console", message: ["You have been reaved."] });

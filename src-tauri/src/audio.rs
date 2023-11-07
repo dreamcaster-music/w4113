@@ -437,8 +437,8 @@ fn filter_config(
 				min_config_value = config_channels as u32;
 			}
 			ConfigProperty::SampleRate(sample_rate) => {
-				let max_config_value = config.max_sample_rate().0;
-				let min_config_value = config.min_sample_rate().0;
+				max_config_value = config.max_sample_rate().0;
+				min_config_value = config.min_sample_rate().0;
 			}
 			ConfigProperty::BufferSize(buffer_size) => {
 				let config_buffer_size = config.buffer_size();
@@ -497,7 +497,7 @@ fn filter_config(
 						}
 					}
 				} else {
-					if value == comparison_value {
+					if value <= max_config_value && value >= min_config_value {
 						configs.push(config);
 					}
 				}

@@ -12,7 +12,7 @@ use log::debug;
 ///
 /// * `Unsaved` - The config has been modified since it was last saved
 /// * `Saved` - The config has not been modified since it was last saved
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum State {
     Unsaved,
     Saved,

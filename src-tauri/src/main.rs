@@ -886,6 +886,38 @@ fn set_global_config_value(key: &str, value: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn exit() -> ConsoleMessage {
+	// only exit if the config is saved
+	let config = CONFIG.lock();
+	let config = match config {
+		Ok(config) => config,
+		Err(e) => {
+			debug!("Error locking CONFIG: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking CONFIG: {}", e)],
+			};co
+		}
+	};
+
+	if config.state() == &config::State::Saved {
+		std::process::exit(0);
+	}
+
+	// otherwise, prompt the user to save
+	return ConsoleMessage {
+		kind: MessageKind::Console,
+		message: vec![format!("Unsaved changes. Save before exiting?")],
+	};
+}
+
+#[tauri::command]
+async fn confirm_exit() -> ConsoleMessage {
+	// exit program
+	std::process::exit(0);
+}
+
+#[tauri::command]
 async fn sine() {}
 
 /// ## main()
@@ -903,6 +935,8 @@ fn main() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
+			exit,
+			confirm_exit,
             run,
             config_show,
             config_save,
