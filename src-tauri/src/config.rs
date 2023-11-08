@@ -38,6 +38,7 @@ pub enum State {
 /// * `save_to_file(&mut self, path: &str) -> Result<(), String>` - Saves a config to a file
 pub struct Config {
     on_update: Option<Box<dyn Fn(&mut Config) + Send>>,
+    updating: bool,
     state: State,
     json: serde_json::Value,
 }
@@ -148,104 +149,104 @@ impl Config {
                 debug!("Error setting config key {}: {}", key, err);
             }
         }
-	}
+    }
 
-	/// ## set_num(&mut self, key: &str, value: f64)
-	/// 
-	/// Sets a key in the config.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `value: f64` - The value
-	pub fn set_num(&mut self, key: &str, value: f64) {
-		let json = self.translate(key);
+    /// ## set_num(&mut self, key: &str, value: i64)
+    ///
+    /// Sets a key in the config.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `value: i64` - The value
+    pub fn set_num(&mut self, key: &str, value: i64) {
+        let json = self.translate(key);
 
-		match json {
-			Ok(json) => {
-				*json = serde_json::Value::Number(serde_json::Number::from_f64(value).unwrap());
-				self.state = State::Unsaved;
-				self.run_update();
-			}
-			Err(err) => {
-				debug!("Error setting config key {}: {}", key, err);
-			}
-		}
-	}
+        match json {
+            Ok(json) => {
+                *json =
+                    serde_json::Value::Number(serde_json::Number::from_f64(value as f64).unwrap());
+                self.state = State::Unsaved;
+                self.run_update();
+            }
+            Err(err) => {
+                debug!("Error setting config key {}: {}", key, err);
+            }
+        }
+    }
 
-	/// ## set_bool(&mut self, key: &str, value: bool)
-	/// 
-	/// Sets a key in the config.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `value: bool` - The value
-	pub fn set_bool(&mut self, key: &str, value: bool) {
-		let json = self.translate(key);
+    /// ## set_bool(&mut self, key: &str, value: bool)
+    ///
+    /// Sets a key in the config.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `value: bool` - The value
+    pub fn set_bool(&mut self, key: &str, value: bool) {
+        let json = self.translate(key);
 
-		match json {
-			Ok(json) => {
-				*json = serde_json::Value::Bool(value);
-				self.state = State::Unsaved;
-				self.run_update();
-			}
-			Err(err) => {
-				debug!("Error setting config key {}: {}", key, err);
-			}
-		}
-	}
+        match json {
+            Ok(json) => {
+                *json = serde_json::Value::Bool(value);
+                self.state = State::Unsaved;
+                self.run_update();
+            }
+            Err(err) => {
+                debug!("Error setting config key {}: {}", key, err);
+            }
+        }
+    }
 
-	/// ## set_value(&mut self, key: &str, value: serde_json::Value)
-	/// 
-	/// Sets a key in the config.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `value: serde_json::Value` - The value
-	pub fn set_value(&mut self, key: &str, value: serde_json::Value) {
-		let json = self.translate(key);
+    /// ## set_value(&mut self, key: &str, value: serde_json::Value)
+    ///
+    /// Sets a key in the config.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `value: serde_json::Value` - The value
+    pub fn set_value(&mut self, key: &str, value: serde_json::Value) {
+        let json = self.translate(key);
 
-		match json {
-			Ok(json) => {
-				*json = value;
-				self.state = State::Unsaved;
-				self.run_update();
-			}
-			Err(err) => {
-				debug!("Error setting config key {}: {}", key, err);
-			}
-		}
-	}
+        match json {
+            Ok(json) => {
+                *json = value;
+                self.state = State::Unsaved;
+                self.run_update();
+            }
+            Err(err) => {
+                debug!("Error setting config key {}: {}", key, err);
+            }
+        }
+    }
 
-	/// ## set_array(&mut self, key: &str, value: Vec<serde_json::Value>)
-	/// 
-	/// Sets a key in the config.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `value: Vec<serde_json::Value>` - The value
-	pub fn set_array(&mut self, key: &str, value: Vec<serde_json::Value>) {
-		let json = self.translate(key);
+    /// ## set_array(&mut self, key: &str, value: Vec<serde_json::Value>)
+    ///
+    /// Sets a key in the config.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `value: Vec<serde_json::Value>` - The value
+    pub fn set_array(&mut self, key: &str, value: Vec<serde_json::Value>) {
+        let json = self.translate(key);
 
-		match json {
-			Ok(json) => {
-				*json = serde_json::Value::Array(value);
-				self.state = State::Unsaved;
-				self.run_update();
-			}
-			Err(err) => {
-				debug!("Error setting config key {}: {}", key, err);
-			}
-		}
-	}
-
+        match json {
+            Ok(json) => {
+                *json = serde_json::Value::Array(value);
+                self.state = State::Unsaved;
+                self.run_update();
+            }
+            Err(err) => {
+                debug!("Error setting config key {}: {}", key, err);
+            }
+        }
+    }
 
     /// ## get_or(&mut self, key: &str, default: impl Fn() -> String) -> Result<String, String>
     ///
@@ -270,7 +271,11 @@ impl Config {
     /// let mut config = config::Config::empty();
     /// let value = config.get_or("key", || "default".to_string());
     /// ```
-    pub fn get_str_or(&mut self, key: &str, default: impl Fn() -> String) -> Result<String, String> {
+    pub fn get_str_or(
+        &mut self,
+        key: &str,
+        default: impl Fn() -> String,
+    ) -> Result<String, String> {
         let value = self.translate(key);
         match value {
             Ok(value) => match value.as_str() {
@@ -291,135 +296,143 @@ impl Config {
         }
     }
 
-	/// ## get_num_or(&mut self, key: &str, default: impl Fn() -> f64) -> Result<f64, String>
-	/// 
-	/// Gets a key from the config, or sets it to a default value if it doesn't exist.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `default: impl Fn() -> f64` - The default value
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Result<f64, String>` - The result of the command
-	pub fn get_num_or(&mut self, key: &str, default: impl Fn() -> f64) -> Result<f64, String> {
-		let value = self.translate(key);
-		match value {
-			Ok(value) => match value.as_f64() {
-				Some(value) => Ok(value),
-				None => {
-					let default = default();
-					self.set_num(key, default);
-					debug!("{} is not set. Setting to default value {}.", key, default);
-					Ok(default)
-				}
-			},
-			Err(err) => {
-				let default = default();
-				self.set_num(key, default);
-				debug!("{} is not set. Setting to default value {}.", key, default);
-				Ok(default)
-			}
-		}
-	}
+    /// ## get_num_or(&mut self, key: &str, default: impl Fn() -> i64) -> Result<i64, String>
+    ///
+    /// Gets a key from the config, or sets it to a default value if it doesn't exist.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `default: impl Fn() -> i64` - The default value
+    ///
+    /// ### Returns
+    ///
+    /// * `Result<i64, String>` - The result of the command
+    pub fn get_num_or(&mut self, key: &str, default: impl Fn() -> i64) -> Result<i64, String> {
+        let value = self.translate(key);
+        match value {
+            Ok(value) => match value.as_i64() {
+                Some(value) => Ok(value),
+                None => {
+                    let default = default();
+                    self.set_num(key, default);
+                    debug!("{} is not set. Setting to default value {}.", key, default);
+                    Ok(default)
+                }
+            },
+            Err(err) => {
+                let default = default();
+                self.set_num(key, default);
+                debug!("{} is not set. Setting to default value {}.", key, default);
+                Ok(default)
+            }
+        }
+    }
 
-	/// ## get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String>
-	/// 
-	/// Gets a key from the config, or sets it to a default value if it doesn't exist.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `default: impl Fn() -> bool` - The default value
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Result<bool, String>` - The result of the command
-	fn get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String> {
-		let value = self.translate(key);
-		match value {
-			Ok(value) => match value.as_bool() {
-				Some(value) => Ok(value),
-				None => {
-					let default = default();
-					self.set_bool(key, default);
-					debug!("{} is not set. Setting to default value {}.", key, default);
-					Ok(default)
-				}
-			},
-			Err(err) => {
-				let default = default();
-				self.set_bool(key, default);
-				debug!("{} is not set. Setting to default value {}.", key, default);
-				Ok(default)
-			}
-		}
-	}
+    /// ## get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String>
+    ///
+    /// Gets a key from the config, or sets it to a default value if it doesn't exist.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `default: impl Fn() -> bool` - The default value
+    ///
+    /// ### Returns
+    ///
+    /// * `Result<bool, String>` - The result of the command
+    fn get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String> {
+        let value = self.translate(key);
+        match value {
+            Ok(value) => match value.as_bool() {
+                Some(value) => Ok(value),
+                None => {
+                    let default = default();
+                    self.set_bool(key, default);
+                    debug!("{} is not set. Setting to default value {}.", key, default);
+                    Ok(default)
+                }
+            },
+            Err(err) => {
+                let default = default();
+                self.set_bool(key, default);
+                debug!("{} is not set. Setting to default value {}.", key, default);
+                Ok(default)
+            }
+        }
+    }
 
-	/// ## get_value_or(&mut self, key: &str, default: impl Fn() -> serde_json::Value) -> Result<serde_json::Value, String>
-	/// 
-	/// Gets a key from the config, or sets it to a default value if it doesn't exist.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `default: impl Fn() -> serde_json::Value` - The default value
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Result<serde_json::Value, String>` - The result of the command
-	pub fn get_value_or(&mut self, key: &str, default: impl Fn() -> serde_json::Value) -> Result<serde_json::Value, String> {
-		let value = self.translate(key);
-		match value {
-			Ok(value) => match value {
-				_ => Ok(value.clone()),
-			},
-			Err(err) => {
-				let default = default();
-				self.set_value(key, default.clone());
-				debug!("{} is not set. Setting to default value.", key);
-				Ok(default)
-			}
-		}
-	}
+    /// ## get_value_or(&mut self, key: &str, default: impl Fn() -> serde_json::Value) -> Result<serde_json::Value, String>
+    ///
+    /// Gets a key from the config, or sets it to a default value if it doesn't exist.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `default: impl Fn() -> serde_json::Value` - The default value
+    ///
+    /// ### Returns
+    ///
+    /// * `Result<serde_json::Value, String>` - The result of the command
+    pub fn get_value_or(
+        &mut self,
+        key: &str,
+        default: impl Fn() -> serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        let value = self.translate(key);
+        match value {
+            Ok(value) => match value {
+                _ => Ok(value.clone()),
+            },
+            Err(err) => {
+                let default = default();
+                self.set_value(key, default.clone());
+                debug!("{} is not set. Setting to default value.", key);
+                Ok(default)
+            }
+        }
+    }
 
-	/// ## get_array_or(&mut self, key: &str, default: impl Fn() -> Vec<serde_json::Value>) -> Result<Vec<serde_json::Value>, String>
-	/// 
-	/// Gets a key from the config, or sets it to a default value if it doesn't exist.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `&mut self` - The config
-	/// * `key: &str` - The key
-	/// * `default: impl Fn() -> Vec<serde_json::Value>` - The default value
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Result<Vec<serde_json::Value>, String>` - The result of the command
-	pub fn get_array_or(&mut self, key: &str, default: impl Fn() -> Vec<serde_json::Value>) -> Result<Vec<serde_json::Value>, String> {
-		let value = self.translate(key);
-		match value {
-			Ok(value) => match value.as_array() {
-				Some(value) => Ok(value.to_vec()),
-				None => {
-					let default = default();
-					self.set_array(key, default.clone());
-					debug!("{} is not set. Setting to default value.", key);
-					Ok(default.to_vec())
-				}
-			},
-			Err(err) => {
-				let default = default();
-				self.set_array(key, default.clone());
-				debug!("{} is not set. Setting to default value.", key);
-				Ok(default.to_vec())
-			}
-		}
-	}
+    /// ## get_array_or(&mut self, key: &str, default: impl Fn() -> Vec<serde_json::Value>) -> Result<Vec<serde_json::Value>, String>
+    ///
+    /// Gets a key from the config, or sets it to a default value if it doesn't exist.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config
+    /// * `key: &str` - The key
+    /// * `default: impl Fn() -> Vec<serde_json::Value>` - The default value
+    ///
+    /// ### Returns
+    ///
+    /// * `Result<Vec<serde_json::Value>, String>` - The result of the command
+    pub fn get_array_or(
+        &mut self,
+        key: &str,
+        default: impl Fn() -> Vec<serde_json::Value>,
+    ) -> Result<Vec<serde_json::Value>, String> {
+        let value = self.translate(key);
+        match value {
+            Ok(value) => match value.as_array() {
+                Some(value) => Ok(value.to_vec()),
+                None => {
+                    let default = default();
+                    self.set_array(key, default.clone());
+                    debug!("{} is not set. Setting to default value.", key);
+                    Ok(default.to_vec())
+                }
+            },
+            Err(err) => {
+                let default = default();
+                self.set_array(key, default.clone());
+                debug!("{} is not set. Setting to default value.", key);
+                Ok(default.to_vec())
+            }
+        }
+    }
 
     /// ## empty() -> Self
     ///
@@ -431,6 +444,7 @@ impl Config {
     pub fn empty() -> Self {
         Self {
             on_update: None,
+            updating: false,
             state: State::Unsaved,
             json: serde_json::Value::Null,
         }
@@ -465,6 +479,7 @@ impl Config {
         let json = serde_json::from_reader(file).map_err(|e| e.to_string())?;
         Ok(Self {
             on_update: None,
+            updating: false,
             state: State::Saved,
             json,
         })
@@ -518,8 +533,10 @@ impl Config {
     /// 	println!("Config updated!");
     /// });
     pub fn on_update(&mut self, f: impl Fn(&mut Config) + Send + 'static) {
-        self.on_update = Some(Box::new(f));
-        self.run_update();
+        if !self.updating {
+            self.on_update = Some(Box::new(f));
+            self.run_update();
+        }
     }
 
     /// ## run_update(&mut self)
@@ -530,13 +547,18 @@ impl Config {
     ///
     /// * `&mut self` - The config
     fn run_update(&mut self) {
-        let mut partial_clone = self.partial_clone();
-        match &self.on_update {
-            Some(f) => f(&mut partial_clone),
-            None => (),
+        if !self.updating {
+            self.updating = true;
+            let mut partial_clone = self.partial_clone();
+            match &self.on_update {
+                Some(f) => f(&mut partial_clone),
+                None => (),
+            }
+            self.state = partial_clone.state;
+            self.json = partial_clone.json;
+            self.updating = false;
+        } else {
         }
-        self.state = partial_clone.state;
-        self.json = partial_clone.json;
     }
 
     /// ## partial_clone(&self) -> Self
@@ -553,6 +575,7 @@ impl Config {
     pub fn partial_clone(&self) -> Self {
         Self {
             on_update: None,
+            updating: self.updating,
             state: self.state.clone(),
             json: self.json.clone(),
         }
