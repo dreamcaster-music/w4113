@@ -17,7 +17,16 @@ use std::{
 use tauri::Manager;
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
+// Apply to Windows only
+#[cfg(target_os = "windows")]
+static CONFIG_FILE: &str = "public_win/config.json";
+#[cfg(target_os = "windows")]
+static CONFIG_ROOT: &str = "public_win/config/";
+
+// Apply to any non-Windows platform
+#[cfg(not(target_os = "windows"))]
 static CONFIG_FILE: &str = "public/config.json";
+#[cfg(not(target_os = "windows"))]
 static CONFIG_ROOT: &str = "public/config/";
 
 // The current configuration
@@ -147,15 +156,6 @@ fn on_config_update(config: &mut config::Config) {
 
     let input_device = audio::get_input_device(&input_name, &host);
     let output_device = audio::get_output_device(&output_name, &host);
-
-    match audio::HOST.try_lock() {
-        Ok(mut host_mutex) => {
-            *host_mutex = Some(host);
-        }
-        Err(e) => {
-            debug!("Error locking HOST: {}", e);
-        }
-    }
 
     match audio::INPUT_DEVICE.try_lock() {
         Ok(mut input_device_mutex) => {
