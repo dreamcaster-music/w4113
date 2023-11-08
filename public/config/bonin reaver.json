@@ -1,0 +1,17 @@
+{
+  "audio": {
+    "host": "WASAPI",
+    "input": {
+      "buffer_size": 1024.0,
+      "channels": 2.0,
+      "device": "Microphone Array (Intel® Smart Sound Technology for Digital Microphones)",
+      "samples": 44100.0
+    },
+    "output": {
+      "buffer_size": 1024.0,
+      "channels": 2.0,
+      "device": "Speaker (Realtek(R) Audio)",
+      "samples": 44100.0
+    }
+  }
+}
