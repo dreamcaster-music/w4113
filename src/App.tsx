@@ -435,6 +435,7 @@ function App() {
 				//list midi devices
 				invoke("midi_list").then((response) => {
 					debug("Available Midi Devices: " + strValue(response as ConsoleMessage));
+					outputMessage({ kind: "Console", message: ["Available Midi Devices: " + strValue(response as ConsoleMessage)] });
 					outputMessage(response as ConsoleMessage);
 				});
 				break;
