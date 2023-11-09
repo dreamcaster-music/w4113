@@ -1056,7 +1056,58 @@ async fn confirm_exit() -> ConsoleMessage {
 }
 
 #[tauri::command]
-async fn sine() {}
+async fn sine(_window: tauri::Window, frequency: f32, amplitude: f32, duration: f32) -> ConsoleMessage {
+	let output_stream_config = audio::OUTPUT_CONFIG.lock();
+	let output_stream_config = match output_stream_config {
+		Ok(output_stream_config) => output_stream_config,
+		Err(e) => {
+			debug!("Error locking OUTPUT_STREAM_CONFIG: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking OUTPUT_STREAM_CONFIG: {}", e)],
+			};
+		}
+	};
+
+	let output_stream_config = match output_stream_config.as_ref() {
+		Some(output_stream_config) => output_stream_config,
+		None => {
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("No output stream selected")],
+			};
+		}
+	};
+
+	let output_device = audio::OUTPUT_DEVICE.lock();
+	let output_device = match output_device {
+		Ok(output_device) => output_device,
+		Err(e) => {
+			debug!("Error locking OUTPUT_DEVICE: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking OUTPUT_DEVICE: {}", e)],
+			};
+		}
+	};
+
+	let output_device = match output_device.as_ref() {
+		Some(output_device) => output_device,
+		None => {
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("No output device selected")],
+			};
+		}
+	};
+
+	let output_stream = audio::sine(output_device, output_stream_config, frequency, amplitude, duration);
+
+	return ConsoleMessage {
+		kind: MessageKind::Console,
+		message: vec![format!("Sine wave: {} Hz, {} amplitude, {} seconds", frequency, amplitude, duration)],
+	};
+}
 
 #[tauri::command]
 async fn midi_list(_window: tauri::Window) -> ConsoleMessage {

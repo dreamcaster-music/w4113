@@ -8,11 +8,11 @@
 //! * `get_output_device(device_name: &str, host: &Host) -> Option<Device>` - Gets either the desired output device, or if it is unavailable, the default output device. Will also return the default output device if "default" is entered. Device name is not case-sensitive.
 //! * `get_input_device(device_name: &str, host: &Host) -> Option<Device>` - Gets either the desired input device, or if it is unavailable, the default input device. Will also return the default input device if "default" is entered. Device name is not case-sensitive.
 
-use std::sync::Mutex;
+use std::{sync::Mutex, time::SystemTime};
 
 use cpal::{
-    traits::{DeviceTrait, HostTrait},
-    Device, Host, SupportedStreamConfigRange,
+    traits::{DeviceTrait, HostTrait, StreamTrait},
+    Device, Host, SupportedStreamConfigRange, SupportedStreamConfig,
 };
 use lazy_static::lazy_static;
 use log::debug;
@@ -759,6 +759,41 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
     }
 
     Ok(streams)
+}
+
+
+pub fn sine(output_device: &Device, config: &SupportedStreamConfig, freq: f32, amp: f32, dur: f32) -> Result<(), String> {
+	let sample_rate = config.config().sample_rate.0 as f32;
+	let output_stream = output_device.build_output_stream(
+		&config.config(),
+		move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+			static mut PHASE: f32 = 0.0;
+			let mut idx = 0;
+			while idx < data.len() {
+				let sample = amp * (2.0 * std::f32::consts::PI * freq * unsafe { PHASE }).sin();
+				unsafe { PHASE += 1.0 / sample_rate };
+				data[idx] = sample;
+				idx += 1;
+			}
+		},
+		move |err| {
+			eprintln!("an error occurred on stream: {}", err);
+		},
+		None
+	);
+
+	match output_stream {
+		Ok(mut stream) => {
+			let _ = stream.play();
+			std::thread::sleep(std::time::Duration::from_secs_f32(dur));
+			stream.pause().unwrap();
+		},
+		Err(err) => {
+			return Err(format!("Error building output stream: {}", err));
+		}
+	}
+
+	Ok(())
 }
 
 /*
