@@ -1101,7 +1101,7 @@ async fn sine(_window: tauri::Window, frequency: f32, amplitude: f32, duration: 
 		}
 	};
 
-	let output_stream = audio::sine(output_device, output_stream_config, frequency, amplitude, duration);
+	let _output_stream = audio::sine(output_device, output_stream_config, frequency, amplitude, duration);
 
 	return ConsoleMessage {
 		kind: MessageKind::Console,

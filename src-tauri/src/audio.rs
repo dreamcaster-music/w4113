@@ -12,7 +12,7 @@ use std::{sync::Mutex, time::SystemTime};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    Device, Host, SupportedStreamConfigRange, SupportedStreamConfig,
+    Device, Host, SupportedStreamConfigRange, SupportedStreamConfig, Sample,
 };
 use lazy_static::lazy_static;
 use log::debug;
@@ -763,27 +763,32 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
 
 
 pub fn sine(output_device: &Device, config: &SupportedStreamConfig, freq: f32, amp: f32, dur: f32) -> Result<(), String> {
+	debug!("Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...", freq, amp, dur);
 	let sample_rate = config.config().sample_rate.0 as f32;
+
+	// Produce a sinusoid of maximum amplitude.
+    let mut sample_clock = 0f32;
+    let mut next_value = move || {
+        sample_clock = (sample_clock + 1.0) % sample_rate;
+        (sample_clock * freq * std::f32::consts::PI / sample_rate).sin()
+    };
+
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+
+
 	let output_stream = output_device.build_output_stream(
 		&config.config(),
 		move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-			static mut PHASE: f32 = 0.0;
-			let mut idx = 0;
-			while idx < data.len() {
-				let sample = amp * (2.0 * std::f32::consts::PI * freq * unsafe { PHASE }).sin();
-				unsafe { PHASE += 1.0 / sample_rate };
-				data[idx] = sample;
-				idx += 1;
+			for sample in data.iter_mut() {
+				*sample = next_value() * amp;
 			}
 		},
-		move |err| {
-			eprintln!("an error occurred on stream: {}", err);
-		},
+		err_fn,
 		None
 	);
 
 	match output_stream {
-		Ok(mut stream) => {
+		Ok(stream) => {
 			let _ = stream.play();
 			std::thread::sleep(std::time::Duration::from_secs_f32(dur));
 			stream.pause().unwrap();

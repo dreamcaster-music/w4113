@@ -429,6 +429,7 @@ function App() {
 				let dur = parseFloat(args[2]);
 				invoke("sine", { frequency: freq, amplitude: amp, duration: dur }).then((response) => {
 					debug("Result from sine: " + strValue(response as ConsoleMessage));
+					outputMessage(response as ConsoleMessage);
 				});
 				break;
 			case "midi":
