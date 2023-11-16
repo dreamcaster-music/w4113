@@ -765,11 +765,9 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
 
 pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStreamConfig, freq: f32, amp: f32, dur: f32) -> Result<(), String> {
 	debug!("Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...", freq, amp, dur);
-	let sample_rate = config.config().sample_rate.0 as f32;
+	let mut config = config.config();
 
-	debug!("Sample rate: {}", sample_rate);
-	debug!("Buffer size: {:?}", config.config().buffer_size);
-	debug!("Channels: {}", config.config().channels);
+	let sample_rate = config.sample_rate.0 as f32;
 
 	// Produce a sinusoid of maximum amplitude.
     let mut sample_clock = 0f32;
@@ -778,12 +776,12 @@ pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStr
         (sample_clock * freq * std::f32::consts::PI / sample_rate).sin()
     };
 
-	let n_channels = config.config().channels as usize;
+	let n_channels = config.channels as usize;
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
 	let output_stream = output_device.build_output_stream(
-		&config.config(),
+		&config,
 		move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
 			let visualizer = crate::tv::BasicVisualizer::new();
 
@@ -802,12 +800,6 @@ pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStr
 				}
 				channel += 1;
 			}
-			debug!("channel: {}", channel);
-			debug!("n_channels: {}", n_channels);
-			debug!("data.len(): {}", data.len());
-			debug!("data.len() / n_channels: {}", data.len() / n_channels);
-			debug!("channel / n_channels: {}", channel / n_channels);
-
 
 			let _ = visualizer.render(&window, data);
 		},
