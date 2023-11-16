@@ -12,7 +12,7 @@ use std::{sync::Mutex, time::SystemTime};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    Device, Host, SupportedStreamConfigRange, SupportedStreamConfig, Sample,
+    Device, Host, SupportedStreamConfigRange, SupportedStreamConfig, Sample, BufferSize, StreamConfig,
 };
 use lazy_static::lazy_static;
 use log::debug;
@@ -767,6 +767,10 @@ pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStr
 	debug!("Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...", freq, amp, dur);
 	let sample_rate = config.config().sample_rate.0 as f32;
 
+	debug!("Sample rate: {}", sample_rate);
+	debug!("Buffer size: {:?}", config.config().buffer_size);
+	debug!("Channels: {}", config.config().channels);
+
 	// Produce a sinusoid of maximum amplitude.
     let mut sample_clock = 0f32;
     let mut next_value = move || {
@@ -798,6 +802,12 @@ pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStr
 				}
 				channel += 1;
 			}
+			debug!("channel: {}", channel);
+			debug!("n_channels: {}", n_channels);
+			debug!("data.len(): {}", data.len());
+			debug!("data.len() / n_channels: {}", data.len() / n_channels);
+			debug!("channel / n_channels: {}", channel / n_channels);
+
 
 			let _ = visualizer.render(&window, data);
 		},
