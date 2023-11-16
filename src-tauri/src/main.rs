@@ -15,7 +15,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tauri::Manager;
+use tauri::{Manager, Position, LogicalPosition};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
 use crate::tv::{BasicVisualizer, VisualizerTrait};
@@ -347,6 +347,8 @@ fn init(window: tauri::Window) -> Result<(), String> {
 			match tv_window.as_ref() {
 				Some(tv_window) => {
 					let _ = tv_window.show();
+					let position = LogicalPosition::new(100.0, 100.0);
+					tv_window.set_position(position);
 				}
 				None => {}
 			}
