@@ -1,0 +1,17 @@
+{
+  "audio": {
+    "host": "CoreAudio",
+    "input": {
+      "buffer_size": 1024.0,
+      "channels": 2.0,
+      "device": "MacBook Air Microphone",
+      "samples": 44100.0
+    },
+    "output": {
+      "buffer_size": 1024.0,
+      "channels": 2.0,
+      "device": "MacBook Air Speakers",
+      "samples": 44100.0
+    }
+  }
+}

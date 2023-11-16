@@ -763,7 +763,6 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
     Ok(streams)
 }
 
-
 pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStreamConfig, freq: f32, amp: f32, dur: f32) -> Result<(), String> {
 	debug!("Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...", freq, amp, dur);
 	let sample_rate = config.config().sample_rate.0 as f32;
@@ -775,16 +774,29 @@ pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStr
         (sample_clock * freq * std::f32::consts::PI / sample_rate).sin()
     };
 
-    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+	let n_channels = config.config().channels as usize;
 
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
 	let output_stream = output_device.build_output_stream(
 		&config.config(),
 		move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
 			let visualizer = crate::tv::BasicVisualizer::new();
 
+			let mut channel = 0;
+			// cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
+			// example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
+			// So every other sample is for the same channel
+			// 
+			// So there is a simple formula for determining what channel a sample is for:
+			// channel = sample_index % n_channels
 			for sample in data.iter_mut() {
-				*sample = next_value() * amp;
+				if channel % n_channels == 0 {
+					*sample = next_value() * amp;
+				} else {
+					*sample = 0.0;
+				}
+				channel += 1;
 			}
 
 			let _ = visualizer.render(&window, data);
