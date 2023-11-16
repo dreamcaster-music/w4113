@@ -17,6 +17,8 @@ use cpal::{
 use lazy_static::lazy_static;
 use log::debug;
 
+use crate::tv::VisualizerTrait;
+
 lazy_static! {
     pub static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
     pub static ref OUTPUT_DEVICE: Mutex<Option<cpal::Device>> = Mutex::new(None);
@@ -762,7 +764,7 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
 }
 
 
-pub fn sine(output_device: &Device, config: &SupportedStreamConfig, freq: f32, amp: f32, dur: f32) -> Result<(), String> {
+pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStreamConfig, freq: f32, amp: f32, dur: f32) -> Result<(), String> {
 	debug!("Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...", freq, amp, dur);
 	let sample_rate = config.config().sample_rate.0 as f32;
 
@@ -779,9 +781,13 @@ pub fn sine(output_device: &Device, config: &SupportedStreamConfig, freq: f32, a
 	let output_stream = output_device.build_output_stream(
 		&config.config(),
 		move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+			let visualizer = crate::tv::BasicVisualizer::new();
+
 			for sample in data.iter_mut() {
 				*sample = next_value() * amp;
 			}
+
+			let _ = visualizer.render(&window, data);
 		},
 		err_fn,
 		None

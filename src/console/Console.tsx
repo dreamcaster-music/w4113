@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
-import "./App.css";
+import "./Console.css";
 import { debug } from "tauri-plugin-log-api";
 
-import { ConsoleMessage } from "./bindings/ConsoleMessage";
+import { ConsoleMessage } from "../bindings/ConsoleMessage";
 import { appWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
-import { FreqMessage } from "./bindings/FreqMessage";
+import { FreqMessage } from "../bindings/FreqMessage";
 
 /**
  * ## App()
@@ -15,7 +15,7 @@ import { FreqMessage } from "./bindings/FreqMessage";
  * 
  * @returns w4113 app element
  */
-function App() {
+function Console() {
 	const [confirmExit, setConfirmExit] = useState<boolean>(false);
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 	const [textSize, setTextSize] = useState<number>(16);
@@ -528,4 +528,4 @@ function App() {
 	);
 }
 
-export default App;
+export default Console;

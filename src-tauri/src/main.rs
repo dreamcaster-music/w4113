@@ -4,6 +4,7 @@
 mod audio;
 mod config;
 mod midi;
+mod tv;
 
 use audio::Preference;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -16,6 +17,8 @@ use std::{
 };
 use tauri::Manager;
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
+
+use crate::tv::{BasicVisualizer, VisualizerTrait};
 
 // Apply to Windows only
 #[cfg(target_os = "windows")]
@@ -32,6 +35,9 @@ static CONFIG_ROOT: &str = "public/config/";
 // The current configuration
 lazy_static! {
     static ref CONFIG: Mutex<config::Config> = Mutex::new(config::Config::empty());
+
+	static ref CONSOLE_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
+	static ref TV_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
 }
 
 /// ## MessageKind
@@ -319,8 +325,39 @@ fn init(window: tauri::Window) -> Result<(), String> {
     debug!("Initializing Tauri");
 
     // Make the window visible
-    debug!("Calling window.show()");
-    window.show().map_err(|e| e.to_string())?;
+    debug!("Showing windows");
+	let console_window = CONSOLE_WINDOW.try_lock();
+	match console_window {
+		Ok(mut console_window) => {
+			match console_window.as_ref() {
+				Some(console_window) => {
+					let _ = console_window.show();
+				}
+				None => {}
+			}
+		}
+		Err(e) => {
+			debug!("Error locking CONSOLE_WINDOW: {}", e);
+		}
+	};
+
+	let tv_window = TV_WINDOW.try_lock();
+	match tv_window {
+		Ok(mut tv_window) => {
+			match tv_window.as_ref() {
+				Some(tv_window) => {
+					let _ = tv_window.show();
+				}
+				None => {}
+			}
+		}
+		Err(e) => {
+			debug!("Error locking TV_WINDOW: {}", e);
+		}
+	};
+
+	let _ = window.show();
+    
     Ok(())
 }
 
@@ -1101,7 +1138,29 @@ async fn sine(_window: tauri::Window, frequency: f32, amplitude: f32, duration: 
 		}
 	};
 
-	let _output_stream = audio::sine(output_device, output_stream_config, frequency, amplitude, duration);
+	let tv_window = TV_WINDOW.lock();
+	let tv_window = match tv_window {
+		Ok(tv_window) => tv_window,
+		Err(e) => {
+			debug!("Error locking TV_WINDOW: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking TV_WINDOW: {}", e)],
+			};
+		}
+	};
+
+	let tv_window = match tv_window.as_ref() {
+		Some(tv_window) => tv_window,
+		None => {
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("No TV window selected")],
+			};
+		}
+	};
+
+	let _output_stream = audio::sine(tv_window.clone(), output_device, output_stream_config, frequency, amplitude, duration);
 
 	return ConsoleMessage {
 		kind: MessageKind::Console,
@@ -1111,6 +1170,18 @@ async fn sine(_window: tauri::Window, frequency: f32, amplitude: f32, duration: 
 
 #[tauri::command]
 async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
+	let tv_window = TV_WINDOW.lock();
+	let tv_window = match tv_window {
+		Ok(tv_window) => tv_window,
+		Err(e) => {
+			debug!("Error locking TV_WINDOW: {}", e);
+			return ConsoleMessage {
+				kind: MessageKind::Error,
+				message: vec![format!("Error locking TV_WINDOW: {}", e)],
+			};
+		}
+	};
+
     // call midi.rs function
     debug!("Calling midi::midi_list()");
     let midi_devices = midi::midi_list();
@@ -1126,7 +1197,32 @@ async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
 /// This function is called when the program is run. This should not be used to initialize the program, that should be done in `event_loop`.
 fn main() {
     tauri::Builder::default()
-        .setup(|app| Ok(()))
+        .setup(|app| {
+			
+			// set CONSOLE_WINDOW and TV_WINDOW
+			let console_window = app.get_window("console").unwrap();
+			let tv_window = app.get_window("tv").unwrap();
+
+			match CONSOLE_WINDOW.lock() {
+				Ok(mut console_window_mutex) => {
+					*console_window_mutex = Some(console_window);
+				}
+				Err(e) => {
+					debug!("Error locking CONSOLE_WINDOW: {}", e);
+				}
+			}
+
+			match TV_WINDOW.lock() {
+				Ok(mut tv_window_mutex) => {
+					*tv_window_mutex = Some(tv_window);
+				}
+				Err(e) => {
+					debug!("Error locking TV_WINDOW: {}", e);
+				}
+			}
+			
+			Ok(())
+		})
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::Stdout, LogTarget::Webview])
