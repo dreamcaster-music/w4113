@@ -730,11 +730,11 @@ async fn output_stream_set(
 
     let result = match &config {
         Some(config) => (
-            config.channels() as i64,
-            config.sample_rate().0 as i64,
-            match config.buffer_size() {
-                cpal::SupportedBufferSize::Range { min, max } => (*min as i64, *max as i64),
-                cpal::SupportedBufferSize::Unknown => (0, 0),
+            config.channels as i64,
+            config.sample_rate.0 as i64,
+            match config.buffer_size {
+                cpal::BufferSize::Fixed(buffer_size) => (buffer_size as i64, buffer_size as i64),
+                cpal::BufferSize::Default => (0, 0),
             },
         ),
         None => (0, 0, (0, 0)),
@@ -980,11 +980,11 @@ async fn input_stream_set(
 
     let result = match &config {
         Some(config) => (
-            config.channels() as i64,
-            config.sample_rate().0 as i64,
-            match config.buffer_size() {
-                cpal::SupportedBufferSize::Range { min, max } => (*min as i64, *max as i64),
-                cpal::SupportedBufferSize::Unknown => (0, 0),
+            config.channels as i64,
+            config.sample_rate.0 as i64,
+            match config.buffer_size {
+                cpal::BufferSize::Fixed(buffer_size) => (buffer_size as i64, buffer_size as i64),
+                cpal::BufferSize::Default => (0, 0),
             },
         ),
         None => (0, 0, (0, 0)),
@@ -1096,63 +1096,62 @@ async fn sine(
     amplitude: f32,
     duration: f32,
 ) -> ConsoleMessage {
-let output_stream_config = audio::OUTPUT_CONFIG.try_lock();
-        let output_stream_config = match output_stream_config {
-            Ok(output_stream_config) => output_stream_config,
-            Err(e) => {
-                debug!("Error locking OUTPUT_STREAM_CONFIG: {}", e);
-                return ConsoleMessage {
-                    kind: MessageKind::Error,
-                    message: vec![format!("Error locking OUTPUT_STREAM_CONFIG: {}", e)],
-                };
-            }
-        };
+    let output_stream_config = audio::OUTPUT_CONFIG.try_lock();
+    let output_stream_config = match output_stream_config {
+        Ok(output_stream_config) => output_stream_config,
+        Err(e) => {
+            debug!("Error locking OUTPUT_STREAM_CONFIG: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking OUTPUT_STREAM_CONFIG: {}", e)],
+            };
+        }
+    };
 
-        let output_stream_config = match output_stream_config.as_ref() {
-            Some(output_stream_config) => output_stream_config,
-            None => {
-                return ConsoleMessage {
-                    kind: MessageKind::Error,
-                    message: vec![format!("No output stream selected")],
-                };
-            }
-        };
+    let output_stream_config = match output_stream_config.as_ref() {
+        Some(output_stream_config) => output_stream_config,
+        None => {
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("No output stream selected")],
+            };
+        }
+    };
 
-		let output_stream_config = output_stream_config.clone();
+    let output_stream_config = output_stream_config.clone();
 
-        let tv_window = TV_WINDOW.try_lock();
-        let tv_window = match tv_window {
-            Ok(tv_window) => tv_window,
-            Err(e) => {
-                debug!("Error locking TV_WINDOW: {}", e);
-                return ConsoleMessage {
-                    kind: MessageKind::Error,
-                    message: vec![format!("Error locking TV_WINDOW: {}", e)],
-                };
-            }
-        };
+    let tv_window = TV_WINDOW.try_lock();
+    let tv_window = match tv_window {
+        Ok(tv_window) => tv_window,
+        Err(e) => {
+            debug!("Error locking TV_WINDOW: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking TV_WINDOW: {}", e)],
+            };
+        }
+    };
 
-        let tv_window = match tv_window.as_ref() {
-            Some(tv_window) => tv_window,
-            None => {
-                return ConsoleMessage {
-                    kind: MessageKind::Error,
-                    message: vec![format!("No TV window selected")],
-                };
-            }
-        };
+    let tv_window = match tv_window.as_ref() {
+        Some(tv_window) => tv_window,
+        None => {
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("No TV window selected")],
+            };
+        }
+    };
 
-		let tv_window = tv_window.clone();
-		
+    let tv_window = tv_window.clone();
+
     let thread = std::thread::spawn(move || {
-
         let _output_stream = audio::sine(
             tv_window.clone(),
             &output_stream_config,
             frequency,
             amplitude,
             duration,
-			&audio::OUTPUT_DEVICE,
+            &audio::OUTPUT_DEVICE,
         );
 
         return ConsoleMessage {

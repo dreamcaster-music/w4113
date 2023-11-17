@@ -24,8 +24,8 @@ lazy_static! {
     pub static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
     pub static ref OUTPUT_DEVICE: Mutex<Option<cpal::Device>> = Mutex::new(None);
     pub static ref INPUT_DEVICE: Mutex<Option<cpal::Device>> = Mutex::new(None);
-    pub static ref OUTPUT_CONFIG: Mutex<Option<cpal::SupportedStreamConfig>> = Mutex::new(None);
-    pub static ref INPUT_CONFIG: Mutex<Option<cpal::SupportedStreamConfig>> = Mutex::new(None);
+    pub static ref OUTPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
+    pub static ref INPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
 }
 
 /// ## get_host(host_name: &str) -> Host
@@ -537,14 +537,14 @@ pub fn get_output_config(
     channels: Preference,
     sample_rate: Preference,
     buffer_size: Preference,
-) -> Option<cpal::SupportedStreamConfig> {
+) -> Option<cpal::StreamConfig> {
     let default = device.default_output_config();
 
     let supported_configs = match device.supported_output_configs() {
         Ok(supported_configs) => supported_configs,
         Err(err) => {
             debug!("Error getting supported output configs: {}", err);
-            return default.ok();
+            return Some(default.ok()?.config());
         }
     };
 
@@ -563,7 +563,7 @@ pub fn get_output_config(
     );
     supported_configs = filter_config(
         supported_configs,
-        ConfigProperty::BufferSize(buffer_size),
+        ConfigProperty::BufferSize(buffer_size.clone()),
         false,
     );
 
@@ -572,7 +572,7 @@ pub fn get_output_config(
         Some(first) => first.clone(),
         None => {
             debug!("No supported output configs found.");
-            return default.ok();
+            return Some(default.ok()?.config());
         }
     };
 
@@ -595,7 +595,12 @@ pub fn get_output_config(
             first.with_sample_rate(*min)
         }
     };
-
+    let mut config = config.config();
+    config.buffer_size = match buffer_size {
+        Preference::Exact(value, _preference_alt) => BufferSize::Fixed(value as u32),
+        Preference::Max => BufferSize::Default,
+        Preference::Min => BufferSize::Default,
+    };
     Some(config)
 }
 
@@ -626,14 +631,13 @@ pub fn get_input_config(
     channels: Preference,
     sample_rate: Preference,
     buffer_size: Preference,
-) -> Option<cpal::SupportedStreamConfig> {
+) -> Option<cpal::StreamConfig> {
     let default = device.default_input_config();
-
     let supported_configs = match device.supported_input_configs() {
         Ok(supported_configs) => supported_configs,
         Err(err) => {
             debug!("Error getting supported input configs: {}", err);
-            return default.ok();
+            return Some(default.ok()?.config());
         }
     };
 
@@ -652,7 +656,7 @@ pub fn get_input_config(
     );
     supported_configs = filter_config(
         supported_configs,
-        ConfigProperty::BufferSize(buffer_size),
+        ConfigProperty::BufferSize(buffer_size.clone()),
         false,
     );
 
@@ -661,7 +665,7 @@ pub fn get_input_config(
         Some(first) => first.clone(),
         None => {
             debug!("No supported input configs found.");
-            return default.ok();
+            return Some(default.ok()?.config());
         }
     };
 
@@ -684,7 +688,12 @@ pub fn get_input_config(
             first.with_sample_rate(*min)
         }
     };
-
+    let mut config = config.config();
+    config.buffer_size = match buffer_size {
+        Preference::Exact(value, _preference_alt) => BufferSize::Fixed(value as u32),
+        Preference::Max => BufferSize::Default,
+        Preference::Min => BufferSize::Default,
+    };
     Some(config)
 }
 
@@ -766,19 +775,18 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
 
 pub fn sine(
     window: tauri::Window,
-    config: &SupportedStreamConfig,
+    config: &StreamConfig,
     freq: f32,
     amp: f32,
     dur: f32,
-	mutex: &Mutex<Option<Device>>,
+    mutex: &Mutex<Option<Device>>,
 ) -> Result<(), String> {
-	let mut output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>= None;
-	{
+    let mut output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>> = None;
+    {
+        use crate::ConsoleMessage;
+        use crate::MessageKind;
 
-		use crate::ConsoleMessage;
-		use crate::MessageKind;
-
-		let output_device = mutex.try_lock();
+        let output_device = mutex.try_lock();
         let output_device = match output_device {
             Ok(output_device) => output_device,
             Err(e) => {
@@ -791,61 +799,62 @@ pub fn sine(
             Some(output_device) => output_device,
             None => {
                 debug!("OUTPUT_DEVICE is None");
-				return Err("OUTPUT_DEVICE is None".to_owned());
+                return Err("OUTPUT_DEVICE is None".to_owned());
             }
         };
-    debug!(
-        "Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
-        freq, amp, dur
-    );
-    let config = config.config();
+        debug!(
+            "Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
+            freq, amp, dur
+        );
 
-    let sample_rate = config.sample_rate.0 as f32;
+        let sample_rate = config.sample_rate.0 as f32;
 
-    // Produce a sinusoid of maximum amplitude.
-    let mut sample_clock = 0f32;
+        // Produce a sinusoid of maximum amplitude.
+        let mut sample_clock = 0f32;
 
-    let mut next_value = move || {
-        sample_clock = (sample_clock + 1.0) % sample_rate;
-        (sample_clock * freq * std::f32::consts::PI / sample_rate).sin()
-    };
+        let mut next_value = move || {
+            sample_clock = (sample_clock + 1.0) % sample_rate;
+            (sample_clock * freq * std::f32::consts::PI / sample_rate).sin()
+        };
 
-    let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-        let visualizer = crate::tv::BasicVisualizer::new();
+        let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+            let buffer_size = data.len();
+            debug!("Buffer size is cromulating at len: {}", buffer_size);
+            let visualizer = crate::tv::BasicVisualizer::new();
 
-        let mut channel = 0;
-        // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
-        // example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
-        // So every other sample is for the same channel
-        //
-        // So there is a simple formula for determining what channel a sample is for:
-        // channel = sample_index % n_channels
-        for sample in data.iter_mut() {
-            if channel % 2 == 0 {
-                *sample = next_value() * amp;
-            } else {
-                *sample = 0.0;
+            let mut channel = 0;
+            // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
+            // example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
+            // So every other sample is for the same channel
+            //
+            // So there is a simple formula for determining what channel a sample is for:
+            // channel = sample_index % n_channels
+            for sample in data.iter_mut() {
+                if channel % 2 == 0 {
+                    *sample = next_value() * amp;
+                } else {
+                    *sample = 0.0;
+                }
+                channel += 1;
             }
-            channel += 1;
-        }
 
-        let _ = visualizer.render(&window, data);
-    };
+            let _ = visualizer.render(&window, data);
+        };
 
-    let n_channels = config.channels as usize;
+        let n_channels = config.channels as usize;
 
-    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+        let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-    let output_stream = output_device.build_output_stream(&config, data_callback, err_fn, None);
+        let output_stream = output_device.build_output_stream(&config, data_callback, err_fn, None);
 
-output_stream_opt = Some(output_stream);
-	}		
+        output_stream_opt = Some(output_stream);
+    }
 
-	let output_stream = output_stream_opt.unwrap();
+    let output_stream = output_stream_opt.unwrap();
 
     match output_stream {
         Ok(stream) => {
-			drop(mutex);
+            drop(mutex);
             let _ = stream.play();
             std::thread::sleep(std::time::Duration::from_secs_f32(dur));
             stream.pause().unwrap();
