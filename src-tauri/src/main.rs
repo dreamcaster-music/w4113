@@ -15,7 +15,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tauri::{Manager, Position, LogicalPosition};
+use tauri::{LogicalPosition, Manager, Position};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
 use crate::tv::{BasicVisualizer, VisualizerTrait};
@@ -35,9 +35,8 @@ static CONFIG_ROOT: &str = "public/config/";
 // The current configuration
 lazy_static! {
     static ref CONFIG: Mutex<config::Config> = Mutex::new(config::Config::empty());
-
-	static ref CONSOLE_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
-	static ref TV_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
+    static ref CONSOLE_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
+    static ref TV_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
 }
 
 /// ## MessageKind
@@ -326,40 +325,36 @@ fn init(window: tauri::Window) -> Result<(), String> {
 
     // Make the window visible
     debug!("Showing windows");
-	let console_window = CONSOLE_WINDOW.try_lock();
-	match console_window {
-		Ok(mut console_window) => {
-			match console_window.as_ref() {
-				Some(console_window) => {
-					let _ = console_window.show();
-				}
-				None => {}
-			}
-		}
-		Err(e) => {
-			debug!("Error locking CONSOLE_WINDOW: {}", e);
-		}
-	};
+    let console_window = CONSOLE_WINDOW.try_lock();
+    match console_window {
+        Ok(mut console_window) => match console_window.as_ref() {
+            Some(console_window) => {
+                let _ = console_window.show();
+            }
+            None => {}
+        },
+        Err(e) => {
+            debug!("Error locking CONSOLE_WINDOW: {}", e);
+        }
+    };
 
-	let tv_window = TV_WINDOW.try_lock();
-	match tv_window {
-		Ok(mut tv_window) => {
-			match tv_window.as_ref() {
-				Some(tv_window) => {
-					let _ = tv_window.show();
-					let position = LogicalPosition::new(100.0, 100.0);
-					tv_window.set_position(position);
-				}
-				None => {}
-			}
-		}
-		Err(e) => {
-			debug!("Error locking TV_WINDOW: {}", e);
-		}
-	};
+    let tv_window = TV_WINDOW.try_lock();
+    match tv_window {
+        Ok(mut tv_window) => match tv_window.as_ref() {
+            Some(tv_window) => {
+                let _ = tv_window.show();
+                let position = LogicalPosition::new(100.0, 100.0);
+                tv_window.set_position(position);
+            }
+            None => {}
+        },
+        Err(e) => {
+            debug!("Error locking TV_WINDOW: {}", e);
+        }
+    };
 
-	let _ = window.show();
-    
+    let _ = window.show();
+
     Ok(())
 }
 
@@ -1095,94 +1090,102 @@ async fn confirm_exit() -> ConsoleMessage {
 }
 
 #[tauri::command]
-async fn sine(_window: tauri::Window, frequency: f32, amplitude: f32, duration: f32) -> ConsoleMessage {
-	let output_stream_config = audio::OUTPUT_CONFIG.lock();
-	let output_stream_config = match output_stream_config {
-		Ok(output_stream_config) => output_stream_config,
-		Err(e) => {
-			debug!("Error locking OUTPUT_STREAM_CONFIG: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking OUTPUT_STREAM_CONFIG: {}", e)],
-			};
-		}
-	};
+async fn sine(
+    _window: tauri::Window,
+    frequency: f32,
+    amplitude: f32,
+    duration: f32,
+) -> ConsoleMessage {
+let output_stream_config = audio::OUTPUT_CONFIG.try_lock();
+        let output_stream_config = match output_stream_config {
+            Ok(output_stream_config) => output_stream_config,
+            Err(e) => {
+                debug!("Error locking OUTPUT_STREAM_CONFIG: {}", e);
+                return ConsoleMessage {
+                    kind: MessageKind::Error,
+                    message: vec![format!("Error locking OUTPUT_STREAM_CONFIG: {}", e)],
+                };
+            }
+        };
 
-	let output_stream_config = match output_stream_config.as_ref() {
-		Some(output_stream_config) => output_stream_config,
-		None => {
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("No output stream selected")],
-			};
-		}
-	};
+        let output_stream_config = match output_stream_config.as_ref() {
+            Some(output_stream_config) => output_stream_config,
+            None => {
+                return ConsoleMessage {
+                    kind: MessageKind::Error,
+                    message: vec![format!("No output stream selected")],
+                };
+            }
+        };
 
-	let output_device = audio::OUTPUT_DEVICE.lock();
-	let output_device = match output_device {
-		Ok(output_device) => output_device,
-		Err(e) => {
-			debug!("Error locking OUTPUT_DEVICE: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking OUTPUT_DEVICE: {}", e)],
-			};
-		}
-	};
+		let output_stream_config = output_stream_config.clone();
 
-	let output_device = match output_device.as_ref() {
-		Some(output_device) => output_device,
-		None => {
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("No output device selected")],
-			};
-		}
-	};
+        let tv_window = TV_WINDOW.try_lock();
+        let tv_window = match tv_window {
+            Ok(tv_window) => tv_window,
+            Err(e) => {
+                debug!("Error locking TV_WINDOW: {}", e);
+                return ConsoleMessage {
+                    kind: MessageKind::Error,
+                    message: vec![format!("Error locking TV_WINDOW: {}", e)],
+                };
+            }
+        };
 
-	let tv_window = TV_WINDOW.lock();
-	let tv_window = match tv_window {
-		Ok(tv_window) => tv_window,
-		Err(e) => {
-			debug!("Error locking TV_WINDOW: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking TV_WINDOW: {}", e)],
-			};
-		}
-	};
+        let tv_window = match tv_window.as_ref() {
+            Some(tv_window) => tv_window,
+            None => {
+                return ConsoleMessage {
+                    kind: MessageKind::Error,
+                    message: vec![format!("No TV window selected")],
+                };
+            }
+        };
 
-	let tv_window = match tv_window.as_ref() {
-		Some(tv_window) => tv_window,
-		None => {
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("No TV window selected")],
-			};
-		}
-	};
+		let tv_window = tv_window.clone();
+		
+    let thread = std::thread::spawn(move || {
 
-	let _output_stream = audio::sine(tv_window.clone(), output_device, output_stream_config, frequency, amplitude, duration);
+        let _output_stream = audio::sine(
+            tv_window.clone(),
+            &output_stream_config,
+            frequency,
+            amplitude,
+            duration,
+			&audio::OUTPUT_DEVICE,
+        );
 
-	return ConsoleMessage {
-		kind: MessageKind::Console,
-		message: vec![format!("Sine wave: {} Hz, {} amplitude, {} seconds", frequency, amplitude, duration)],
-	};
+        return ConsoleMessage {
+            kind: MessageKind::Console,
+            message: vec![format!(
+                "Sine wave: {} Hz, {} amplitude, {} seconds",
+                frequency, amplitude, duration
+            )],
+        };
+    });
+
+    return ConsoleMessage {
+        kind: MessageKind::Console,
+        message: vec![format!(
+            "Sine wave: {} Hz, {} amplitude, {} seconds",
+            frequency, amplitude, duration
+        )],
+    };
 }
 
 #[tauri::command]
 async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
-	let tv_window = TV_WINDOW.lock();
-	let tv_window = match tv_window {
-		Ok(tv_window) => tv_window,
-		Err(e) => {
-			debug!("Error locking TV_WINDOW: {}", e);
-			return ConsoleMessage {
-				kind: MessageKind::Error,
-				message: vec![format!("Error locking TV_WINDOW: {}", e)],
-			};
-		}
-	};
+    let tv_window = TV_WINDOW.lock();
+    let tv_window = match tv_window {
+        Ok(tv_window) => tv_window,
+        Err(e) => {
+            debug!("Error locking TV_WINDOW: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking TV_WINDOW: {}", e)],
+            };
+        }
+    };
 
     // call midi.rs function
     debug!("Calling midi::midi_list()");
@@ -1200,31 +1203,30 @@ async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-			
-			// set CONSOLE_WINDOW and TV_WINDOW
-			let console_window = app.get_window("console").unwrap();
-			let tv_window = app.get_window("tv").unwrap();
+            // set CONSOLE_WINDOW and TV_WINDOW
+            let console_window = app.get_window("console").unwrap();
+            let tv_window = app.get_window("tv").unwrap();
 
-			match CONSOLE_WINDOW.lock() {
-				Ok(mut console_window_mutex) => {
-					*console_window_mutex = Some(console_window);
-				}
-				Err(e) => {
-					debug!("Error locking CONSOLE_WINDOW: {}", e);
-				}
-			}
+            match CONSOLE_WINDOW.lock() {
+                Ok(mut console_window_mutex) => {
+                    *console_window_mutex = Some(console_window);
+                }
+                Err(e) => {
+                    debug!("Error locking CONSOLE_WINDOW: {}", e);
+                }
+            }
 
-			match TV_WINDOW.lock() {
-				Ok(mut tv_window_mutex) => {
-					*tv_window_mutex = Some(tv_window);
-				}
-				Err(e) => {
-					debug!("Error locking TV_WINDOW: {}", e);
-				}
-			}
-			
-			Ok(())
-		})
+            match TV_WINDOW.lock() {
+                Ok(mut tv_window_mutex) => {
+                    *tv_window_mutex = Some(tv_window);
+                }
+                Err(e) => {
+                    debug!("Error locking TV_WINDOW: {}", e);
+                }
+            }
+
+            Ok(())
+        })
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::Stdout, LogTarget::Webview])

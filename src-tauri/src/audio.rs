@@ -12,7 +12,8 @@ use std::{sync::Mutex, time::SystemTime};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    Device, Host, SupportedStreamConfigRange, SupportedStreamConfig, Sample, BufferSize, StreamConfig,
+    BufferSize, Device, Host, Sample, StreamConfig, SupportedStreamConfig,
+    SupportedStreamConfigRange,
 };
 use lazy_static::lazy_static;
 use log::debug;
@@ -763,62 +764,98 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
     Ok(streams)
 }
 
-pub fn sine(window: tauri::Window, output_device: &Device, config: &SupportedStreamConfig, freq: f32, amp: f32, dur: f32) -> Result<(), String> {
-	debug!("Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...", freq, amp, dur);
-	let mut config = config.config();
+pub fn sine(
+    window: tauri::Window,
+    config: &SupportedStreamConfig,
+    freq: f32,
+    amp: f32,
+    dur: f32,
+	mutex: &Mutex<Option<Device>>,
+) -> Result<(), String> {
+	let mut output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>= None;
+	{
 
-	let sample_rate = config.sample_rate.0 as f32;
+		use crate::ConsoleMessage;
+		use crate::MessageKind;
 
-	// Produce a sinusoid of maximum amplitude.
+		let output_device = mutex.try_lock();
+        let output_device = match output_device {
+            Ok(output_device) => output_device,
+            Err(e) => {
+                debug!("Error locking OUTPUT_DEVICE: {}", e);
+                return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
+            }
+        };
+
+        let output_device = match output_device.as_ref() {
+            Some(output_device) => output_device,
+            None => {
+                debug!("OUTPUT_DEVICE is None");
+				return Err("OUTPUT_DEVICE is None".to_owned());
+            }
+        };
+    debug!(
+        "Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
+        freq, amp, dur
+    );
+    let config = config.config();
+
+    let sample_rate = config.sample_rate.0 as f32;
+
+    // Produce a sinusoid of maximum amplitude.
     let mut sample_clock = 0f32;
+
     let mut next_value = move || {
         sample_clock = (sample_clock + 1.0) % sample_rate;
         (sample_clock * freq * std::f32::consts::PI / sample_rate).sin()
     };
 
-	let n_channels = config.channels as usize;
+    let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+        let visualizer = crate::tv::BasicVisualizer::new();
+
+        let mut channel = 0;
+        // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
+        // example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
+        // So every other sample is for the same channel
+        //
+        // So there is a simple formula for determining what channel a sample is for:
+        // channel = sample_index % n_channels
+        for sample in data.iter_mut() {
+            if channel % 2 == 0 {
+                *sample = next_value() * amp;
+            } else {
+                *sample = 0.0;
+            }
+            channel += 1;
+        }
+
+        let _ = visualizer.render(&window, data);
+    };
+
+    let n_channels = config.channels as usize;
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-	let output_stream = output_device.build_output_stream(
-		&config,
-		move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-			let visualizer = crate::tv::BasicVisualizer::new();
+    let output_stream = output_device.build_output_stream(&config, data_callback, err_fn, None);
 
-			let mut channel = 0;
-			// cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
-			// example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
-			// So every other sample is for the same channel
-			// 
-			// So there is a simple formula for determining what channel a sample is for:
-			// channel = sample_index % n_channels
-			for sample in data.iter_mut() {
-				if channel % n_channels == 0 {
-					*sample = next_value() * amp;
-				} else {
-					*sample = 0.0;
-				}
-				channel += 1;
-			}
+output_stream_opt = Some(output_stream);
+	}		
 
-			let _ = visualizer.render(&window, data);
-		},
-		err_fn,
-		None
-	);
+	let output_stream = output_stream_opt.unwrap();
 
-	match output_stream {
-		Ok(stream) => {
-			let _ = stream.play();
-			std::thread::sleep(std::time::Duration::from_secs_f32(dur));
-			stream.pause().unwrap();
-		},
-		Err(err) => {
-			return Err(format!("Error building output stream: {}", err));
-		}
-	}
+    match output_stream {
+        Ok(stream) => {
+			drop(mutex);
+            let _ = stream.play();
+            std::thread::sleep(std::time::Duration::from_secs_f32(dur));
+            stream.pause().unwrap();
+        }
+        Err(err) => {
+            return Err(format!("Error building output stream: {}", err));
+        }
+    };
 
-	Ok(())
+    Ok(())
 }
 
 /*
