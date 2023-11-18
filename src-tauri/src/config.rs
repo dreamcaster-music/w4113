@@ -44,7 +44,7 @@ pub struct Config {
 }
 
 impl Config {
-    /// ## translate(&mut self, string_value: &str) -> Result<&mut serde_json::Value, String>
+    /// ## `translate(&mut self, string_value: &str) -> Result<&mut serde_json::Value, String>`
     ///
     /// Private function which translates a string value into a JSON value.
     /// JSON values are typically accessed by using a string value, such as "key.subkey.subsubkey",
@@ -90,7 +90,7 @@ impl Config {
         Ok(value)
     }
 
-    /// ## state(&self) -> &State
+    /// ## `state(&self) -> &State`
     ///
     /// Returns the state of the config.
     ///
@@ -105,7 +105,7 @@ impl Config {
         &self.state
     }
 
-    /// ## json(&self) -> &serde_json::Value
+    /// ## `json(&self) -> &serde_json::Value`
     ///
     /// Returns the JSON value of the config.
     ///
@@ -120,7 +120,7 @@ impl Config {
         &self.json
     }
 
-    /// ## set(&mut self, key: &str, value: &str)
+    /// ## `set(&mut self, key: &str, value: &str)`
     ///
     /// Sets a key in the config.
     ///
@@ -151,7 +151,7 @@ impl Config {
         }
     }
 
-    /// ## set_num(&mut self, key: &str, value: i64)
+    /// ## `set_num(&mut self, key: &str, value: i64)`
     ///
     /// Sets a key in the config.
     ///
@@ -176,7 +176,7 @@ impl Config {
         }
     }
 
-    /// ## set_bool(&mut self, key: &str, value: bool)
+    /// ## `set_bool(&mut self, key: &str, value: bool)`
     ///
     /// Sets a key in the config.
     ///
@@ -200,7 +200,7 @@ impl Config {
         }
     }
 
-    /// ## set_value(&mut self, key: &str, value: serde_json::Value)
+    /// ## `set_value(&mut self, key: &str, value: serde_json::Value)`
     ///
     /// Sets a key in the config.
     ///
@@ -224,7 +224,7 @@ impl Config {
         }
     }
 
-    /// ## set_array(&mut self, key: &str, value: Vec<serde_json::Value>)
+    /// ## `set_array(&mut self, key: &str, value: Vec<serde_json::Value>)`
     ///
     /// Sets a key in the config.
     ///
@@ -248,7 +248,7 @@ impl Config {
         }
     }
 
-    /// ## get_or(&mut self, key: &str, default: impl Fn() -> String) -> Result<String, String>
+    /// ## `get_or(&mut self, key: &str, default: impl Fn() -> String) -> Result<String, String>`
     ///
     /// Gets a key from the config, or sets it to a default value if it doesn't exist.
     ///
@@ -297,7 +297,7 @@ impl Config {
         }
     }
 
-    /// ## get_num_or(&mut self, key: &str, default: impl Fn() -> i64) -> Result<i64, String>
+    /// ## `get_num_or(&mut self, key: &str, default: impl Fn() -> i64) -> Result<i64, String>`
     ///
     /// Gets a key from the config, or sets it to a default value if it doesn't exist.
     ///
@@ -332,7 +332,7 @@ impl Config {
         }
     }
 
-    /// ## get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String>
+    /// ## `get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String>`
     ///
     /// Gets a key from the config, or sets it to a default value if it doesn't exist.
     ///
@@ -367,7 +367,7 @@ impl Config {
         }
     }
 
-    /// ## get_value_or(&mut self, key: &str, default: impl Fn() -> serde_json::Value) -> Result<serde_json::Value, String>
+    /// ## `get_value_or(&mut self, key: &str, default: impl Fn() -> serde_json::Value) -> Result<serde_json::Value, String>`
     ///
     /// Gets a key from the config, or sets it to a default value if it doesn't exist.
     ///
@@ -400,7 +400,7 @@ impl Config {
         }
     }
 
-    /// ## get_array_or(&mut self, key: &str, default: impl Fn() -> Vec<serde_json::Value>) -> Result<Vec<serde_json::Value>, String>
+    /// ## `get_array_or(&mut self, key: &str, default: impl Fn() -> Vec<serde_json::Value>) -> Result<Vec<serde_json::Value>, String>`
     ///
     /// Gets a key from the config, or sets it to a default value if it doesn't exist.
     ///
@@ -439,7 +439,7 @@ impl Config {
         }
     }
 
-    /// ## empty() -> Self
+    /// ## `empty() -> Self`
     ///
     /// Creates an empty config.
     ///
@@ -455,7 +455,7 @@ impl Config {
         }
     }
 
-    /// ## load_from_file(path: &str) -> Result<Self, String>
+    /// ## `load_from_file(path: &str) -> Result<Self, String>`
     ///
     /// Loads a config from a file.
     ///
@@ -490,7 +490,7 @@ impl Config {
         })
     }
 
-    /// ## save_to_file(&mut self, path: &str) -> Result<(), String>
+    /// ## `save_to_file(&mut self, path: &str) -> Result<(), String>`
     ///
     /// Saves a config to a file.
     ///
@@ -518,7 +518,7 @@ impl Config {
         Ok(())
     }
 
-    /// ## on_update(&mut self, f: impl Fn(&mut Config) + 'static)
+    /// ## `on_update(&mut self, f: impl Fn(&mut Config) + 'static)`
     ///
     /// Sets the function to call when the config is updated.
     /// Note that on_update is called once after being set.
@@ -544,7 +544,7 @@ impl Config {
         }
     }
 
-    /// ## run_update(&mut self)
+    /// ## `run_update(&mut self)`
     ///
     /// Private function which runs the on_update function.
     ///
@@ -566,7 +566,7 @@ impl Config {
         }
     }
 
-    /// ## partial_clone(&self) -> Self
+    /// ## `partial_clone(&self) -> Self`
     ///
     /// Clones the config, but without the on_update function.
     ///

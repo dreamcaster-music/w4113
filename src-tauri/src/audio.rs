@@ -22,7 +22,7 @@ lazy_static! {
     pub static ref INPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
 }
 
-/// ## get_host(host_name: &str) -> Host
+/// ## `get_host(host_name: &str) -> Host`
 ///
 /// Gets either the desired hostname, or if it is unavailable, the default host.
 /// Will also return the default host if "default" is entered.
@@ -78,7 +78,7 @@ pub fn get_host(host_name: &str) -> Host {
     cpal::default_host()
 }
 
-/// ## get_output_device(device_name: &str, host: &Host) -> Option<Device>
+/// ## `get_output_device(device_name: &str, host: &Host) -> Option<Device>`
 ///
 /// Gets either the desired output device, or if it is unavailable, the default output device.
 /// Will also return the default output device if "default" is entered.
@@ -148,7 +148,7 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
     default_device
 }
 
-/// ## get_input_device(device_name: &str, host: &Host) -> Option<Device>
+/// ## `get_input_device(device_name: &str, host: &Host) -> Option<Device>`
 ///
 /// Gets either the desired input device, or if it is unavailable, the default input device.
 /// Will also return the default input device if "default" is entered.
@@ -218,7 +218,7 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
     default_device
 }
 
-/// ## list_hosts() -> Vec<String>
+/// ## `list_hosts() -> Vec<String>`
 ///
 /// Lists all available hosts.
 ///
@@ -235,7 +235,7 @@ pub fn list_hosts() -> Vec<String> {
     hosts
 }
 
-/// ## list_output_devices(host: &Host) -> Vec<String>
+/// ## `list_output_devices(host: &Host) -> Vec<String>`
 ///
 /// Lists all available output devices on a host.
 ///
@@ -270,7 +270,7 @@ pub fn list_output_devices(host: &Host) -> Vec<String> {
     devices
 }
 
-/// ## list_input_devices(host: &Host) -> Vec<String>
+/// ## `list_input_devices(host: &Host) -> Vec<String>`
 ///
 /// Lists all available input devices on a host.
 ///
@@ -360,7 +360,7 @@ enum ConfigProperty {
     BufferSize(Preference),
 }
 
-/// ## filter_config(configs_ref: Vec<SupportedStreamConfigRange>, property: ConfigProperty, alt: bool) -> Vec<SupportedStreamConfigRange>
+/// ## `filter_config(configs_ref: Vec<SupportedStreamConfigRange>, property: ConfigProperty, alt: bool) -> Vec<SupportedStreamConfigRange>`
 ///
 /// Filters a list of configs based on the given property.
 ///
@@ -505,7 +505,7 @@ fn filter_config(
     configs
 }
 
-/// ## get_output_config(device: Device, channels: Preference, sample_rate: Preference, buffer_size: Preference) -> Option<cpal::StreamConfig>
+/// ## `get_output_config(device: Device, channels: Preference, sample_rate: Preference, buffer_size: Preference) -> Option<cpal::StreamConfig>`
 ///
 /// Gets the output config for the given device, channels, and sample rate.
 /// Notably, "channels" takes precedence over "sample_rate", which takes precedence over "buffer_size".
@@ -600,7 +600,7 @@ pub fn get_output_config(
     Some(config)
 }
 
-/// ## get_input_config(device: Device, channels: Preference, sample_rate: Preference, buffer_size: Preference) -> Option<cpal::StreamConfig>
+/// ## `get_input_config(device: Device, channels: Preference, sample_rate: Preference, buffer_size: Preference) -> Option<cpal::StreamConfig>`
 ///
 /// Gets the input config for the given device, channels, and sample rate.
 ///
@@ -693,7 +693,7 @@ pub fn get_input_config(
     Some(config)
 }
 
-/// ## list_output_streams(device: &Device) -> Result<Vec<String>, String>
+/// ## `list_output_streams(device: &Device) -> Result<Vec<String>, String>`
 ///
 /// Lists all available output stream configurations for a device.
 ///
@@ -731,7 +731,7 @@ pub fn list_output_streams(device: &Device) -> Result<Vec<String>, String> {
     Ok(streams)
 }
 
-/// ## list_input_streams(device: &Device) -> Result<Vec<String>, String>
+/// ## `list_input_streams(device: &Device) -> Result<Vec<String>, String>`
 ///
 /// Lists all available input stream configurations for a device.
 ///

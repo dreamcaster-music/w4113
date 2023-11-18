@@ -230,7 +230,7 @@ fn on_config_update(config: &mut config::Config) {
     };
 }
 
-/// ## run(_window: tauri::Window) -> String
+/// ## `run(_window: tauri::Window) -> String`
 ///
 /// The run command
 ///
@@ -303,7 +303,7 @@ async fn run(window: tauri::Window) -> String {
     result
 }
 
-/// ## init(_window: tauri::Window) -> Result<(), String>
+/// ## `init(_window: tauri::Window) -> Result<(), String>`
 ///
 /// Initializes the program.
 ///
@@ -352,7 +352,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
     Ok(())
 }
 
-/// ## config_show() -> ConsoleMessage
+/// ## `config_show() -> ConsoleMessage`
 ///
 /// Shows the current config.
 ///
@@ -380,7 +380,7 @@ async fn config_show() -> ConsoleMessage {
     }
 }
 
-/// ## config_save(filename: &str) -> ConsoleMessage
+/// ## `config_save(filename: &str) -> ConsoleMessage`
 ///
 /// Saves the current config to a file.
 ///
@@ -419,7 +419,7 @@ async fn config_save(filename: String) -> ConsoleMessage {
     }
 }
 
-/// ## config_load(filename: &str) -> ConsoleMessage
+/// ## `config_load(filename: &str) -> ConsoleMessage`
 ///
 /// Loads a config from a file.
 ///
@@ -470,7 +470,7 @@ async fn config_load(filename: String) -> ConsoleMessage {
     }
 }
 
-/// ## host_list(_window: tauri::Window) -> ConsoleMessage
+/// ## `host_list(_window: tauri::Window) -> ConsoleMessage`
 ///
 /// Lists all available hosts.
 ///
@@ -487,7 +487,7 @@ async fn host_list(_window: tauri::Window) -> ConsoleMessage {
     }
 }
 
-/// ## host_select(_window: tauri::Window, host_name: &str) -> ConsoleMessage
+/// ## `host_select(_window: tauri::Window, host_name: &str) -> ConsoleMessage`
 ///
 /// Selects a host.
 ///
@@ -525,7 +525,7 @@ async fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
     };
 }
 
-/// ## output_list(_window: tauri::Window) -> ConsoleMessage
+/// ## `output_list(_window: tauri::Window) -> ConsoleMessage`
 ///
 /// Lists all available output devices.
 ///
@@ -562,7 +562,7 @@ async fn output_list(_window: tauri::Window) -> ConsoleMessage {
     }
 }
 
-/// ## output_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage
+/// ## `output_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage`
 ///
 /// Selects an output device.
 ///
@@ -622,7 +622,7 @@ async fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage
     }
 }
 
-/// ## output_stream_show(_window: tauri::Window) -> ConsoleMessage
+/// ## `output_stream_show(_window: tauri::Window) -> ConsoleMessage`
 ///
 /// Lists all available output stream configurations.
 ///
@@ -673,7 +673,7 @@ async fn output_stream_show(_window: tauri::Window) -> ConsoleMessage {
     }
 }
 
-/// ## output_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage
+/// ## `output_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage`
 ///
 /// Sets the output stream configuration.
 ///
@@ -769,7 +769,7 @@ async fn output_stream_set(
     }
 }
 
-/// ## input_list(_window: tauri::Window) -> ConsoleMessage
+/// ## `input_list(_window: tauri::Window) -> ConsoleMessage`
 ///
 /// Lists all available input devices.
 ///
@@ -806,7 +806,7 @@ async fn input_list(_window: tauri::Window) -> ConsoleMessage {
     }
 }
 
-/// ## input_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage
+/// ## `input_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage`
 ///
 /// Selects an input device.
 ///
@@ -866,7 +866,7 @@ async fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
     }
 }
 
-/// ## input_stream_show(_window: tauri::Window) -> ConsoleMessage
+/// ## `input_stream_show(_window: tauri::Window) -> ConsoleMessage`
 ///
 /// Lists all available input stream configurations.
 ///
@@ -917,7 +917,7 @@ async fn input_stream_show(_window: tauri::Window) -> ConsoleMessage {
     }
 }
 
-/// ## input_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage
+/// ## `input_stream_set(_window: tauri::Window, channels: u32, samples: u32, buffer_size: u32) -> ConsoleMessage`
 ///
 /// Sets the input stream configuration.
 ///
@@ -1013,7 +1013,7 @@ async fn input_stream_set(
     }
 }
 
-/// ## set_global_config_value(key: &str, value: &str) -> Result<(), String>
+/// ## `set_global_config_value(key: &str, value: &str) -> Result<(), String>`
 ///
 /// Sets a value in the global config.
 ///
@@ -1166,7 +1166,7 @@ async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
     }
 }
 
-/// ## main()
+/// ## `main()`
 ///
 /// The main function.
 /// This function is called when the program is run. This should not be used to initialize the program, that should be done in `event_loop`.

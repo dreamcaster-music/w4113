@@ -6,7 +6,7 @@ use midir;
 
 use midir::{Ignore, MidiInput, MidiOutput};
 
-/// ## midi_list() -> Vec<String>
+/// ## `midi_list() -> Vec<String>`
 /// 
 /// Returns a list of midi devices
 /// 
