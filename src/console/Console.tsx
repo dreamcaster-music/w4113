@@ -17,6 +17,9 @@ import { FreqMessage } from "../bindings/FreqMessage";
  */
 function Console() {
 	const [confirmExit, setConfirmExit] = useState<boolean>(false);
+	const [commandHistory, setCommandHistory] = useState<string[]>([]);
+	const [commandHistoryIndex, setCommandHistoryIndex] = useState<number>(-1);
+	const [commandCurrent, setCommandCurrent] = useState<string>("");
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 	const [textSize, setTextSize] = useState<number>(16);
 
@@ -61,6 +64,11 @@ function Console() {
 		// Replace “ and ” with "
 		executeCommand = executeCommand.replaceAll("“", "\"");
 		executeCommand = executeCommand.replaceAll("”", "\"");
+
+		// Add command to history
+		setCommandHistory((prev) => [executeCommand, ...prev]);
+		setCommandHistoryIndex(-1);
+		setCommandCurrent("");
 
 		// Split command into array of strings
 		let split = executeCommand.split(" ");
@@ -469,6 +477,22 @@ function Console() {
 
 			// Clear input
 			event.target.value = "";
+		} else if (event.key === "ArrowUp") {
+			if (commandHistoryIndex < commandHistory.length - 1) {
+				if (commandHistoryIndex === -1) {
+					setCommandCurrent(event.target.value);
+				}
+
+				setCommandHistoryIndex(commandHistoryIndex + 1);
+				event.target.value = commandHistory[commandHistoryIndex + 1];
+			}
+		} else if (event.key === "ArrowDown") {
+			if (commandHistoryIndex > 0) {
+				setCommandHistoryIndex(commandHistoryIndex - 1);
+				event.target.value = commandHistory[commandHistoryIndex - 1];
+			} else {
+				event.target.value = commandCurrent;
+			}
 		}
 	}
 
