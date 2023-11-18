@@ -271,6 +271,7 @@ impl Config {
     /// let mut config = config::Config::empty();
     /// let value = config.get_or("key", || "default".to_string());
     /// ```
+	#[allow(dead_code)]
     pub fn get_str_or(
         &mut self,
         key: &str,
@@ -287,7 +288,7 @@ impl Config {
                     Ok(default)
                 }
             },
-            Err(err) => {
+            Err(_err) => {
                 let default = default();
                 self.set_str(key, &default);
                 debug!("{} is not set. Setting to default value {}.", key, default);
@@ -309,6 +310,7 @@ impl Config {
     /// ### Returns
     ///
     /// * `Result<i64, String>` - The result of the command
+	#[allow(dead_code)]
     pub fn get_num_or(&mut self, key: &str, default: impl Fn() -> i64) -> Result<i64, String> {
         let value = self.translate(key);
         match value {
@@ -321,7 +323,7 @@ impl Config {
                     Ok(default)
                 }
             },
-            Err(err) => {
+            Err(_err) => {
                 let default = default();
                 self.set_num(key, default);
                 debug!("{} is not set. Setting to default value {}.", key, default);
@@ -343,6 +345,7 @@ impl Config {
     /// ### Returns
     ///
     /// * `Result<bool, String>` - The result of the command
+	#[allow(dead_code)]
     fn get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String> {
         let value = self.translate(key);
         match value {
@@ -355,7 +358,7 @@ impl Config {
                     Ok(default)
                 }
             },
-            Err(err) => {
+            Err(_err) => {
                 let default = default();
                 self.set_bool(key, default);
                 debug!("{} is not set. Setting to default value {}.", key, default);
@@ -377,6 +380,7 @@ impl Config {
     /// ### Returns
     ///
     /// * `Result<serde_json::Value, String>` - The result of the command
+	#[allow(dead_code)]
     pub fn get_value_or(
         &mut self,
         key: &str,
@@ -387,7 +391,7 @@ impl Config {
             Ok(value) => match value {
                 _ => Ok(value.clone()),
             },
-            Err(err) => {
+            Err(_err) => {
                 let default = default();
                 self.set_value(key, default.clone());
                 debug!("{} is not set. Setting to default value.", key);
@@ -409,6 +413,7 @@ impl Config {
     /// ### Returns
     ///
     /// * `Result<Vec<serde_json::Value>, String>` - The result of the command
+	#[allow(dead_code)]
     pub fn get_array_or(
         &mut self,
         key: &str,
@@ -425,7 +430,7 @@ impl Config {
                     Ok(default.to_vec())
                 }
             },
-            Err(err) => {
+            Err(_err) => {
                 let default = default();
                 self.set_array(key, default.clone());
                 debug!("{} is not set. Setting to default value.", key);

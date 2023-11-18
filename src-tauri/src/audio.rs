@@ -1,18 +1,12 @@
 //! audio.rs
 //!
 //! Module is used for interacting with audio drivers/hardware
-//!
-//! ## Functions
-//!
-//! * `get_host(host_name: &str) -> Host` - Gets either the desired hostname, or if it is unavailable, the default host. Will also return the default host if "default" is entered. Host name is not case-sensitive.
-//! * `get_output_device(device_name: &str, host: &Host) -> Option<Device>` - Gets either the desired output device, or if it is unavailable, the default output device. Will also return the default output device if "default" is entered. Device name is not case-sensitive.
-//! * `get_input_device(device_name: &str, host: &Host) -> Option<Device>` - Gets either the desired input device, or if it is unavailable, the default input device. Will also return the default input device if "default" is entered. Device name is not case-sensitive.
 
-use std::{sync::Mutex, time::SystemTime};
+use std::sync::Mutex;
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    BufferSize, Device, Host, Sample, StreamConfig, SupportedStreamConfig,
+    BufferSize, Device, Host, StreamConfig,
     SupportedStreamConfigRange,
 };
 use lazy_static::lazy_static;
@@ -110,7 +104,7 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
     let default_device_name = match &default_device {
         Some(device) => match device.name() {
             Ok(name) => name,
-            Err(err) => "Unknown".to_owned(),
+            Err(_err) => "Unknown".to_owned(),
         },
         None => "None".to_owned(),
     };
@@ -124,7 +118,7 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
 
     let devices = match devices {
         Ok(devices) => devices,
-        Err(err) => {
+        Err(_err) => {
             debug!(
                 "Error getting output devices. returning default output device {}.",
                 default_device_name
@@ -141,7 +135,7 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
                     return Some(device);
                 }
             }
-            Err(err) => {
+            Err(_err) => {
                 debug!("Error retrieving output device name.");
             }
         }
@@ -180,7 +174,7 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
     let default_device_name = match &default_device {
         Some(device) => match device.name() {
             Ok(name) => name,
-            Err(err) => "Unknown".to_owned(),
+            Err(_err) => "Unknown".to_owned(),
         },
         None => "None".to_owned(),
     };
@@ -194,7 +188,7 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
 
     let devices = match devices {
         Ok(devices) => devices,
-        Err(err) => {
+        Err(_err) => {
             debug!(
                 "Error getting input devices. returning default input device {}.",
                 default_device_name
@@ -211,7 +205,7 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
                     return Some(device);
                 }
             }
-            Err(err) => {
+            Err(_err) => {
                 debug!("Error retrieving input device name.");
             }
         }
@@ -327,6 +321,7 @@ pub fn play_sound_file(path: String) -> Result<(), String> {
 /// * `Higher` - The preference should be higher than the given value
 /// * `Lower` - The preference should be lower than the given value
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub enum PreferenceAlt {
     Higher,
     Lower,
@@ -342,6 +337,7 @@ pub enum PreferenceAlt {
 /// * `Max` - The maximum value should be used
 /// * `Exact(u32, PreferenceAlt)` - The exact value should be used, or if it is unavailable, the closest higher or lower value should be used instead
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub enum Preference {
     Min,
     Max,
@@ -398,7 +394,7 @@ fn filter_config(
         ConfigProperty::BufferSize(buffer_size) => buffer_size,
     };
 
-    let mut comparison_value = 0;
+    let mut comparison_value;
     let mut exact_value = 0;
     match preference {
         Preference::Max => {
@@ -425,19 +421,19 @@ fn filter_config(
     }
 
     for config in configs_ref.clone() {
-        let mut max_config_value = std::u32::MIN;
-        let mut min_config_value = std::u32::MAX;
+        let max_config_value;
+        let min_config_value;
         match &property {
-            ConfigProperty::Channels(channels) => {
+            ConfigProperty::Channels(_channels) => {
                 let config_channels = config.channels();
                 max_config_value = config_channels as u32;
                 min_config_value = config_channels as u32;
             }
-            ConfigProperty::SampleRate(sample_rate) => {
+            ConfigProperty::SampleRate(_sample_rate) => {
                 max_config_value = config.max_sample_rate().0;
                 min_config_value = config.min_sample_rate().0;
             }
-            ConfigProperty::BufferSize(buffer_size) => {
+            ConfigProperty::BufferSize(_buffer_size) => {
                 let config_buffer_size = config.buffer_size();
                 let config_buffer_size = match config_buffer_size {
                     cpal::SupportedBufferSize::Range { min, max } => (*min, *max),
@@ -509,7 +505,7 @@ fn filter_config(
     configs
 }
 
-/// ## get_output_config(device: Device, channels: Preference, sample_rate: Preference) -> Option<cpal::SupportedStreamConfig>
+/// ## get_output_config(device: Device, channels: Preference, sample_rate: Preference, buffer_size: Preference) -> Option<cpal::StreamConfig>
 ///
 /// Gets the output config for the given device, channels, and sample rate.
 /// Notably, "channels" takes precedence over "sample_rate", which takes precedence over "buffer_size".
@@ -523,7 +519,7 @@ fn filter_config(
 ///
 /// ### Returns
 ///
-/// * `Option<cpal::SupportedStreamConfig>` - The resulting config
+/// * `Option<cpal::StreamConfig>` - The resulting config
 ///
 /// ### Examples
 ///
@@ -604,7 +600,7 @@ pub fn get_output_config(
     Some(config)
 }
 
-/// ## get_input_config(device: Device, channels: Preference, sample_rate: Preference) -> Option<cpal::SupportedStreamConfig>
+/// ## get_input_config(device: Device, channels: Preference, sample_rate: Preference, buffer_size: Preference) -> Option<cpal::StreamConfig>
 ///
 /// Gets the input config for the given device, channels, and sample rate.
 ///
@@ -617,7 +613,7 @@ pub fn get_output_config(
 ///
 /// ### Returns
 ///
-/// * `Option<cpal::SupportedStreamConfig>` - The resulting config
+/// * `Option<cpal::StreamConfig>` - The resulting config 
 ///
 /// ### Examples
 ///
@@ -779,14 +775,12 @@ pub fn sine(
     freq: f32,
     amp: f32,
     dur: f32,
-    mutex: &Mutex<Option<Device>>,
 ) -> Result<(), String> {
-    let mut output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>> = None;
-    {
-        use crate::ConsoleMessage;
-        use crate::MessageKind;
+    let output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>;
 
-        let output_device = mutex.try_lock();
+	// here we create a new scope so that the mutex is unlocked before we try to play the sound
+    {
+        let output_device = OUTPUT_DEVICE.try_lock();
         let output_device = match output_device {
             Ok(output_device) => output_device,
             Err(e) => {
@@ -840,9 +834,6 @@ pub fn sine(
 
             let _ = visualizer.render(&window, data);
         };
-
-        let n_channels = config.channels as usize;
-
         let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
         let output_stream = output_device.build_output_stream(&config, data_callback, err_fn, None);
@@ -854,7 +845,6 @@ pub fn sine(
 
     match output_stream {
         Ok(stream) => {
-            drop(mutex);
             let _ = stream.play();
             std::thread::sleep(std::time::Duration::from_secs_f32(dur));
             stream.pause().unwrap();

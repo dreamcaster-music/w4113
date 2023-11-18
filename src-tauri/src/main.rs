@@ -7,18 +7,12 @@ mod midi;
 mod tv;
 
 use audio::Preference;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
 use log::{debug, LevelFilter};
-use std::{
-    fmt::{Display, Formatter},
-    sync::{Arc, Mutex},
-    time::Duration,
-};
-use tauri::{LogicalPosition, Manager, Position};
+use std::sync::Mutex;
+use tauri::{LogicalPosition, Manager};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
-
-use crate::tv::{BasicVisualizer, VisualizerTrait};
 
 // Apply to Windows only
 #[cfg(target_os = "windows")]
@@ -183,7 +177,7 @@ fn on_config_update(config: &mut config::Config) {
     match input_device {
         Ok(input_device) => {
             if input_device.is_some() {
-                let mut input_config = None;
+                let input_config;
                 input_config = audio::get_input_config(
                     &input_device.as_ref().unwrap(),
                     Preference::Exact(input_channels as u32, audio::PreferenceAlt::Higher),
@@ -211,7 +205,7 @@ fn on_config_update(config: &mut config::Config) {
     match output_device {
         Ok(output_device) => {
             if output_device.is_some() {
-                let mut output_config = None;
+                let output_config;
                 output_config = audio::get_output_config(
                     &output_device.as_ref().unwrap(),
                     Preference::Exact(output_channels as u32, audio::PreferenceAlt::Higher),
@@ -327,7 +321,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
     debug!("Showing windows");
     let console_window = CONSOLE_WINDOW.try_lock();
     match console_window {
-        Ok(mut console_window) => match console_window.as_ref() {
+        Ok(console_window) => match console_window.as_ref() {
             Some(console_window) => {
                 let _ = console_window.show();
             }
@@ -340,11 +334,11 @@ fn init(window: tauri::Window) -> Result<(), String> {
 
     let tv_window = TV_WINDOW.try_lock();
     match tv_window {
-        Ok(mut tv_window) => match tv_window.as_ref() {
+        Ok(tv_window) => match tv_window.as_ref() {
             Some(tv_window) => {
                 let _ = tv_window.show();
                 let position = LogicalPosition::new(100.0, 100.0);
-                tv_window.set_position(position);
+                let _ = tv_window.set_position(position);
             }
             None => {}
         },
@@ -417,7 +411,7 @@ async fn config_save(filename: String) -> ConsoleMessage {
             };
         }
     };
-    let result = config.save_to_file(filename);
+    let _result = config.save_to_file(filename);
     let json = config.json().to_string();
     ConsoleMessage {
         kind: MessageKind::Console,
@@ -446,7 +440,7 @@ async fn config_load(filename: String) -> ConsoleMessage {
     let filename = &filename;
 
     let config = config::Config::load_from_file(filename);
-    let mut config = match config {
+    let config = match config {
         Ok(config) => {
             debug!("Loaded config from {}", filename);
             config
@@ -733,29 +727,23 @@ async fn output_stream_set(
             config.channels as i64,
             config.sample_rate.0 as i64,
             match config.buffer_size {
-                cpal::BufferSize::Fixed(buffer_size) => (buffer_size as i64, buffer_size as i64),
-                cpal::BufferSize::Default => (0, 0),
+                cpal::BufferSize::Fixed(buffer_size) => format!("{}", buffer_size),
+                cpal::BufferSize::Default => "default".to_owned(),
             },
         ),
-        None => (0, 0, (0, 0)),
+        None => (0, 0, "default".to_owned()),
     };
 
     let channel_result = result.0;
     let sample_result = result.1;
-    let buffer_min_result = result.2 .0;
-    let buffer_max_result = result.2 .1;
-
-    let mut buffer_size_result = buffer_size;
-    if buffer_size < buffer_min_result as u32 && buffer_size > buffer_max_result as u32 {
-        buffer_size_result = buffer_max_result as u32;
-    }
+	let buffer_size_result = result.2;
 
     // add values to the main config object
     let _ = set_global_config_value("audio.output.channels", channel_result.to_string().as_str());
     let _ = set_global_config_value("audio.output.samples", sample_result.to_string().as_str());
     let _ = set_global_config_value(
         "audio.output.buffer_size",
-        buffer_size_result.to_string().as_str(),
+        buffer_size_result.as_str()
     );
 
     // set OUTPUT_CONFIG to config
@@ -775,8 +763,8 @@ async fn output_stream_set(
     ConsoleMessage {
         kind: MessageKind::Console,
         message: vec![format!(
-            "Set output stream to {} channels, {} samples, {}-{} buffer size",
-            channel_result, sample_result, buffer_min_result, buffer_max_result
+            "Set output stream to {} channels, {} samples, {} buffer size",
+            channel_result, sample_result, buffer_size_result
         )],
     }
 }
@@ -983,29 +971,23 @@ async fn input_stream_set(
             config.channels as i64,
             config.sample_rate.0 as i64,
             match config.buffer_size {
-                cpal::BufferSize::Fixed(buffer_size) => (buffer_size as i64, buffer_size as i64),
-                cpal::BufferSize::Default => (0, 0),
+                cpal::BufferSize::Fixed(buffer_size) => format!("{}", buffer_size),
+                cpal::BufferSize::Default => "default".to_owned(),
             },
         ),
-        None => (0, 0, (0, 0)),
+        None => (0, 0, "default".to_owned()),
     };
 
     let channel_result = result.0;
     let sample_result = result.1;
-    let buffer_min_result = result.2 .0;
-    let buffer_max_result = result.2 .1;
-
-    let mut buffer_size_result = buffer_size;
-    if buffer_size < buffer_min_result as u32 && buffer_size > buffer_max_result as u32 {
-        buffer_size_result = buffer_max_result as u32;
-    }
+    let buffer_size_result = result.2;
 
     // add values to the main config object
     let _ = set_global_config_value("audio.input.channels", channel_result.to_string().as_str());
     let _ = set_global_config_value("audio.input.samples", sample_result.to_string().as_str());
     let _ = set_global_config_value(
         "audio.input.buffer_size",
-        buffer_size_result.to_string().as_str(),
+        buffer_size_result.as_str(),
     );
 
     // set INPUT_CONFIG to config
@@ -1025,8 +1007,8 @@ async fn input_stream_set(
     ConsoleMessage {
         kind: MessageKind::Console,
         message: vec![format!(
-            "Set input stream to {} channels, {} samples, {}-{} buffer size",
-            channel_result, sample_result, buffer_min_result, buffer_max_result
+            "Set input stream to {} channels, {} samples, {} buffer size",
+            channel_result, sample_result, buffer_size_result
         )],
     }
 }
@@ -1045,7 +1027,7 @@ async fn input_stream_set(
 /// * `Ok(())` - The result of the command
 /// * `Err(String)` - The result of the command
 fn set_global_config_value(key: &str, value: &str) -> Result<(), String> {
-    let mut config = CONFIG.lock();
+    let config = CONFIG.lock();
     let mut config = match config {
         Ok(config) => config,
         Err(e) => {
@@ -1144,14 +1126,15 @@ async fn sine(
 
     let tv_window = tv_window.clone();
 
-    let thread = std::thread::spawn(move || {
+    let _thread = std::thread::spawn(move || {
+		// We spawn a new thread so that multiple output streams can be played
+
         let _output_stream = audio::sine(
             tv_window.clone(),
             &output_stream_config,
             frequency,
             amplitude,
-            duration,
-            &audio::OUTPUT_DEVICE,
+            duration
         );
 
         return ConsoleMessage {
@@ -1174,19 +1157,7 @@ async fn sine(
 
 #[tauri::command]
 async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
-    let tv_window = TV_WINDOW.lock();
-    let tv_window = match tv_window {
-        Ok(tv_window) => tv_window,
-        Err(e) => {
-            debug!("Error locking TV_WINDOW: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking TV_WINDOW: {}", e)],
-            };
-        }
-    };
-
-    // call midi.rs function
+	// call midi.rs function
     debug!("Calling midi::midi_list()");
     let midi_devices = midi::midi_list();
     ConsoleMessage {
