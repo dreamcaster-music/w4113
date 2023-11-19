@@ -771,6 +771,123 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
     Ok(streams)
 }
 
+pub fn audio_thread() -> Result<(), String> {
+	let thread = std::thread::spawn(move || {
+
+		let config = {
+			match OUTPUT_CONFIG.try_lock() {
+				Ok(config) => match config.as_ref() {
+					Some(config) => config.clone(),
+					None => {
+						debug!("OUTPUT_CONFIG is None");
+						//return Err(format!("OUTPUT_CONFIG is None"));
+
+						// specify type of Err to avoid type mismatch
+						return Err("OUTPUT_CONFIG is None".to_owned());
+					}
+				},
+				Err(e) => {
+					debug!("Error locking OUTPUT_CONFIG: {}", e);
+					return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
+				}
+			}
+		};
+
+		let output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>;
+		
+		{
+			let output_device = OUTPUT_DEVICE.try_lock();
+			let output_device = match output_device {
+				Ok(output_device) => output_device,
+				Err(e) => {
+					debug!("Error locking OUTPUT_DEVICE: {}", e);
+					return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
+				}
+			};
+
+			let output_device = match output_device.as_ref() {
+				Some(output_device) => output_device,
+				None => {
+					debug!("OUTPUT_DEVICE is None");
+					return Err("OUTPUT_DEVICE is None".to_owned());
+				}
+			};
+			debug!(
+				"Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
+				0.0, 0.0, 0.0
+			);
+
+			let sample_rate = config.sample_rate.0 as f32;
+
+			// Produce a sinusoid of maximum amplitude.
+			let mut sample_clock = 0f32;
+
+			let n_channels = config.channels as u32;
+
+			let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+				let buffer_size = data.len();
+				let strips = STRIPS.read().unwrap();
+
+				let mut channel = 0;
+				// cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
+				// example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
+				// So every other sample is for the same channel
+				//
+				// So there is a simple formula for determining what channel a sample is for:
+				// channel = sample_index % n_channels
+				for sample in data.iter_mut() {
+					if channel % n_channels == 0 {
+						sample_clock += 1.0;
+					}
+
+					for strip in strips.iter() {
+						match strip {
+							Strip { input: Input::Generator(function), output: Output::Channel(strip_channel) } => {
+								if *strip_channel == channel % n_channels {
+									*sample = function(&sample_clock, &sample_rate);
+								}
+							},
+							_ => continue,
+						};
+					}
+					channel += 1;
+				}
+			};
+			let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+			let output_stream = output_device.build_output_stream(&config, data_callback, err_fn, None);
+			output_stream_opt = Some(output_stream);
+		}
+
+		let output_stream = match output_stream_opt {
+			Some(output_stream) => {
+				output_stream
+			},
+			None => {
+				return Err("Error building output stream".to_owned());
+			}
+		};
+
+		let output_stream = match output_stream {
+			Ok(stream) => {
+				stream
+			},
+			Err(err) => {
+				return Err(format!("Error building output stream: {}", err));
+			}
+		};
+
+		let _ = output_stream.play();
+		
+		loop {
+			std::thread::sleep(std::time::Duration::from_millis(100));
+		}
+
+		return Ok(());
+	});
+
+	Ok(())
+}
+
 pub fn sine(
     freq: f32,
     amp: f32,

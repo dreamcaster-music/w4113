@@ -299,6 +299,17 @@ async fn run(window: tauri::Window) -> String {
         }
     }
 
+	// run audio thread
+	let thread_result = audio::audio_thread();
+	match thread_result {
+		Ok(()) => {
+			debug!("Audio thread ran successfully");
+		}
+		Err(e) => {
+			debug!("Error in audio thread: {}", e);
+		}
+	};
+
     debug!("{}", result);
     result
 }
