@@ -9,7 +9,7 @@ mod tv;
 use audio::Preference;
 use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
-use log::{debug, LevelFilter};
+use log::{debug, LevelFilter, trace, info, error};
 use std::sync::Mutex;
 use tauri::{LogicalPosition, Manager};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
@@ -105,51 +105,51 @@ fn on_config_update(config: &mut config::Config) {
         }
     };
 
-    let input_channels = match config.get_num_or("audio.input.channels", || 2) {
+    let input_channels = match config.get_num_or("audio.input.channels", || 2.0) {
         Ok(input_channels) => input_channels,
         Err(e) => {
             debug!("Error getting audio.input.channels: {}", e);
-            1
+            1.0
         }
     };
 
-    let input_samples = match config.get_num_or("audio.input.samples", || 44100) {
+    let input_samples = match config.get_num_or("audio.input.samples", || 44100.0) {
         Ok(input_samples) => input_samples,
         Err(e) => {
             debug!("Error getting audio.input.samples: {}", e);
-            44100
+            44100.0
         }
     };
 
-    let input_buffer_size = match config.get_num_or("audio.input.buffer_size", || 1024) {
+    let input_buffer_size = match config.get_num_or("audio.input.buffer_size", || 1024.0) {
         Ok(input_buffer_size) => input_buffer_size,
         Err(e) => {
             debug!("Error getting audio.input.buffer_size: {}", e);
-            1024
+            1024.0
         }
     };
 
-    let output_channels = match config.get_num_or("audio.output.channels", || 2) {
+    let output_channels = match config.get_num_or("audio.output.channels", || 2.0) {
         Ok(output_channels) => output_channels,
         Err(e) => {
             debug!("Error getting audio.output.channels: {}", e);
-            1
+            1.0
         }
     };
 
-    let output_samples = match config.get_num_or("audio.output.samples", || 44100) {
+    let output_samples = match config.get_num_or("audio.output.samples", || 44100.0) {
         Ok(output_samples) => output_samples,
         Err(e) => {
             debug!("Error getting audio.output.samples: {}", e);
-            44100
+            44100.0
         }
     };
 
-    let output_buffer_size = match config.get_num_or("audio.output.buffer_size", || 1024) {
+    let output_buffer_size = match config.get_num_or("audio.output.buffer_size", || 1024.0) {
         Ok(output_buffer_size) => output_buffer_size,
         Err(e) => {
             debug!("Error getting audio.output.buffer_size: {}", e);
-            1024
+            1024.0
         }
     };
 
@@ -518,7 +518,7 @@ async fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
         }
     }
 
-    let _ = set_global_config_value("audio.host", host_name);
+    let _ = set_global_config_value("audio.host", host_name, true);
 
     return ConsoleMessage {
         kind: MessageKind::Console,
@@ -604,7 +604,7 @@ async fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage
                     };
 
                     let _ =
-                        set_global_config_value("audio.output.device", actual_device_name.as_str());
+                        set_global_config_value("audio.output.device", actual_device_name.as_str(), true);
                     ConsoleMessage {
                         kind: MessageKind::Console,
                         message: vec![format!("Selected output device {}", actual_device_name)],
@@ -739,13 +739,10 @@ async fn output_stream_set(
     let sample_result = result.1;
 	let buffer_size_result = result.2;
 
-    // add values to the main config object
-    let _ = set_global_config_value("audio.output.channels", channel_result.to_string().as_str());
-    let _ = set_global_config_value("audio.output.samples", sample_result.to_string().as_str());
-    let _ = set_global_config_value(
-        "audio.output.buffer_size",
-        buffer_size_result.as_str()
-    );
+	let _ = set_global_config_value("audio.output.channels", channel_result.to_string().as_str(), false);
+	let _ = set_global_config_value("audio.output.samples", sample_result.to_string().as_str(), false);
+	let _ = set_global_config_value("audio.output.buffer_size", buffer_size_result.as_str(), false);
+	let _ = global_config_force_update();
 
     // set OUTPUT_CONFIG to config
     match audio::OUTPUT_CONFIG.lock() {
@@ -848,7 +845,7 @@ async fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
                     };
 
                     let _ =
-                        set_global_config_value("audio.input.device", actual_device_name.as_str());
+                        set_global_config_value("audio.input.device", actual_device_name.as_str(), false);
                     ConsoleMessage {
                         kind: MessageKind::Console,
                         message: vec![format!("Selected input device {}", actual_device_name)],
@@ -983,13 +980,10 @@ async fn input_stream_set(
     let sample_result = result.1;
     let buffer_size_result = result.2;
 
-    // add values to the main config object
-    let _ = set_global_config_value("audio.input.channels", channel_result.to_string().as_str());
-    let _ = set_global_config_value("audio.input.samples", sample_result.to_string().as_str());
-    let _ = set_global_config_value(
-        "audio.input.buffer_size",
-        buffer_size_result.as_str(),
-    );
+	let _ = set_global_config_value("audio.input.channels", channel_result.to_string().as_str(), false);
+	let _ = set_global_config_value("audio.input.samples", sample_result.to_string().as_str(), false);
+	let _ = set_global_config_value("audio.input.buffer_size", buffer_size_result.as_str(), false);
+	let _ = global_config_force_update();
 
     // set INPUT_CONFIG to config
     match audio::INPUT_CONFIG.lock() {
@@ -1027,17 +1021,36 @@ async fn input_stream_set(
 ///
 /// * `Ok(())` - The result of the command
 /// * `Err(String)` - The result of the command
-fn set_global_config_value(key: &str, value: &str) -> Result<(), String> {
-    let config = CONFIG.lock();
-    let mut config = match config {
-        Ok(config) => config,
-        Err(e) => {
-            debug!("Error locking CONFIG: {}", e);
-            return Err(format!("Error locking CONFIG: {}", e));
-        }
-    };
-    config.set_str(key, value);
+fn set_global_config_value(key: &str, value: &str, update: bool) -> Result<(), String> {
+		let config = CONFIG.lock();
+		let mut config = match config {
+			Ok(config) => config,
+			Err(e) => {
+				error!("Error locking CONFIG: {}", e);
+				return Err(format!("Error locking CONFIG: {}", e));
+			}
+		};
+
+		if update {
+			config.set_str(key, value);
+		} else {
+			config.set_str_no_update(key, value);
+		}
+	
     Ok(())
+}
+
+fn global_config_force_update() {
+	let config = CONFIG.lock();
+	let mut config = match config {
+		Ok(config) => config,
+		Err(e) => {
+			debug!("Error locking CONFIG: {}", e);
+			return;
+		}
+	};
+
+	config.force_update();
 }
 
 #[tauri::command]

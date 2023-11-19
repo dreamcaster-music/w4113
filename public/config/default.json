@@ -1,6 +1,6 @@
 {
   "audio": {
-    "host": "default",
+    "host": "CoreAudio",
     "input": {
       "buffer_size": 1024.0,
       "channels": 2.0,

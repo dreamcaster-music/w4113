@@ -2,7 +2,7 @@
 //!
 //! This module is used for anything related to configuration and in the filesystem.
 
-use log::debug;
+use log::{debug, trace, error};
 
 /// ## State
 ///
@@ -43,6 +43,7 @@ pub struct Config {
     json: serde_json::Value,
 }
 
+#[allow(dead_code)]
 impl Config {
     /// ## `translate(&mut self, string_value: &str) -> Result<&mut serde_json::Value, String>`
     ///
@@ -137,21 +138,22 @@ impl Config {
     /// config.set("key", "value");
     /// ```
     pub fn set_str(&mut self, key: &str, value: &str) {
+		trace!("Setting config key {} to {}", key, value);
         let json = self.translate(key);
 
         match json {
             Ok(json) => {
                 *json = serde_json::Value::String(value.to_string());
                 self.state = State::Unsaved;
-                self.run_update();
+                self.force_update();
             }
             Err(err) => {
-                debug!("Error setting config key {}: {}", key, err);
+                error!("Error setting config key {}: {}", key, err);
             }
         }
     }
 
-    /// ## `set_num(&mut self, key: &str, value: i64)`
+    /// ## `set_num(&mut self, key: &str, value: f64)`
     ///
     /// Sets a key in the config.
     ///
@@ -159,21 +161,10 @@ impl Config {
     ///
     /// * `&mut self` - The config
     /// * `key: &str` - The key
-    /// * `value: i64` - The value
-    pub fn set_num(&mut self, key: &str, value: i64) {
-        let json = self.translate(key);
-
-        match json {
-            Ok(json) => {
-                *json =
-                    serde_json::Value::Number(serde_json::Number::from_f64(value as f64).unwrap());
-                self.state = State::Unsaved;
-                self.run_update();
-            }
-            Err(err) => {
-                debug!("Error setting config key {}: {}", key, err);
-            }
-        }
+    /// * `value: f64` - The value
+    pub fn set_num(&mut self, key: &str, value: f64) {
+		let str_value = value.to_string();
+		self.set_str(key, &str_value);
     }
 
     /// ## `set_bool(&mut self, key: &str, value: bool)`
@@ -186,18 +177,8 @@ impl Config {
     /// * `key: &str` - The key
     /// * `value: bool` - The value
     pub fn set_bool(&mut self, key: &str, value: bool) {
-        let json = self.translate(key);
-
-        match json {
-            Ok(json) => {
-                *json = serde_json::Value::Bool(value);
-                self.state = State::Unsaved;
-                self.run_update();
-            }
-            Err(err) => {
-                debug!("Error setting config key {}: {}", key, err);
-            }
-        }
+		let str_value = value.to_string();
+		self.set_str(key, &str_value);
     }
 
     /// ## `set_value(&mut self, key: &str, value: serde_json::Value)`
@@ -210,16 +191,17 @@ impl Config {
     /// * `key: &str` - The key
     /// * `value: serde_json::Value` - The value
     pub fn set_value(&mut self, key: &str, value: serde_json::Value) {
+		trace!("Setting config key {} to {}", key, value);
         let json = self.translate(key);
 
         match json {
             Ok(json) => {
                 *json = value;
                 self.state = State::Unsaved;
-                self.run_update();
+                self.force_update();
             }
             Err(err) => {
-                debug!("Error setting config key {}: {}", key, err);
+                error!("Error setting config key {}: {}", key, err);
             }
         }
     }
@@ -234,19 +216,120 @@ impl Config {
     /// * `key: &str` - The key
     /// * `value: Vec<serde_json::Value>` - The value
     pub fn set_array(&mut self, key: &str, value: Vec<serde_json::Value>) {
+		trace!("Setting config key {} to {:?}", key, value);
         let json = self.translate(key);
 
         match json {
             Ok(json) => {
                 *json = serde_json::Value::Array(value);
                 self.state = State::Unsaved;
-                self.run_update();
+                self.force_update();
             }
             Err(err) => {
-                debug!("Error setting config key {}: {}", key, err);
+                error!("Error setting config key {}: {}", key, err);
             }
         }
     }
+
+	/// ## `set_str_no_update(&mut self, key: &str, value: &str)`
+	/// 
+	/// Sets a key in the config without calling on_update.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&mut self` - The config
+	/// * `key: &str` - The key
+	/// * `value: &str` - The value
+	pub fn set_str_no_update(&mut self, key: &str, value: &str) {
+		trace!("Setting config key {} to {}", key, value);
+		let json = self.translate(key);
+
+		match json {
+			Ok(json) => {
+				*json = serde_json::Value::String(value.to_string());
+				self.state = State::Unsaved;
+			}
+			Err(err) => {
+				error!("Error setting config key {}: {}", key, err);
+			}
+		}
+	}
+
+	/// ## `set_num_no_update(&mut self, key: &str, value: f64)`
+	/// 
+	/// Sets a key in the config without calling on_update.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&mut self` - The config
+	/// * `key: &str` - The key
+	/// * `value: f64` - The value
+	pub fn set_num_no_update(&mut self, key: &str, value: f64) {
+		let str_value = value.to_string();
+		self.set_str_no_update(key, &str_value);
+	}
+
+	/// ## `set_bool_no_update(&mut self, key: &str, value: bool)`
+	/// 
+	/// Sets a key in the config without calling on_update.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&mut self` - The config
+	/// * `key: &str` - The key
+	/// * `value: bool` - The value
+	pub fn set_bool_no_update(&mut self, key: &str, value: bool) {
+		let str_value = value.to_string();
+		self.set_str_no_update(key, &str_value);
+	}
+
+	/// ## `set_value_no_update(&mut self, key: &str, value: serde_json::Value)`
+	/// 
+	/// Sets a key in the config without calling on_update.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&mut self` - The config
+	/// * `key: &str` - The key
+	/// * `value: serde_json::Value` - The value
+	pub fn set_value_no_update(&mut self, key: &str, value: serde_json::Value) {
+		trace!("Setting config key {} to {}", key, value);
+		let json = self.translate(key);
+
+		match json {
+			Ok(json) => {
+				*json = value;
+				self.state = State::Unsaved;
+			}
+			Err(err) => {
+				error!("Error setting config key {}: {}", key, err);
+			}
+		}
+	}
+
+	/// ## `set_array_no_update(&mut self, key: &str, value: Vec<serde_json::Value>)`
+	/// 
+	/// Sets a key in the config without calling on_update.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `&mut self` - The config
+	/// * `key: &str` - The key
+	/// * `value: Vec<serde_json::Value>` - The value
+	pub fn set_array_no_update(&mut self, key: &str, value: Vec<serde_json::Value>) {
+		trace!("Setting config key {} to {:?}", key, value);
+		let json = self.translate(key);
+		
+		match json {
+			Ok(json) => {
+				*json = serde_json::Value::Array(value);
+				self.state = State::Unsaved;
+			}
+			Err(err) => {
+				error!("Error setting config key {}: {}", key, err);
+			}
+		}
+	}
 
     /// ## `get_or(&mut self, key: &str, default: impl Fn() -> String) -> Result<String, String>`
     ///
@@ -271,7 +354,6 @@ impl Config {
     /// let mut config = config::Config::empty();
     /// let value = config.get_or("key", || "default".to_string());
     /// ```
-	#[allow(dead_code)]
     pub fn get_str_or(
         &mut self,
         key: &str,
@@ -297,7 +379,7 @@ impl Config {
         }
     }
 
-    /// ## `get_num_or(&mut self, key: &str, default: impl Fn() -> i64) -> Result<i64, String>`
+    /// ## `get_num_or(&mut self, key: &str, default: impl Fn() -> f64) -> Result<f64, String>`
     ///
     /// Gets a key from the config, or sets it to a default value if it doesn't exist.
     ///
@@ -305,31 +387,15 @@ impl Config {
     ///
     /// * `&mut self` - The config
     /// * `key: &str` - The key
-    /// * `default: impl Fn() -> i64` - The default value
+    /// * `default: impl Fn() -> f64` - The default value
     ///
     /// ### Returns
     ///
-    /// * `Result<i64, String>` - The result of the command
-	#[allow(dead_code)]
-    pub fn get_num_or(&mut self, key: &str, default: impl Fn() -> i64) -> Result<i64, String> {
-        let value = self.translate(key);
-        match value {
-            Ok(value) => match value.as_i64() {
-                Some(value) => Ok(value),
-                None => {
-                    let default = default();
-                    self.set_num(key, default);
-                    debug!("{} is not set. Setting to default value {}.", key, default);
-                    Ok(default)
-                }
-            },
-            Err(_err) => {
-                let default = default();
-                self.set_num(key, default);
-                debug!("{} is not set. Setting to default value {}.", key, default);
-                Ok(default)
-            }
-        }
+    /// * `Result<f64, String>` - The result of the command
+    pub fn get_num_or(&mut self, key: &str, default: impl Fn() -> f64) -> Result<f64, String> {
+        let str_value = self.get_str_or(key, || default().to_string())?;
+		let value = str_value.parse::<f64>().map_err(|e| e.to_string())?;
+		Ok(value)
     }
 
     /// ## `get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String>`
@@ -345,26 +411,10 @@ impl Config {
     /// ### Returns
     ///
     /// * `Result<bool, String>` - The result of the command
-	#[allow(dead_code)]
     fn get_bool_or(&mut self, key: &str, default: impl Fn() -> bool) -> Result<bool, String> {
-        let value = self.translate(key);
-        match value {
-            Ok(value) => match value.as_bool() {
-                Some(value) => Ok(value),
-                None => {
-                    let default = default();
-                    self.set_bool(key, default);
-                    debug!("{} is not set. Setting to default value {}.", key, default);
-                    Ok(default)
-                }
-            },
-            Err(_err) => {
-                let default = default();
-                self.set_bool(key, default);
-                debug!("{} is not set. Setting to default value {}.", key, default);
-                Ok(default)
-            }
-        }
+        let str_value = self.get_str_or(key, || default().to_string())?;
+		let value = str_value.parse::<bool>().map_err(|e| e.to_string())?;
+		Ok(value)
     }
 
     /// ## `get_value_or(&mut self, key: &str, default: impl Fn() -> serde_json::Value) -> Result<serde_json::Value, String>`
@@ -380,7 +430,6 @@ impl Config {
     /// ### Returns
     ///
     /// * `Result<serde_json::Value, String>` - The result of the command
-	#[allow(dead_code)]
     pub fn get_value_or(
         &mut self,
         key: &str,
@@ -413,7 +462,6 @@ impl Config {
     /// ### Returns
     ///
     /// * `Result<Vec<serde_json::Value>, String>` - The result of the command
-	#[allow(dead_code)]
     pub fn get_array_or(
         &mut self,
         key: &str,
@@ -514,7 +562,7 @@ impl Config {
         let file = std::fs::File::create(path).map_err(|e| e.to_string())?;
         serde_json::to_writer_pretty(file, &self.json).map_err(|e| e.to_string())?;
         self.state = State::Saved;
-        self.run_update();
+        self.force_update();
         Ok(())
     }
 
@@ -540,7 +588,7 @@ impl Config {
     pub fn on_update(&mut self, f: impl Fn(&mut Config) + Send + 'static) {
         if !self.updating {
             self.on_update = Some(Box::new(f));
-            self.run_update();
+            self.force_update();
         }
     }
 
@@ -551,7 +599,7 @@ impl Config {
     /// ### Arguments
     ///
     /// * `&mut self` - The config
-    fn run_update(&mut self) {
+    pub fn force_update(&mut self) {
         if !self.updating {
             self.updating = true;
             let mut partial_clone = self.partial_clone();
