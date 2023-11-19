@@ -2,7 +2,7 @@
 //!
 //! Module is used for interacting with audio drivers/hardware
 
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -20,6 +20,8 @@ lazy_static! {
     pub static ref INPUT_DEVICE: Mutex<Option<cpal::Device>> = Mutex::new(None);
     pub static ref OUTPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
     pub static ref INPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
+
+	pub static ref STRIPS: RwLock<Vec<Strip>> = RwLock::new(Vec::new());
 }
 
 /// ## `get_host(host_name: &str) -> Host`
@@ -820,14 +822,11 @@ pub fn sine(
         // Produce a sinusoid of maximum amplitude.
         let mut sample_clock = 0f32;
 
-        let mut next_value = move || {
-            sample_clock = (sample_clock + 1.0) % sample_rate;
-            (sample_clock * freq * std::f32::consts::PI / sample_rate).sin()
-        };
+		let n_channels = config.channels as u32;
 
         let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
             let buffer_size = data.len();
-            debug!("Buffer size is cromulating at len: {}", buffer_size);
+			let strips = STRIPS.read().unwrap();
 
             let mut channel = 0;
             // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
@@ -837,11 +836,25 @@ pub fn sine(
             // So there is a simple formula for determining what channel a sample is for:
             // channel = sample_index % n_channels
             for sample in data.iter_mut() {
-                if channel % 2 == 0 {
+				if channel % n_channels == 0 {
+					sample_clock += 1.0;
+				}
+
+				for strip in strips.iter() {
+					match strip {
+						Strip { input: Input::Generator(function), output: Output::Channel(strip_channel) } => {
+							if *strip_channel == channel % n_channels {
+								*sample = function(&sample_clock, &sample_rate) * amp;
+							}
+						},
+						_ => continue,
+					};
+				}
+                /*if channel % 2 == 0 {
                     *sample = next_value() * amp;
                 } else {
                     *sample = 0.0;
-                }
+                }*/
                 channel += 1;
             }
         };
@@ -857,8 +870,8 @@ pub fn sine(
     match output_stream {
         Ok(stream) => {
             let _ = stream.play();
-            std::thread::sleep(std::time::Duration::from_secs_f32(dur));
-            stream.pause().unwrap();
+			std::thread::sleep(std::time::Duration::from_secs_f32(dur));
+			let _ = stream.pause();
         }
         Err(err) => {
             return Err(format!("Error building output stream: {}", err));
@@ -868,51 +881,26 @@ pub fn sine(
     Ok(())
 }
 
-/*
-
-This is code that will be used in the future
-
-/// ## Channel
-///
-/// Used to indicate the direction and channel ID of a channel.
-///
-/// ### Variants
-///
-/// * `Input(u16)` - The channel is an input channel with the given ID
-/// * `Output(u16)` - The channel is an output channel with the given ID
-/// * `None` - The channel is not an input or output channel. Essentially "Unknown" or "Error" since this should never occur
-struct Channel {
-    direction: Direction,
-    channel_id: u16,
+pub enum Output {
+	Channel(u32),
+	Bus(Box<Input>),
 }
 
-/// ## Direction
-///
-/// Used to indicate the direction of a channel.
-///
-/// ### Variants
-///
-/// * `Input` - The channel is an input channel
-/// * `Output` - The channel is an output channel
-/// * `None` - The channel is not an input or output channel. Essentially "Unknown" or "Error" since this should never occur
-enum Direction {
-    Input,
-    Output,
-    None,
+pub enum Input {
+	Generator(Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync + 'static>),
+	Bus(Box<Output>),
 }
 
-/// ## Channels
-///
-/// Used to indicate the channels of a device.
-///
-/// ### Variants
-///
-/// * `Mono(Channel)` - The device has one channel
-/// * `Stereo(Channel, Channel)` - The device has two channels
-/// * `Custom(u16)` - The device has a custom number of channels
-enum Channels {
-    Mono(Channel),
-    Stereo(Channel, Channel),
-    Custom(u16),
+pub struct Strip {
+	input: Input,
+	output: Output,
 }
-*/
+
+impl Strip {
+	pub fn new(input: Input, output: Output) -> Self {
+		Self {
+			input,
+			output,
+		}
+	}
+}

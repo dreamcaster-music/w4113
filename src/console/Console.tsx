@@ -440,6 +440,24 @@ function Console() {
 					outputMessage(response as ConsoleMessage);
 				});
 				break;
+			case "resine":
+				/*
+				 * Resine command
+				 * Usage: resine [frequency]
+				 * 
+				 * Changes the frequency of the sine wave to [frequency] Hz
+				 */
+				if (args.length < 1) {
+					outputMessage({ kind: "Error", message: ["Not enough arguments for resine command."] });
+					outputMessage({ kind: "Error", message: ["Usage: resine [frequency]"] });
+					break;
+				}
+				let resineFreq = parseFloat(args[0]);
+				invoke("resine", { frequency: resineFreq }).then((response) => {
+					debug("Result from resine: " + strValue(response as ConsoleMessage));
+					outputMessage(response as ConsoleMessage);
+				});
+				break;
 			case "midi":
 				//list midi devices
 				invoke("midi_list").then((response) => {

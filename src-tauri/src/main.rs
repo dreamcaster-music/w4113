@@ -303,6 +303,25 @@ async fn run(window: tauri::Window) -> String {
     result
 }
 
+static mut test: u32 = 0;
+static mut freq: f32 = 440.0;
+
+fn test_callback(sample_clock: &f32, sample_rate: &f32) -> f32 {
+	unsafe {
+		test += 1;
+	}
+	// sine wave of 440 hz
+	debug!("{}", unsafe { test });
+	(sample_clock * unsafe { freq } * 2.0 * std::f32::consts::PI / sample_rate).sin()
+}
+
+#[tauri::command]
+fn resine(frequency: f32) {
+	unsafe {
+		freq = frequency;
+	}
+}
+
 /// ## `init(_window: tauri::Window) -> Result<(), String>`
 ///
 /// Initializes the program.
@@ -316,6 +335,22 @@ async fn run(window: tauri::Window) -> String {
 /// * `Result<(), String>` - The result of the command
 fn init(window: tauri::Window) -> Result<(), String> {
     debug!("Initializing Tauri");
+
+	let strips = audio::STRIPS.try_write();
+
+	let new_strip = audio::Strip::new(
+		audio::Input::Generator(Box::new(test_callback)),
+		audio::Output::Channel(0)
+	);
+
+	match strips {
+		Ok(mut strips) => {
+			strips.push(new_strip);
+		}
+		Err(e) => {
+			debug!("Error locking STRIPS: {}", e);
+		}
+	}
 
     // Make the window visible
     debug!("Showing windows");
@@ -1235,6 +1270,7 @@ fn main() {
             input_stream_set,
             sine,
             midi_list,
+			resine,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
