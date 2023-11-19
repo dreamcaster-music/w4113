@@ -339,6 +339,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
                 let _ = tv_window.show();
                 let position = LogicalPosition::new(100.0, 100.0);
                 let _ = tv_window.set_position(position);
+				let _ = tv_window.close();
             }
             None => {}
         },
@@ -1130,8 +1131,6 @@ async fn sine(
 		// We spawn a new thread so that multiple output streams can be played
 
         let _output_stream = audio::sine(
-            tv_window.clone(),
-            &output_stream_config,
             frequency,
             amplitude,
             duration

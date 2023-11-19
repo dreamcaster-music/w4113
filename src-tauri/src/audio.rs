@@ -770,12 +770,26 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
 }
 
 pub fn sine(
-    window: tauri::Window,
-    config: &StreamConfig,
     freq: f32,
     amp: f32,
     dur: f32,
 ) -> Result<(), String> {
+	let config = {
+		match OUTPUT_CONFIG.try_lock() {
+			Ok(config) => match config.as_ref() {
+				Some(config) => config.clone(),
+				None => {
+					debug!("OUTPUT_CONFIG is None");
+					return Err("OUTPUT_CONFIG is None".to_owned());
+				}
+			},
+			Err(e) => {
+				debug!("Error locking OUTPUT_CONFIG: {}", e);
+				return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
+			}
+		}
+	};
+
     let output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>;
 
 	// here we create a new scope so that the mutex is unlocked before we try to play the sound
@@ -814,7 +828,6 @@ pub fn sine(
         let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
             let buffer_size = data.len();
             debug!("Buffer size is cromulating at len: {}", buffer_size);
-            let visualizer = crate::tv::BasicVisualizer::new();
 
             let mut channel = 0;
             // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
@@ -831,8 +844,6 @@ pub fn sine(
                 }
                 channel += 1;
             }
-
-            let _ = visualizer.render(&window, data);
         };
         let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
