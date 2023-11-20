@@ -894,13 +894,13 @@ pub enum Output {
 }
 
 pub enum Input {
-    Generator(Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync + 'static>),
+    Generator(Box<dyn plugin::Generator>),
     Bus(Box<Output>),
 }
 
 pub struct Strip {
     input: Input,
-    chain: Vec<Box<dyn Effect>>,
+    chain: Vec<Box<dyn plugin::Effect>>,
     output: Output,
 }
 
@@ -914,11 +914,11 @@ impl Strip {
         }
     }
 
-    pub fn add_effect(&mut self, effect: Box<dyn Effect>) {
+    pub fn add_effect(&mut self, effect: Box<dyn plugin::Effect>) {
         self.chain.push(effect);
     }
 
-    pub fn insert_effect(&mut self, effect: Box<dyn Effect>, index: usize) {
+    pub fn insert_effect(&mut self, effect: Box<dyn plugin::Effect>, index: usize) {
         self.chain.insert(index, effect);
     }
 
@@ -928,8 +928,8 @@ impl Strip {
 
     pub fn process(&mut self, sample_clock: &f32, sample_rate: &f32) -> f32 {
         match &self.input {
-            Input::Generator(function) => {
-                let mut sample = function(sample_clock, sample_rate);
+            Input::Generator(generator) => {
+                let mut sample = generator.generate(sample_clock, sample_rate);
                 for effect in self.chain.iter_mut() {
                     effect.process(&mut sample);
                 }
@@ -940,175 +940,157 @@ impl Strip {
     }
 }
 
-pub trait Effect: Send + Sync {
-    fn process(&mut self, sample: &mut f32);
-}
+#[allow(dead_code)]
+pub mod plugin {
+	/// ## Effect
+	/// 
+	/// Trait for audio effects
+	/// 
+	/// ### Traits
+	/// 
+	/// * `Send` - Can be sent between threads
+	/// * `Sync` - Is safe to share between threads
+	/// 
+	/// ### Functions
+	/// 
+	/// * `process(&mut self, sample: &mut f32)` - Processes a sample
+	pub trait Effect: Send + Sync {
+		fn process(&mut self, sample: &mut f32);
+	}
 
-pub struct Clip {
-    threshold: f32,
-}
+	/// ## Generator
+	/// 
+	/// Trait for audio generators
+	/// 
+	/// ### Traits
+	/// 
+	/// * `Send` - Can be sent between threads
+	/// * `Sync` - Is safe to share between threads
+	/// 
+	/// ### Functions
+	/// 
+	/// * `generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32` - Generates a sample
+	pub trait Generator: Send + Sync {
+		fn generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32;
+	}
 
-impl Clip {
-    pub fn new(threshold: f32) -> Self {
-        Self { threshold }
-    }
-}
+	/// ## ClosureGenerator
+	/// 
+	/// A generator that uses a closure to generate samples
+	/// 
+	/// ### Fields
+	/// 
+	/// * `closure: Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync>` - The closure used to generate samples
+	/// 
+	/// ### Examples
+	/// 
+	/// ```
+	/// let generator = ClosureGenerator::new(Box::new(|sample_clock: &f32, sample_rate: &f32| -> f32 {
+	/// 	(sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
+	/// }));
+	/// ```
+	pub struct ClosureGenerator {
+		closure: Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync>,
+	}
 
-impl Effect for Clip {
-    fn process(&mut self, sample: &mut f32) {
-        if *sample > self.threshold {
-            *sample = self.threshold;
-        } else if *sample < -self.threshold {
-            *sample = -self.threshold;
-        }
-    }
-}
+	impl ClosureGenerator {
+		pub fn new(closure: Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync>) -> Self {
+			Self { closure }
+		}
+	}
 
-pub struct BitCrusher {
-    bits: u32,
-}
+	impl Generator for ClosureGenerator {
+		fn generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32 {
+			(self.closure)(sample_clock, sample_rate)
+		}
+	}
 
-impl BitCrusher {
-    pub fn new(bits: u32) -> Self {
-        Self { bits }
-    }
-}
+	/// ## Clip
+	/// 
+	/// An effect that clips samples above a certain threshold
+	/// 
+	/// ### Fields
+	/// 
+	/// * `threshold: f32` - The threshold above which samples will be clipped
+	pub struct Clip {
+		threshold: f32,
+	}
 
-impl Effect for BitCrusher {
-    fn process(&mut self, sample: &mut f32) {
-        *sample = (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
-    }
-}
+	impl Clip {
+		pub fn new(threshold: f32) -> Self {
+			Self { threshold }
+		}
+	}
 
-pub struct Slide {
-    rate: f32,
-    context: Vec<f32>,
-}
+	impl Effect for Clip {
+		fn process(&mut self, sample: &mut f32) {
+			if *sample > self.threshold {
+				*sample = self.threshold;
+			} else if *sample < -self.threshold {
+				*sample = -self.threshold;
+			}
+		}
+	}
 
-impl Slide {
-    pub fn new(rate: f32) -> Self {
-        Self {
-            rate,
-            context: Vec::new(),
-        }
-    }
-}
+	/// ## BitCrusher
+	/// 
+	/// An effect that reduces the bit depth of samples
+	/// 
+	/// ### Fields
+	/// 
+	/// * `bits: u32` - The number of bits to reduce the sample to
+	pub struct BitCrusher {
+		bits: u32,
+	}
 
-// rate 0 = no slide
-// rate 44100 = slide all the way in one second (assuming sample rate of 44100)
-// rate 22050 = slide all the way in half a second
-impl Effect for Slide {
-    fn process(&mut self, sample: &mut f32) {
-        if self.context.len() < self.rate as usize {
-            self.context.push(*sample);
-        } else {
-            let mut last_sample = self.context.last().unwrap().clone();
-            if last_sample < *sample {
-                last_sample += self.rate;
-                if last_sample > *sample {
-                    last_sample = *sample;
-                }
-            } else if last_sample > *sample {
-                last_sample -= self.rate;
-                if last_sample < *sample {
-                    last_sample = *sample;
-                }
-            }
-            self.context.remove(0);
-            *sample = last_sample;
-        }
-    }
-}
+	impl BitCrusher {
+		pub fn new(bits: u32) -> Self {
+			Self { bits }
+		}
+	}
 
-pub struct DelayBuffer {
-    buffer: Vec<f64>,
-    index: usize,
-}
+	impl Effect for BitCrusher {
+		fn process(&mut self, sample: &mut f32) {
+			*sample = (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
+		}
+	}
 
-impl DelayBuffer {
-    pub fn new(capacity: usize) -> Self {
-        Self {
-            buffer: vec![0.0; capacity],
-            index: 0,
-        }
-    }
-    pub fn capacity(&self) -> usize {
-        self.buffer.capacity()
-    }
+	/// ## Delay
+	/// 
+	/// An effect that delays samples
+	/// 
+	/// ### Fields
+	/// 
+	/// * `length: usize` - The length of the delay buffer
+	/// * `feedback: f64` - The amount of feedback to apply to the delay signal
+	/// * `buffer: Vec<f64>` - The delay buffer
+	pub struct Delay {
+		length: usize,
+		feedback: f64,
+		buffer: Vec<f64>,
+	}
 
-    pub fn write(&mut self, value: f64) {
-        self.buffer[self.index] = value;
-        self.index = (self.index + 1) % self.capacity();
-    }
+	impl Delay {
+		pub fn new(length: usize, feedback: f64) -> Self {
+			Self {
+				length,
+				feedback,
+				buffer: vec![0.0; length],
+			}
+		}
 
-    pub fn read(&self, delay: usize) -> f64 {
-        let offset = if delay < self.index {
-            self.index - 1 - delay
-        } else {
-            self.capacity() + self.index - 1 - delay
-        };
-        self.buffer[offset]
-    }
-}
+		pub fn resize(&mut self, length: usize) {
+			self.length = length;
+			self.buffer.resize(length, 0.0);
+		}
+	}
 
-pub enum FeedbackSource {
-    Internal,
-    External,
-}
-
-pub struct DelayLine {
-    buffer: DelayBuffer,
-    feedback_source: FeedbackSource,
-    delay_samples: usize,
-    internal_feedback: f64,
-    wet_dry_ratio: f64,
-}
-
-impl DelayLine {
-    pub fn set_delay_samples(mut self, delay_samples: usize) {
-        self.delay_samples = delay_samples;
-    }
-    pub fn set_internal_feedback(mut self, feedback: f64) {
-        self.internal_feedback = feedback;
-    }
-    pub fn set_wet_dry_ratio(mut self, wet_dry_ratio: f64) {
-        self.wet_dry_ratio = wet_dry_ratio;
-    }
-    pub fn new(
-        max_delay_samples: usize,
-        delay_samples: usize,
-        feedback_source: FeedbackSource,
-        internal_feedback: f64,
-        wet_dry_ratio: f64,
-    ) -> Self {
-        DelayLine {
-            buffer: DelayBuffer::new(max_delay_samples),
-            delay_samples,
-            feedback_source,
-            internal_feedback,
-            wet_dry_ratio,
-        }
-    }
-
-    pub fn process_with_feedback(&mut self, xn: f64, external_feedback: f64) -> (f64, f64) {
-        let delay_signal = self.buffer.read(self.delay_samples);
-        let internal_feedback_signal = delay_signal + self.internal_feedback;
-        let feedback = match self.feedback_source {
-            FeedbackSource::Internal => internal_feedback_signal,
-            FeedbackSource::External => external_feedback,
-        };
-        self.buffer.write(xn + feedback);
-
-        let wet = self.wet_dry_ratio;
-        let dry = 1.0 - self.wet_dry_ratio;
-        let yn = delay_signal + dry * xn;
-        (yn, internal_feedback_signal)
-    }
-}
-impl Effect for DelayLine {
-    fn process(&mut self, sample: &mut f32) {
-        let (yn, internal_feedback_signal) = self.process_with_feedback(*sample as f64, 0.0);
-        *sample = yn as f32;
-        self.internal_feedback = internal_feedback_signal;
-    }
+	impl Effect for Delay {
+		fn process(&mut self, sample: &mut f32) {
+			let delay_signal = self.buffer[0];
+			self.buffer.remove(0);
+			self.buffer.push(*sample as f64 + delay_signal * self.feedback);
+			*sample = (*sample as f64 + delay_signal) as f32;
+		}
+	}
 }

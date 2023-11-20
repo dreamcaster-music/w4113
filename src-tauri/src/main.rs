@@ -346,12 +346,15 @@ fn init(window: tauri::Window) -> Result<(), String> {
     // 	}
     // }
 
+	let midi_generator = audio::plugin::ClosureGenerator::new(Box::new(midi::callback));
+
     let mut midi_strip = audio::Strip::new(
-        audio::Input::Generator(Box::new(midi::callback)),
+        audio::Input::Generator(Box::new(midi_generator)),
         audio::Output::Channel(0),
     );
 	
-	midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));
+	//midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));
+	midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
 
     match strips {
         Ok(mut strips) => {

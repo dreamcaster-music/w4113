@@ -11,9 +11,6 @@ use midir::{Ignore, MidiInput, MidiOutput};
 
 use lazy_static::lazy_static;
 
-use crate::audio::FeedbackSource::External;
-use crate::audio::{self, DelayLine};
-
 /// ## `midi_list() -> Vec<String>`
 ///
 /// Returns a list of midi devices
@@ -75,15 +72,6 @@ fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
 }
 
 pub fn midi_start(device_name: String) -> Result<(), String> {
-    {
-        let mut strips = audio::STRIPS.write().unwrap();
-        error!("strips: {}", strips.len());
-        let mut strip0 = strips.get_mut(0).unwrap();
-        strip0.add_effect(Box::new(DelayLine::new(100, 50, External, 0.5, 0.5)));
-        strip0.add_effect(Box::new(audio::BitCrusher::new(2)));
-        //strip0.add_effect(Box::new(audio::Slide::new(10000.0)));
-    }
-
     //start midi device
     let mut midi_in = MidiInput::new("midir reading input").unwrap();
     midi_in.ignore(Ignore::None);
