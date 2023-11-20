@@ -6,8 +6,7 @@ use std::sync::{Mutex, RwLock};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    BufferSize, Device, Host, StreamConfig,
-    SupportedStreamConfigRange,
+    BufferSize, Device, Host, StreamConfig, SupportedStreamConfigRange,
 };
 use lazy_static::lazy_static;
 use log::debug;
@@ -20,8 +19,7 @@ lazy_static! {
     pub static ref INPUT_DEVICE: Mutex<Option<cpal::Device>> = Mutex::new(None);
     pub static ref OUTPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
     pub static ref INPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
-
-	pub static ref STRIPS: RwLock<Vec<Strip>> = RwLock::new(Vec::new());
+    pub static ref STRIPS: RwLock<Vec<Strip>> = RwLock::new(Vec::new());
 }
 
 /// ## `get_host(host_name: &str) -> Host`
@@ -615,7 +613,7 @@ pub fn get_output_config(
 ///
 /// ### Returns
 ///
-/// * `Option<cpal::StreamConfig>` - The resulting config 
+/// * `Option<cpal::StreamConfig>` - The resulting config
 ///
 /// ### Examples
 ///
@@ -772,264 +770,345 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
 }
 
 pub fn audio_thread() -> Result<(), String> {
-	let thread = std::thread::spawn(move || {
+    let thread = std::thread::spawn(move || {
+        let config = {
+            match OUTPUT_CONFIG.try_lock() {
+                Ok(config) => match config.as_ref() {
+                    Some(config) => config.clone(),
+                    None => {
+                        debug!("OUTPUT_CONFIG is None");
+                        //return Err(format!("OUTPUT_CONFIG is None"));
 
-		let config = {
-			match OUTPUT_CONFIG.try_lock() {
-				Ok(config) => match config.as_ref() {
-					Some(config) => config.clone(),
-					None => {
-						debug!("OUTPUT_CONFIG is None");
-						//return Err(format!("OUTPUT_CONFIG is None"));
+                        // specify type of Err to avoid type mismatch
+                        return Err("OUTPUT_CONFIG is None".to_owned());
+                    }
+                },
+                Err(e) => {
+                    debug!("Error locking OUTPUT_CONFIG: {}", e);
+                    return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
+                }
+            }
+        };
 
-						// specify type of Err to avoid type mismatch
-						return Err("OUTPUT_CONFIG is None".to_owned());
-					}
-				},
-				Err(e) => {
-					debug!("Error locking OUTPUT_CONFIG: {}", e);
-					return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
-				}
-			}
-		};
+        let output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>;
 
-		let output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>;
-		
-		{
-			let output_device = OUTPUT_DEVICE.try_lock();
-			let output_device = match output_device {
-				Ok(output_device) => output_device,
-				Err(e) => {
-					debug!("Error locking OUTPUT_DEVICE: {}", e);
-					return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
-				}
-			};
+        {
+            let output_device = OUTPUT_DEVICE.try_lock();
+            let output_device = match output_device {
+                Ok(output_device) => output_device,
+                Err(e) => {
+                    debug!("Error locking OUTPUT_DEVICE: {}", e);
+                    return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
+                }
+            };
 
-			let output_device = match output_device.as_ref() {
-				Some(output_device) => output_device,
-				None => {
-					debug!("OUTPUT_DEVICE is None");
-					return Err("OUTPUT_DEVICE is None".to_owned());
-				}
-			};
-			debug!(
-				"Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
-				0.0, 0.0, 0.0
-			);
+            let output_device = match output_device.as_ref() {
+                Some(output_device) => output_device,
+                None => {
+                    debug!("OUTPUT_DEVICE is None");
+                    return Err("OUTPUT_DEVICE is None".to_owned());
+                }
+            };
+            debug!(
+                "Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
+                0.0, 0.0, 0.0
+            );
 
-			let sample_rate = config.sample_rate.0 as f32;
+            let sample_rate = config.sample_rate.0 as f32;
 
-			// Produce a sinusoid of maximum amplitude.
-			let mut sample_clock = 0f32;
+            // Produce a sinusoid of maximum amplitude.
+            let mut sample_clock = 0f32;
 
-			let n_channels = config.channels as u32;
+            let n_channels = config.channels as u32;
 
-			let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-				let buffer_size = data.len();
-				let mut strips = match STRIPS.try_write() {
-					Ok(strips) => strips,
-					Err(e) => {
-						debug!("Error locking STRIPS: {}", e);
-						return;
-					}
-				};
+            let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                let buffer_size = data.len();
+                let mut strips = match STRIPS.try_write() {
+                    Ok(strips) => strips,
+                    Err(e) => {
+                        debug!("Error locking STRIPS: {}", e);
+                        return;
+                    }
+                };
 
-				let mut channel = 0;
-				// cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
-				// example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
-				// So every other sample is for the same channel
-				//
-				// So there is a simple formula for determining what channel a sample is for:
-				// channel = sample_index % n_channels
-				for sample in data.iter_mut() {
-					if channel % n_channels == 0 {
-						sample_clock += 1.0;
-					}
+                let mut channel = 0;
+                // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
+                // example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
+                // So every other sample is for the same channel
+                //
+                // So there is a simple formula for determining what channel a sample is for:
+                // channel = sample_index % n_channels
+                for sample in data.iter_mut() {
+                    if channel % n_channels == 0 {
+                        sample_clock += 1.0;
+                    }
 
-					for strip in strips.iter_mut() {
-						match strip.output {
-							Output::Channel(strip_channel) => {
-								if strip_channel == channel % n_channels {
-									*sample = strip.process(&sample_clock, &sample_rate);
-								}
-							},
-							_ => {
+                    for strip in strips.iter_mut() {
+                        match strip.output {
+                            Output::Channel(strip_channel) => {
+                                if strip_channel == channel % n_channels {
+                                    *sample = strip.process(&sample_clock, &sample_rate);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    channel += 1;
+                }
+            };
+            let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+            let output_stream =
+                output_device.build_output_stream(&config, data_callback, err_fn, None);
+            output_stream_opt = Some(output_stream);
+        }
 
-							}
-						}
-					}
-					channel += 1;
-				}
-			};
-			let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
-			let output_stream = output_device.build_output_stream(&config, data_callback, err_fn, None);
-			output_stream_opt = Some(output_stream);
-		}
+        let output_stream = match output_stream_opt {
+            Some(output_stream) => output_stream,
+            None => {
+                return Err("Error building output stream".to_owned());
+            }
+        };
 
-		let output_stream = match output_stream_opt {
-			Some(output_stream) => {
-				output_stream
-			},
-			None => {
-				return Err("Error building output stream".to_owned());
-			}
-		};
+        let output_stream = match output_stream {
+            Ok(stream) => stream,
+            Err(err) => {
+                return Err(format!("Error building output stream: {}", err));
+            }
+        };
 
-		let output_stream = match output_stream {
-			Ok(stream) => {
-				stream
-			},
-			Err(err) => {
-				return Err(format!("Error building output stream: {}", err));
-			}
-		};
+        let _ = output_stream.play();
 
-		let _ = output_stream.play();
-		
-		loop {
-			std::thread::sleep(std::time::Duration::from_millis(100));
-		}
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
 
-		return Ok(());
-	});
+        return Ok(());
+    });
 
-	Ok(())
+    Ok(())
 }
 
 pub enum Output {
-	Channel(u32),
-	Bus(Box<Input>),
+    Channel(u32),
+    Bus(Box<Input>),
 }
 
 pub enum Input {
-	Generator(Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync + 'static>),
-	Bus(Box<Output>),
+    Generator(Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync + 'static>),
+    Bus(Box<Output>),
 }
 
 pub struct Strip {
-	input: Input,
-	chain: Vec<Box<dyn Effect>>,
-	output: Output,
+    input: Input,
+    chain: Vec<Box<dyn Effect>>,
+    output: Output,
 }
 
 #[allow(dead_code)]
 impl Strip {
-	pub fn new(input: Input, output: Output) -> Self {
-		Self {
-			input,
-			chain: Vec::new(),
-			output,
-		}
-	}
+    pub fn new(input: Input, output: Output) -> Self {
+        Self {
+            input,
+            chain: Vec::new(),
+            output,
+        }
+    }
 
-	pub fn add_effect(&mut self, effect: Box<dyn Effect>) {
-		self.chain.push(effect);
-	}
+    pub fn add_effect(&mut self, effect: Box<dyn Effect>) {
+        self.chain.push(effect);
+    }
 
-	pub fn insert_effect(&mut self, effect: Box<dyn Effect>, index: usize) {
-		self.chain.insert(index, effect);
-	}
+    pub fn insert_effect(&mut self, effect: Box<dyn Effect>, index: usize) {
+        self.chain.insert(index, effect);
+    }
 
-	pub fn remove_effect(&mut self, index: usize) {
-		self.chain.remove(index);
-	}
+    pub fn remove_effect(&mut self, index: usize) {
+        self.chain.remove(index);
+    }
 
-	pub fn process(&mut self, sample_clock: &f32, sample_rate: &f32) -> f32 {
-		match &self.input {
-			Input::Generator(function) => {
-				let mut sample = function(sample_clock, sample_rate);
-				for effect in self.chain.iter_mut() {
-					effect.process(&mut sample);
-				}
-				sample
-			},
-			Input::Bus(bus) => {
-				0.0
-			},
-		}
-	}
+    pub fn process(&mut self, sample_clock: &f32, sample_rate: &f32) -> f32 {
+        match &self.input {
+            Input::Generator(function) => {
+                let mut sample = function(sample_clock, sample_rate);
+                for effect in self.chain.iter_mut() {
+                    effect.process(&mut sample);
+                }
+                sample
+            }
+            Input::Bus(bus) => 0.0,
+        }
+    }
 }
 
 pub trait Effect: Send + Sync {
-	fn process(&mut self, sample: &mut f32);
+    fn process(&mut self, sample: &mut f32);
 }
 
 pub struct Clip {
-	threshold: f32,
+    threshold: f32,
 }
 
 impl Clip {
-	pub fn new(threshold: f32) -> Self {
-		Self {
-			threshold,
-		}
-	}
+    pub fn new(threshold: f32) -> Self {
+        Self { threshold }
+    }
 }
 
 impl Effect for Clip {
-	fn process(&mut self, sample: &mut f32) {
-		if *sample > self.threshold {
-			*sample = self.threshold;
-		} else if *sample < -self.threshold {
-			*sample = -self.threshold;
-		}
-	}
+    fn process(&mut self, sample: &mut f32) {
+        if *sample > self.threshold {
+            *sample = self.threshold;
+        } else if *sample < -self.threshold {
+            *sample = -self.threshold;
+        }
+    }
 }
 
 pub struct BitCrusher {
-	bits: u32,
+    bits: u32,
 }
 
 impl BitCrusher {
-	pub fn new(bits: u32) -> Self {
-		Self {
-			bits,
-		}
-	}
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
 }
 
 impl Effect for BitCrusher {
-	fn process(&mut self, sample: &mut f32) {
-		*sample = (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
-	}
+    fn process(&mut self, sample: &mut f32) {
+        *sample = (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
+    }
 }
 
 pub struct Slide {
-	rate: f32,
-	context: Vec<f32>,
+    rate: f32,
+    context: Vec<f32>,
 }
 
 impl Slide {
-	pub fn new(rate: f32) -> Self {
-		Self {
-			rate,
-			context: Vec::new(),
-		}
-	}
+    pub fn new(rate: f32) -> Self {
+        Self {
+            rate,
+            context: Vec::new(),
+        }
+    }
 }
 
 // rate 0 = no slide
 // rate 44100 = slide all the way in one second (assuming sample rate of 44100)
 // rate 22050 = slide all the way in half a second
 impl Effect for Slide {
-	fn process(&mut self, sample: &mut f32) {
-		if self.context.len() < self.rate as usize {
-			self.context.push(*sample);
-		} else {
-			let mut last_sample = self.context.last().unwrap().clone();
-			if last_sample < *sample {
-				last_sample += self.rate;
-				if last_sample > *sample {
-					last_sample = *sample;
-				}
-			} else if last_sample > *sample {
-				last_sample -= self.rate;
-				if last_sample < *sample {
-					last_sample = *sample;
-				}
-			}
-			self.context.remove(0);
-			*sample = last_sample;
-		}
-	}
+    fn process(&mut self, sample: &mut f32) {
+        if self.context.len() < self.rate as usize {
+            self.context.push(*sample);
+        } else {
+            let mut last_sample = self.context.last().unwrap().clone();
+            if last_sample < *sample {
+                last_sample += self.rate;
+                if last_sample > *sample {
+                    last_sample = *sample;
+                }
+            } else if last_sample > *sample {
+                last_sample -= self.rate;
+                if last_sample < *sample {
+                    last_sample = *sample;
+                }
+            }
+            self.context.remove(0);
+            *sample = last_sample;
+        }
+    }
+}
+
+pub struct DelayBuffer {
+    buffer: Vec<f64>,
+    index: usize,
+}
+
+impl DelayBuffer {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            buffer: vec![0.0; capacity],
+            index: 0,
+        }
+    }
+    pub fn capacity(&self) -> usize {
+        self.buffer.capacity()
+    }
+
+    pub fn write(&mut self, value: f64) {
+        self.buffer[self.index] = value;
+        self.index = (self.index + 1) % self.capacity();
+    }
+
+    pub fn read(&self, delay: usize) -> f64 {
+        let offset = if delay < self.index {
+            self.index - 1 - delay
+        } else {
+            self.capacity() + self.index - 1 - delay
+        };
+        self.buffer[offset]
+    }
+}
+
+pub enum FeedbackSource {
+    Internal,
+    External,
+}
+
+pub struct DelayLine {
+    buffer: DelayBuffer,
+    feedback_source: FeedbackSource,
+    delay_samples: usize,
+    internal_feedback: f64,
+    wet_dry_ratio: f64,
+}
+
+impl DelayLine {
+    pub fn set_delay_samples(mut self, delay_samples: usize) {
+        self.delay_samples = delay_samples;
+    }
+    pub fn set_internal_feedback(mut self, feedback: f64) {
+        self.internal_feedback = feedback;
+    }
+    pub fn set_wet_dry_ratio(mut self, wet_dry_ratio: f64) {
+        self.wet_dry_ratio = wet_dry_ratio;
+    }
+    pub fn new(
+        max_delay_samples: usize,
+        delay_samples: usize,
+        feedback_source: FeedbackSource,
+        internal_feedback: f64,
+        wet_dry_ratio: f64,
+    ) -> Self {
+        DelayLine {
+            buffer: DelayBuffer::new(max_delay_samples),
+            delay_samples,
+            feedback_source,
+            internal_feedback,
+            wet_dry_ratio,
+        }
+    }
+
+    pub fn process_with_feedback(&mut self, xn: f64, external_feedback: f64) -> (f64, f64) {
+        let delay_signal = self.buffer.read(self.delay_samples);
+        let internal_feedback_signal = delay_signal + self.internal_feedback;
+        let feedback = match self.feedback_source {
+            FeedbackSource::Internal => internal_feedback_signal,
+            FeedbackSource::External => external_feedback,
+        };
+        self.buffer.write(xn + feedback);
+
+        let wet = self.wet_dry_ratio;
+        let dry = 1.0 - self.wet_dry_ratio;
+        let yn = delay_signal + dry * xn;
+        (yn, internal_feedback_signal)
+    }
+}
+impl Effect for DelayLine {
+    fn process(&mut self, sample: &mut f32) {
+        let (yn, internal_feedback_signal) = self.process_with_feedback(*sample as f64, 0.0);
+        *sample = yn as f32;
+        self.internal_feedback = internal_feedback_signal;
+    }
 }

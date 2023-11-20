@@ -11,7 +11,8 @@ use midir::{Ignore, MidiInput, MidiOutput};
 
 use lazy_static::lazy_static;
 
-use crate::audio;
+use crate::audio::FeedbackSource::External;
+use crate::audio::{self, DelayLine};
 
 /// ## `midi_list() -> Vec<String>`
 ///
@@ -74,13 +75,14 @@ fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
 }
 
 pub fn midi_start(device_name: String) -> Result<(), String> {
-	{
-		let mut strips = audio::STRIPS.write().unwrap();
-		error!("strips: {}", strips.len());
-		let mut strip0 = strips.get_mut(0).unwrap();
-		strip0.add_effect(Box::new(audio::BitCrusher::new(2)));
-		//strip0.add_effect(Box::new(audio::Slide::new(10000.0)));
-	}
+    {
+        let mut strips = audio::STRIPS.write().unwrap();
+        error!("strips: {}", strips.len());
+        let mut strip0 = strips.get_mut(0).unwrap();
+        strip0.add_effect(Box::new(DelayLine::new(100, 50, External, 0.5, 0.5)));
+        strip0.add_effect(Box::new(audio::BitCrusher::new(2)));
+        //strip0.add_effect(Box::new(audio::Slide::new(10000.0)));
+    }
 
     //start midi device
     let mut midi_in = MidiInput::new("midir reading input").unwrap();
@@ -151,10 +153,10 @@ pub fn midi_start(device_name: String) -> Result<(), String> {
 // ' = f
 /*
 pub fn midi_keyboard_thread() {
-	// create midi port
-	let midi_out = MidiOutput::new("midir writing output").unwrap();
+    // create midi port
+    let midi_out = MidiOutput::new("midir writing output").unwrap();
 
-	// Get an output port (read from console if multiple are available)
+    // Get an output port (read from console if multiple are available)
     let out_ports = midi_out.ports();
     let out_port: &MidiOutputPort = match out_ports.len() {
         0 => return Err("no output port found".into()),
@@ -180,7 +182,7 @@ pub fn midi_keyboard_thread() {
         }
     };
 
-	// listen for keyboard up/down events
-	
+    // listen for keyboard up/down events
+
 }
 */
