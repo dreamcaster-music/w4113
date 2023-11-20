@@ -7,6 +7,7 @@ import { ConsoleMessage } from "../bindings/ConsoleMessage";
 import { appWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { FreqMessage } from "../bindings/FreqMessage";
+import Midi from "./Midi";
 
 /**
  * ## App()
@@ -579,6 +580,7 @@ function Console() {
 		<>
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
+					<Midi />
 					<div className="console">
 						<div className="console-output">
 							{output}

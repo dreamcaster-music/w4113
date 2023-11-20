@@ -1162,84 +1162,6 @@ async fn confirm_exit() -> ConsoleMessage {
 }
 
 #[tauri::command]
-async fn sine(
-    _window: tauri::Window,
-    frequency: f32,
-    amplitude: f32,
-    duration: f32,
-) -> ConsoleMessage {
-    let output_stream_config = audio::OUTPUT_CONFIG.try_lock();
-    let output_stream_config = match output_stream_config {
-        Ok(output_stream_config) => output_stream_config,
-        Err(e) => {
-            debug!("Error locking OUTPUT_STREAM_CONFIG: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking OUTPUT_STREAM_CONFIG: {}", e)],
-            };
-        }
-    };
-
-    let output_stream_config = match output_stream_config.as_ref() {
-        Some(output_stream_config) => output_stream_config,
-        None => {
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("No output stream selected")],
-            };
-        }
-    };
-
-    let output_stream_config = output_stream_config.clone();
-
-    let tv_window = TV_WINDOW.try_lock();
-    let tv_window = match tv_window {
-        Ok(tv_window) => tv_window,
-        Err(e) => {
-            debug!("Error locking TV_WINDOW: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking TV_WINDOW: {}", e)],
-            };
-        }
-    };
-
-    let tv_window = match tv_window.as_ref() {
-        Some(tv_window) => tv_window,
-        None => {
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("No TV window selected")],
-            };
-        }
-    };
-
-    let tv_window = tv_window.clone();
-
-    let _thread = std::thread::spawn(move || {
-        // We spawn a new thread so that multiple output streams can be played
-
-        let _output_stream = audio::sine(frequency, amplitude, duration);
-
-        return ConsoleMessage {
-            kind: MessageKind::Console,
-            message: vec![format!(
-                "Sine wave: {} Hz, {} amplitude, {} seconds",
-                frequency, amplitude, duration
-            )],
-        };
-    });
-
-    return ConsoleMessage {
-        kind: MessageKind::Console,
-        message: vec![format!(
-            "Sine wave: {} Hz, {} amplitude, {} seconds",
-            frequency, amplitude, duration
-        )],
-    };
-}
-
-#[tauri::command]
 async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
     // call midi.rs function
     debug!("Calling midi::midi_list()");
@@ -1331,7 +1253,6 @@ fn main() {
             input_select,
             input_stream_show,
             input_stream_set,
-            sine,
             midi_list,
             midi_start,
             midi_stop

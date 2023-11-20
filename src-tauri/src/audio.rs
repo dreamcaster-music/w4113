@@ -841,14 +841,7 @@ pub fn audio_thread() -> Result<(), String> {
 					}
 
 					for strip in strips.iter() {
-						match strip {
-							Strip { input: Input::Generator(function), output: Output::Channel(strip_channel), .. } => {
-								if *strip_channel == channel % n_channels {
-									*sample = function(&sample_clock, &sample_rate);
-								}
-							},
-							_ => continue,
-						};
+						strip.process(&sample_clock, &sample_rate);
 					}
 					channel += 1;
 				}
@@ -888,116 +881,6 @@ pub fn audio_thread() -> Result<(), String> {
 	Ok(())
 }
 
-pub fn sine(
-    freq: f32,
-    amp: f32,
-    dur: f32,
-) -> Result<(), String> {
-	let config = {
-		match OUTPUT_CONFIG.try_lock() {
-			Ok(config) => match config.as_ref() {
-				Some(config) => config.clone(),
-				None => {
-					debug!("OUTPUT_CONFIG is None");
-					return Err("OUTPUT_CONFIG is None".to_owned());
-				}
-			},
-			Err(e) => {
-				debug!("Error locking OUTPUT_CONFIG: {}", e);
-				return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
-			}
-		}
-	};
-
-    let output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>;
-
-	// here we create a new scope so that the mutex is unlocked before we try to play the sound
-    {
-        let output_device = OUTPUT_DEVICE.try_lock();
-        let output_device = match output_device {
-            Ok(output_device) => output_device,
-            Err(e) => {
-                debug!("Error locking OUTPUT_DEVICE: {}", e);
-                return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
-            }
-        };
-
-        let output_device = match output_device.as_ref() {
-            Some(output_device) => output_device,
-            None => {
-                debug!("OUTPUT_DEVICE is None");
-                return Err("OUTPUT_DEVICE is None".to_owned());
-            }
-        };
-        debug!(
-            "Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
-            freq, amp, dur
-        );
-
-        let sample_rate = config.sample_rate.0 as f32;
-
-        // Produce a sinusoid of maximum amplitude.
-        let mut sample_clock = 0f32;
-
-		let n_channels = config.channels as u32;
-
-        let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-            let buffer_size = data.len();
-			let strips = STRIPS.read().unwrap();
-
-            let mut channel = 0;
-            // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
-            // example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
-            // So every other sample is for the same channel
-            //
-            // So there is a simple formula for determining what channel a sample is for:
-            // channel = sample_index % n_channels
-            for sample in data.iter_mut() {
-				if channel % n_channels == 0 {
-					sample_clock += 1.0;
-				}
-
-				for strip in strips.iter() {
-					match strip {
-						Strip { input: Input::Generator(function), output: Output::Channel(strip_channel), .. } => {
-							if *strip_channel == channel % n_channels {
-								*sample = function(&sample_clock, &sample_rate) * amp;
-							}
-						},
-						_ => continue,
-					};
-				}
-                /*if channel % 2 == 0 {
-                    *sample = next_value() * amp;
-                } else {
-                    *sample = 0.0;
-                }*/
-                channel += 1;
-            }
-        };
-        let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
-
-        let output_stream = output_device.build_output_stream(&config, data_callback, err_fn, None);
-
-        output_stream_opt = Some(output_stream);
-    }
-
-    let output_stream = output_stream_opt.unwrap();
-
-    match output_stream {
-        Ok(stream) => {
-            let _ = stream.play();
-			std::thread::sleep(std::time::Duration::from_secs_f32(dur));
-			let _ = stream.pause();
-        }
-        Err(err) => {
-            return Err(format!("Error building output stream: {}", err));
-        }
-    };
-
-    Ok(())
-}
-
 pub enum Output {
 	Channel(u32),
 	Bus(Box<Input>),
@@ -1010,16 +893,15 @@ pub enum Input {
 
 pub struct Strip {
 	input: Input,
-	context: Vec<f32>,
 	chain: Vec<Box<dyn Effect>>,
 	output: Output,
 }
 
+#[allow(dead_code)]
 impl Strip {
 	pub fn new(input: Input, output: Output) -> Self {
 		Self {
 			input,
-			context: Vec::new(),
 			chain: Vec::new(),
 			output,
 		}
@@ -1037,7 +919,7 @@ impl Strip {
 		self.chain.remove(index);
 	}
 
-	pub fn process(&mut self, sample_clock: &f32, sample_rate: &f32) -> f32 {
+	pub fn process(&self, sample_clock: &f32, sample_rate: &f32) -> f32 {
 		match &self.input {
 			Input::Generator(function) => {
 				function(sample_clock, sample_rate)
