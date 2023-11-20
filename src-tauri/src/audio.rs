@@ -842,7 +842,7 @@ pub fn audio_thread() -> Result<(), String> {
 
 					for strip in strips.iter() {
 						match strip {
-							Strip { input: Input::Generator(function), output: Output::Channel(strip_channel) } => {
+							Strip { input: Input::Generator(function), output: Output::Channel(strip_channel), .. } => {
 								if *strip_channel == channel % n_channels {
 									*sample = function(&sample_clock, &sample_rate);
 								}
@@ -959,7 +959,7 @@ pub fn sine(
 
 				for strip in strips.iter() {
 					match strip {
-						Strip { input: Input::Generator(function), output: Output::Channel(strip_channel) } => {
+						Strip { input: Input::Generator(function), output: Output::Channel(strip_channel), .. } => {
 							if *strip_channel == channel % n_channels {
 								*sample = function(&sample_clock, &sample_rate) * amp;
 							}
@@ -1010,6 +1010,8 @@ pub enum Input {
 
 pub struct Strip {
 	input: Input,
+	context: Vec<f32>,
+	chain: Vec<Box<dyn Effect>>,
 	output: Output,
 }
 
@@ -1017,7 +1019,58 @@ impl Strip {
 	pub fn new(input: Input, output: Output) -> Self {
 		Self {
 			input,
+			context: Vec::new(),
+			chain: Vec::new(),
 			output,
+		}
+	}
+
+	pub fn add_effect(&mut self, effect: Box<dyn Effect>) {
+		self.chain.push(effect);
+	}
+
+	pub fn insert_effect(&mut self, effect: Box<dyn Effect>, index: usize) {
+		self.chain.insert(index, effect);
+	}
+
+	pub fn remove_effect(&mut self, index: usize) {
+		self.chain.remove(index);
+	}
+
+	pub fn process(&mut self, sample_clock: &f32, sample_rate: &f32) -> f32 {
+		match &self.input {
+			Input::Generator(function) => {
+				function(sample_clock, sample_rate)
+			},
+			Input::Bus(bus) => {
+				0.0
+			},
+		}
+	}
+}
+
+pub trait Effect: Send + Sync {
+	fn process(&mut self, sample: &mut f32);
+}
+
+pub struct Clip {
+	threshold: f32,
+}
+
+impl Clip {
+	pub fn new(threshold: f32) -> Self {
+		Self {
+			threshold,
+		}
+	}
+}
+
+impl Effect for Clip {
+	fn process(&mut self, sample: &mut f32) {
+		if *sample > self.threshold {
+			*sample = self.threshold;
+		} else if *sample < -self.threshold {
+			*sample = -self.threshold;
 		}
 	}
 }

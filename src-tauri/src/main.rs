@@ -346,10 +346,13 @@ fn init(window: tauri::Window) -> Result<(), String> {
     // 	}
     // }
 
-    let midi_strip = audio::Strip::new(
+    let mut midi_strip = audio::Strip::new(
         audio::Input::Generator(Box::new(midi::callback)),
         audio::Output::Channel(0),
     );
+	let clip_effect = audio::Clip::new(0.5);
+	midi_strip.add_effect(Box::new(clip_effect));
+	
 
     match strips {
         Ok(mut strips) => {
