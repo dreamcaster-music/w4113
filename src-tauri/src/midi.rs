@@ -1,17 +1,22 @@
 //! midi.rs
-//! 
+//!
 //! Module for handling midi devices
 
+use std::sync::RwLock;
+
+use log::debug;
 use midir;
 
 use midir::{Ignore, MidiInput, MidiOutput};
 
+use lazy_static::lazy_static;
+
 /// ## `midi_list() -> Vec<String>`
-/// 
+///
 /// Returns a list of midi devices
-/// 
+///
 /// ### Returns
-/// 
+///
 /// `Vec<String>` - A vector of strings containing the midi devices
 pub fn midi_list() -> Vec<String> {
     //list midi devices
@@ -29,4 +34,88 @@ pub fn midi_list() -> Vec<String> {
         ));
     }
     return vec![test.to_string()];
+}
+
+lazy_static! {
+    static ref NOTE: RwLock<Vec<f32>> = RwLock::new(Vec::new());
+}
+
+pub fn callback(sample_clock: &f32, sample_rate: &f32) -> f32 {
+    let mut note = NOTE.write().unwrap();
+    let mut output = 0.0;
+    for i in 0..note.len() {
+        output += (sample_clock * note[i] * 2.0 * std::f32::consts::PI / sample_rate).sin();
+    }
+    output
+}
+
+fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
+    let status = message[0];
+    let note = message[1];
+    let velocity = message[2];
+
+    let freq = 440.0 * 2.0f32.powf((note as f32 - 69.0) / 12.0);
+
+    match status {
+        144 => {
+            debug!("Note on: {} {} {}", note, velocity, freq);
+            NOTE.write().unwrap().push(freq);
+        }
+        128 => {
+            debug!("Note off: {} {} {}", note, velocity, freq);
+            NOTE.write().unwrap().retain(|&x| x != freq);
+        }
+        _ => {}
+    }
+
+    debug!("{}: {:?} (len = {})", stamp, message, message.len());
+}
+
+pub fn midi_start(device_name: String) -> Result<(), String> {
+    //start midi device
+    let mut midi_in = MidiInput::new("midir reading input").unwrap();
+    midi_in.ignore(Ignore::None);
+    let midi_out = MidiOutput::new("midir writing output").unwrap();
+    let _midi_out_ports = midi_out.ports();
+    let midi_in_ports = midi_in.ports();
+    let mut test = String::new();
+    for i in 0..midi_in_ports.len() {
+        test.push_str(&format!(
+            "{}: {:?}\n",
+            i,
+            midi_in.port_name(&midi_in_ports[i]).unwrap()
+        ));
+    }
+    debug!("{}", test);
+    let in_port = &midi_in_ports[0];
+    let out_port = &midi_out.ports()[0];
+    let in_port_name = midi_in.port_name(in_port).unwrap();
+    let out_port_name = midi_out.port_name(out_port).unwrap();
+    debug!("Opening connection");
+    let conn_in = midi_in.connect(in_port, "midir-read-input", midi_callback, ());
+
+    let conn_in = match conn_in {
+        Ok(conn_in) => conn_in,
+        Err(err) => {
+            debug!("Error: {}", err);
+            return Err(err.to_string());
+        }
+    };
+
+    let conn_out = midi_out.connect(out_port, "midir-write-output").unwrap();
+    debug!(
+        "Connection open, reading input from '{}' (press enter to exit) ...",
+        in_port_name
+    );
+    let mut input = String::new();
+    loop {
+        // sleep for 1 second
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+    }
+    debug!("Closing connection");
+    conn_in.close();
+    conn_out.close();
+    debug!("Connection closed. Goodbye!");
+
+    Ok(())
 }

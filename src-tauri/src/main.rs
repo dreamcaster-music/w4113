@@ -9,7 +9,7 @@ mod tv;
 use audio::Preference;
 use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
-use log::{debug, LevelFilter, trace, info, error};
+use log::{debug, error, info, trace, LevelFilter};
 use std::sync::Mutex;
 use tauri::{LogicalPosition, Manager};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
@@ -299,16 +299,16 @@ async fn run(window: tauri::Window) -> String {
         }
     }
 
-	// run audio thread
-	let thread_result = audio::audio_thread();
-	match thread_result {
-		Ok(()) => {
-			debug!("Audio thread ran successfully");
-		}
-		Err(e) => {
-			debug!("Error in audio thread: {}", e);
-		}
-	};
+    // run audio thread
+    let thread_result = audio::audio_thread();
+    match thread_result {
+        Ok(()) => {
+            debug!("Audio thread ran successfully");
+        }
+        Err(e) => {
+            debug!("Error in audio thread: {}", e);
+        }
+    };
 
     debug!("{}", result);
     result
@@ -328,23 +328,37 @@ async fn run(window: tauri::Window) -> String {
 fn init(window: tauri::Window) -> Result<(), String> {
     debug!("Initializing Tauri");
 
-	let strips = audio::STRIPS.try_write();
+    let strips = audio::STRIPS.try_write();
 
-	let new_strip = audio::Strip::new(
-		audio::Input::Generator(Box::new(|sample_clock: &f32, sample_rate: &f32| -> f32 {
-			(sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
-		})),
-		audio::Output::Channel(0)
-	);
+    // let new_strip = audio::Strip::new(
+    // 	audio::Input::Generator(Box::new(|sample_clock: &f32, sample_rate: &f32| -> f32 {
+    // 		(sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
+    // 	})),
+    // 	audio::Output::Channel(0)
+    // );
 
-	match strips {
-		Ok(mut strips) => {
-			strips.push(new_strip);
-		}
-		Err(e) => {
-			debug!("Error locking STRIPS: {}", e);
-		}
-	}
+    // match strips {
+    // 	Ok(mut strips) => {
+    // 		strips.push(new_strip);
+    // 	}
+    // 	Err(e) => {
+    // 		debug!("Error locking STRIPS: {}", e);
+    // 	}
+    // }
+
+    let midi_strip = audio::Strip::new(
+        audio::Input::Generator(Box::new(midi::callback)),
+        audio::Output::Channel(0),
+    );
+
+    match strips {
+        Ok(mut strips) => {
+            strips.push(midi_strip);
+        }
+        Err(e) => {
+            debug!("Error locking STRIPS: {}", e);
+        }
+    }
 
     // Make the window visible
     debug!("Showing windows");
@@ -368,7 +382,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
                 let _ = tv_window.show();
                 let position = LogicalPosition::new(100.0, 100.0);
                 let _ = tv_window.set_position(position);
-				let _ = tv_window.close();
+                let _ = tv_window.close();
             }
             None => {}
         },
@@ -632,8 +646,11 @@ async fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage
                         }
                     };
 
-                    let _ =
-                        set_global_config_value("audio.output.device", actual_device_name.as_str(), true);
+                    let _ = set_global_config_value(
+                        "audio.output.device",
+                        actual_device_name.as_str(),
+                        true,
+                    );
                     ConsoleMessage {
                         kind: MessageKind::Console,
                         message: vec![format!("Selected output device {}", actual_device_name)],
@@ -766,12 +783,24 @@ async fn output_stream_set(
 
     let channel_result = result.0;
     let sample_result = result.1;
-	let buffer_size_result = result.2;
+    let buffer_size_result = result.2;
 
-	let _ = set_global_config_value("audio.output.channels", channel_result.to_string().as_str(), false);
-	let _ = set_global_config_value("audio.output.samples", sample_result.to_string().as_str(), false);
-	let _ = set_global_config_value("audio.output.buffer_size", buffer_size_result.as_str(), false);
-	let _ = global_config_force_update();
+    let _ = set_global_config_value(
+        "audio.output.channels",
+        channel_result.to_string().as_str(),
+        false,
+    );
+    let _ = set_global_config_value(
+        "audio.output.samples",
+        sample_result.to_string().as_str(),
+        false,
+    );
+    let _ = set_global_config_value(
+        "audio.output.buffer_size",
+        buffer_size_result.as_str(),
+        false,
+    );
+    let _ = global_config_force_update();
 
     // set OUTPUT_CONFIG to config
     match audio::OUTPUT_CONFIG.lock() {
@@ -873,8 +902,11 @@ async fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
                         }
                     };
 
-                    let _ =
-                        set_global_config_value("audio.input.device", actual_device_name.as_str(), false);
+                    let _ = set_global_config_value(
+                        "audio.input.device",
+                        actual_device_name.as_str(),
+                        false,
+                    );
                     ConsoleMessage {
                         kind: MessageKind::Console,
                         message: vec![format!("Selected input device {}", actual_device_name)],
@@ -1009,10 +1041,22 @@ async fn input_stream_set(
     let sample_result = result.1;
     let buffer_size_result = result.2;
 
-	let _ = set_global_config_value("audio.input.channels", channel_result.to_string().as_str(), false);
-	let _ = set_global_config_value("audio.input.samples", sample_result.to_string().as_str(), false);
-	let _ = set_global_config_value("audio.input.buffer_size", buffer_size_result.as_str(), false);
-	let _ = global_config_force_update();
+    let _ = set_global_config_value(
+        "audio.input.channels",
+        channel_result.to_string().as_str(),
+        false,
+    );
+    let _ = set_global_config_value(
+        "audio.input.samples",
+        sample_result.to_string().as_str(),
+        false,
+    );
+    let _ = set_global_config_value(
+        "audio.input.buffer_size",
+        buffer_size_result.as_str(),
+        false,
+    );
+    let _ = global_config_force_update();
 
     // set INPUT_CONFIG to config
     match audio::INPUT_CONFIG.lock() {
@@ -1051,35 +1095,35 @@ async fn input_stream_set(
 /// * `Ok(())` - The result of the command
 /// * `Err(String)` - The result of the command
 fn set_global_config_value(key: &str, value: &str, update: bool) -> Result<(), String> {
-		let config = CONFIG.lock();
-		let mut config = match config {
-			Ok(config) => config,
-			Err(e) => {
-				error!("Error locking CONFIG: {}", e);
-				return Err(format!("Error locking CONFIG: {}", e));
-			}
-		};
+    let config = CONFIG.lock();
+    let mut config = match config {
+        Ok(config) => config,
+        Err(e) => {
+            error!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
 
-		if update {
-			config.set_str(key, value);
-		} else {
-			config.set_str_no_update(key, value);
-		}
-	
+    if update {
+        config.set_str(key, value);
+    } else {
+        config.set_str_no_update(key, value);
+    }
+
     Ok(())
 }
 
 fn global_config_force_update() {
-	let config = CONFIG.lock();
-	let mut config = match config {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return;
-		}
-	};
+    let config = CONFIG.lock();
+    let mut config = match config {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return;
+        }
+    };
 
-	config.force_update();
+    config.force_update();
 }
 
 #[tauri::command]
@@ -1170,13 +1214,9 @@ async fn sine(
     let tv_window = tv_window.clone();
 
     let _thread = std::thread::spawn(move || {
-		// We spawn a new thread so that multiple output streams can be played
+        // We spawn a new thread so that multiple output streams can be played
 
-        let _output_stream = audio::sine(
-            frequency,
-            amplitude,
-            duration
-        );
+        let _output_stream = audio::sine(frequency, amplitude, duration);
 
         return ConsoleMessage {
             kind: MessageKind::Console,
@@ -1198,12 +1238,38 @@ async fn sine(
 
 #[tauri::command]
 async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
-	// call midi.rs function
+    // call midi.rs function
     debug!("Calling midi::midi_list()");
     let midi_devices = midi::midi_list();
     ConsoleMessage {
         kind: MessageKind::Console,
         message: midi_devices,
+    }
+}
+
+#[tauri::command]
+async fn midi_start(_window: tauri::Window, device_name: String) -> ConsoleMessage {
+    // let device_name = "AKM320".to_owned();
+    // call midi.rs function
+    debug!("Calling midi::midi_start()");
+    let device_name_clone = device_name.clone();
+    let thread = std::thread::spawn(move || {
+        let midi_devices = midi::midi_start(device_name_clone);
+    });
+    ConsoleMessage {
+        kind: MessageKind::Console,
+        message: vec![format!("MIDI device {} started", device_name)],
+    }
+}
+
+#[tauri::command]
+async fn midi_stop(_window: tauri::Window, device_name: String) -> ConsoleMessage {
+    // call midi.rs function
+    debug!("Calling midi::midi_stop()");
+    //let midi_devices = midi::midi_stop(device_name);
+    ConsoleMessage {
+        kind: MessageKind::Console,
+        message: vec![format!("MIDI device {} stopped", device_name)],
     }
 }
 
@@ -1263,7 +1329,9 @@ fn main() {
             input_stream_show,
             input_stream_set,
             sine,
-            midi_list
+            midi_list,
+            midi_start,
+            midi_stop
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

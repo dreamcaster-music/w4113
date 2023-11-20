@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import "./Console.css";
-import { debug } from "tauri-plugin-log-api";
+import { debug, error } from "tauri-plugin-log-api";
 
 import { ConsoleMessage } from "../bindings/ConsoleMessage";
 import { appWindow } from "@tauri-apps/api/window";
@@ -440,31 +440,52 @@ function Console() {
 					outputMessage(response as ConsoleMessage);
 				});
 				break;
-			case "resine":
+			case "midi":
 				/*
-				 * Resine command
-				 * Usage: resine [frequency]
+				 * Midi command
+				 * Usage: midi [list|start|stop] [device]
 				 * 
-				 * Changes the frequency of the sine wave to [frequency] Hz
+				 * list: list available midi devices
+				 * start: start midi input -- requires device
+				 * stop: stop midi input
 				 */
 				if (args.length < 1) {
-					outputMessage({ kind: "Error", message: ["Not enough arguments for resine command."] });
-					outputMessage({ kind: "Error", message: ["Usage: resine [frequency]"] });
+					outputMessage({ kind: "Error", message: ["Not enough arguments for midi command."] });
+					outputMessage({ kind: "Error", message: ["Usage: midi [list|start|stop] [device]"] });
 					break;
 				}
-				let resineFreq = parseFloat(args[0]);
-				invoke("resine", { frequency: resineFreq }).then((response) => {
-					debug("Result from resine: " + strValue(response as ConsoleMessage));
-					outputMessage(response as ConsoleMessage);
-				});
-				break;
-			case "midi":
-				//list midi devices
-				invoke("midi_list").then((response) => {
-					debug("Available Midi Devices: " + strValue(response as ConsoleMessage));
-					outputMessage({ kind: "Console", message: ["Available Midi Devices: " + strValue(response as ConsoleMessage)] });
-					outputMessage(response as ConsoleMessage);
-				});
+
+				let midiCommand = args[0];
+				switch (midiCommand) {
+					case "list":
+						invoke("midi_list").then((response) => {
+							debug("Result from midi list: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					case "start":
+						if (args.length < 2) {
+							outputMessage({ kind: "Error", message: ["Not enough arguments for start midi command."] });
+							outputMessage({ kind: "Error", message: ["Usage: midi start [device]"] });
+							break;
+						}
+						let device_name = args[1] as string;
+						invoke("midi_start", { deviceName: device_name }).then((response) => {
+							debug("Result from midi start: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					case "stop":
+						invoke("midi_stop").then((response) => {
+							debug("Result from midi stop: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					default:
+						outputMessage({ kind: "Error", message: ["Invalid midi command: " + midiCommand] });
+						outputMessage({ kind: "Error", message: ["Usage: midi [list|start|stop] [device]"] });
+						break;
+				};
 				break;
 			case "":
 				break;
