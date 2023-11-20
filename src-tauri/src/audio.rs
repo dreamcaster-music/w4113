@@ -826,7 +826,13 @@ pub fn audio_thread() -> Result<(), String> {
 
 			let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
 				let buffer_size = data.len();
-				let strips = STRIPS.read().unwrap();
+				let mut strips = match STRIPS.try_write() {
+					Ok(strips) => strips,
+					Err(e) => {
+						debug!("Error locking STRIPS: {}", e);
+						return;
+					}
+				};
 
 				let mut channel = 0;
 				// cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
@@ -840,8 +846,17 @@ pub fn audio_thread() -> Result<(), String> {
 						sample_clock += 1.0;
 					}
 
-					for strip in strips.iter() {
-						strip.process(&sample_clock, &sample_rate);
+					for strip in strips.iter_mut() {
+						match strip.output {
+							Output::Channel(strip_channel) => {
+								if strip_channel == channel % n_channels {
+									*sample = strip.process(&sample_clock, &sample_rate);
+								}
+							},
+							_ => {
+
+							}
+						}
 					}
 					channel += 1;
 				}
@@ -919,10 +934,14 @@ impl Strip {
 		self.chain.remove(index);
 	}
 
-	pub fn process(&self, sample_clock: &f32, sample_rate: &f32) -> f32 {
+	pub fn process(&mut self, sample_clock: &f32, sample_rate: &f32) -> f32 {
 		match &self.input {
 			Input::Generator(function) => {
-				function(sample_clock, sample_rate)
+				let mut sample = function(sample_clock, sample_rate);
+				for effect in self.chain.iter_mut() {
+					effect.process(&mut sample);
+				}
+				sample
 			},
 			Input::Bus(bus) => {
 				0.0
@@ -953,6 +972,64 @@ impl Effect for Clip {
 			*sample = self.threshold;
 		} else if *sample < -self.threshold {
 			*sample = -self.threshold;
+		}
+	}
+}
+
+pub struct BitCrusher {
+	bits: u32,
+}
+
+impl BitCrusher {
+	pub fn new(bits: u32) -> Self {
+		Self {
+			bits,
+		}
+	}
+}
+
+impl Effect for BitCrusher {
+	fn process(&mut self, sample: &mut f32) {
+		*sample = (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
+	}
+}
+
+pub struct Slide {
+	rate: f32,
+	context: Vec<f32>,
+}
+
+impl Slide {
+	pub fn new(rate: f32) -> Self {
+		Self {
+			rate,
+			context: Vec::new(),
+		}
+	}
+}
+
+// rate 0 = no slide
+// rate 44100 = slide all the way in one second (assuming sample rate of 44100)
+// rate 22050 = slide all the way in half a second
+impl Effect for Slide {
+	fn process(&mut self, sample: &mut f32) {
+		if self.context.len() < self.rate as usize {
+			self.context.push(*sample);
+		} else {
+			let mut last_sample = self.context.last().unwrap().clone();
+			if last_sample < *sample {
+				last_sample += self.rate;
+				if last_sample > *sample {
+					last_sample = *sample;
+				}
+			} else if last_sample > *sample {
+				last_sample -= self.rate;
+				if last_sample < *sample {
+					last_sample = *sample;
+				}
+			}
+			self.context.remove(0);
+			*sample = last_sample;
 		}
 	}
 }

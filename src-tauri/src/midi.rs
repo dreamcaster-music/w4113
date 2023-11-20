@@ -4,12 +4,14 @@
 
 use std::sync::RwLock;
 
-use log::debug;
+use log::{debug, error};
 use midir;
 
 use midir::{Ignore, MidiInput, MidiOutput};
 
 use lazy_static::lazy_static;
+
+use crate::audio;
 
 /// ## `midi_list() -> Vec<String>`
 ///
@@ -41,7 +43,7 @@ lazy_static! {
 }
 
 pub fn callback(sample_clock: &f32, sample_rate: &f32) -> f32 {
-    let mut note = NOTE.write().unwrap();
+    let note = NOTE.write().unwrap();
     let mut output = 0.0;
     for i in 0..note.len() {
         output += (sample_clock * note[i] * 2.0 * std::f32::consts::PI / sample_rate).sin();
@@ -72,6 +74,14 @@ fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
 }
 
 pub fn midi_start(device_name: String) -> Result<(), String> {
+	{
+		let mut strips = audio::STRIPS.write().unwrap();
+		error!("strips: {}", strips.len());
+		let mut strip0 = strips.get_mut(0).unwrap();
+		strip0.add_effect(Box::new(audio::BitCrusher::new(2)));
+		//strip0.add_effect(Box::new(audio::Slide::new(10000.0)));
+	}
+
     //start midi device
     let mut midi_in = MidiInput::new("midir reading input").unwrap();
     midi_in.ignore(Ignore::None);

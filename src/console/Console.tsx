@@ -576,11 +576,14 @@ function Console() {
 			})}
 		</>;
 
+	let midi = <></>
+	// midi= <Midi />;
+
 	return (
 		<>
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
-					<Midi />
+					{midi}
 					<div className="console">
 						<div className="console-output">
 							{output}

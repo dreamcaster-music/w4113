@@ -350,9 +350,8 @@ fn init(window: tauri::Window) -> Result<(), String> {
         audio::Input::Generator(Box::new(midi::callback)),
         audio::Output::Channel(0),
     );
-	let clip_effect = audio::Clip::new(0.5);
-	midi_strip.add_effect(Box::new(clip_effect));
 	
+	midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));
 
     match strips {
         Ok(mut strips) => {
