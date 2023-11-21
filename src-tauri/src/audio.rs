@@ -898,7 +898,7 @@ pub fn audio_thread() -> Result<(), String> {
 
         loop {
             std::thread::sleep(std::time::Duration::from_millis(1000));
-			debug!("Reloading audio thread...");
+			//debug!("Reloading audio thread...");
         }
 
 		let result = Ok(());
