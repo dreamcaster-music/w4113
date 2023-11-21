@@ -576,8 +576,8 @@ function Console() {
 			})}
 		</>;
 
-	let midi = <></>
-	// midi= <Midi />;
+	let midi = <></>;
+	//midi = <Midi />;
 
 	return (
 		<>

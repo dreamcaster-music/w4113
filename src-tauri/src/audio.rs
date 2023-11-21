@@ -9,7 +9,7 @@ use cpal::{
     BufferSize, Device, Host, StreamConfig, SupportedStreamConfigRange,
 };
 use lazy_static::lazy_static;
-use log::debug;
+use log::{debug, info};
 
 use crate::tv::VisualizerTrait;
 
@@ -20,6 +20,9 @@ lazy_static! {
     pub static ref OUTPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
     pub static ref INPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
     pub static ref STRIPS: RwLock<Vec<Strip>> = RwLock::new(Vec::new());
+
+	pub static ref RELOAD: RwLock<bool> = RwLock::new(false);
+	pub static ref AUDIO_THREAD: Mutex<Option<std::thread::JoinHandle<Result<(), String>>>> = Mutex::new(None);
 }
 
 /// ## `get_host(host_name: &str) -> Host`
@@ -769,6 +772,20 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
     Ok(streams)
 }
 
+pub fn reload() -> Result<(), String> {
+	let mut reload = match RELOAD.write() {
+		Ok(reload) => reload,
+		Err(e) => {
+			debug!("Error locking RELOAD: {}", e);
+			return Err(format!("Error locking RELOAD: {}", e));
+		}
+	};
+
+	*reload = true;
+
+	Ok(())
+}
+
 pub fn audio_thread() -> Result<(), String> {
     let thread = std::thread::spawn(move || {
         let config = {
@@ -809,10 +826,6 @@ pub fn audio_thread() -> Result<(), String> {
                     return Err("OUTPUT_DEVICE is None".to_owned());
                 }
             };
-            debug!(
-                "Playing sine wave with frequency {} Hz, amplitude {}, and duration {} seconds...",
-                0.0, 0.0, 0.0
-            );
 
             let sample_rate = config.sample_rate.0 as f32;
 
@@ -832,6 +845,7 @@ pub fn audio_thread() -> Result<(), String> {
                 };
 
                 let mut channel = 0;
+
                 // cpal audio is interleaved, meaning that every sample is followed by another sample for the next channel
                 // example: in a stereo stream, the first sample is for the left channel, the second sample is for the right channel, the third sample is for the left channel, etc.
                 // So every other sample is for the same channel
@@ -883,11 +897,32 @@ pub fn audio_thread() -> Result<(), String> {
         let _ = output_stream.play();
 
         loop {
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+			debug!("Reloading audio thread...");
         }
 
-        return Ok(());
+		let result = Ok(());
+		//let result = audio_thread();
+
+		match &result {
+			Ok(_) => {}
+			Err(e) => {
+				debug!("Error restarting audio thread: {}", e);
+			}
+		}
+
+		result
     });
+
+	match AUDIO_THREAD.lock() {
+		Ok(mut audio_thread) => {
+			*audio_thread = Some(thread);
+		}
+		Err(e) => {
+			debug!("Error locking AUDIO_THREAD: {}", e);
+			return Err(format!("Error locking AUDIO_THREAD: {}", e));
+		}
+	}
 
     Ok(())
 }

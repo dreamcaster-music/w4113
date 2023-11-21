@@ -1,5 +1,20 @@
-.key {
-	background-color: #fff;
-	width: 20px;
-	height: 80px;
+.midi {
+	border-radius: 5px;
+
+	margin: 15px;
+	padding: 5px;
+
+	width: calc(100% - 30px);
+
+	margin-top: 30px;
+	font-family: Lato;
+	font-weight: 900;
+	font-size: 20px;
+
+	border: none;
+	outline: none;
+}
+
+.midi:hover {
+	outline: 2px solid yellowgreen;
 }

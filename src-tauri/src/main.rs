@@ -228,6 +228,16 @@ fn on_config_update(config: &mut config::Config) {
             return;
         }
     };
+
+	let result = audio::reload();
+	match result {
+		Ok(()) => {
+			debug!("Audio thread ran successfully");
+		}
+		Err(e) => {
+			debug!("Error in audio thread: {}", e);
+		}
+	};
 }
 
 /// ## `run(_window: tauri::Window) -> String`
@@ -354,7 +364,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
     );
 	
 	//midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));
-	midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
+	// midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
 
     match strips {
         Ok(mut strips) => {

@@ -39,15 +39,39 @@ pub fn midi_list() -> Vec<String> {
     return vec![test.to_string()];
 }
 
+struct Note {
+	freq: f32,
+	velocity: f32,
+	sample_clock: Option<u64>,
+}
+
+impl Note {
+	fn key(&self) -> f32 {
+		self.freq
+	}
+}
+
 lazy_static! {
-    static ref NOTE: RwLock<Vec<f32>> = RwLock::new(Vec::new());
+    static ref NOTE: RwLock<Vec<Note>> = RwLock::new(Vec::new());
 }
 
 pub fn callback(state: &audio::State) -> f32 {
-    let note = NOTE.write().unwrap();
+    let mut note = NOTE.write().unwrap();
     let mut output = 0.0;
     for i in 0..note.len() {
-        output += (state.sample_clock as f32 * note[i] * 2.0 * std::f32::consts::PI / state.sample_rate as f32).sin();
+		let sample_start = match note[i].sample_clock {
+			Some(x) => x,
+			None => {
+				note[i].sample_clock = Some(state.sample_clock);
+				state.sample_clock
+			}
+		};
+
+
+
+		let sample = (state.sample_clock as i128 - sample_start as i128) as f32 * note[i].freq * 2.0 * std::f32::consts::PI / state.sample_rate as f32;
+		let sample = sample.sin() * note[i].velocity;
+		output += sample;
     }
     output
 }
@@ -61,12 +85,34 @@ fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
 
     match status {
         144 => {
-            debug!("Note on: {} {} {}", note, velocity, freq);
-            NOTE.write().unwrap().push(freq);
+			match velocity {
+				0 => {
+					debug!("Note off: {} {} {}", note, velocity, freq);
+					let note = Note {
+						freq: freq,
+						velocity: velocity as f32 / 127.0,
+						sample_clock: None,
+					};
+					NOTE.write().unwrap().retain(|x| x.key() != note.key());
+				}
+				_ => {
+					debug!("Note on: {} {} {}", note, velocity, freq);
+					NOTE.write().unwrap().push(Note {
+						freq: freq,
+						velocity: velocity as f32 / 127.0,
+						sample_clock: None,
+					});
+				}
+			}
         }
         128 => {
             debug!("Note off: {} {} {}", note, velocity, freq);
-            NOTE.write().unwrap().retain(|&x| x != freq);
+			let note = Note {
+				freq: freq,
+				velocity: velocity as f32 / 127.0,
+				sample_clock: None,
+			};
+            NOTE.write().unwrap().retain(|x| x.key() != note.key());
         }
         _ => {}
     }
