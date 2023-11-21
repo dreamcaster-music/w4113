@@ -11,6 +11,9 @@ use midir::{Ignore, MidiInput, MidiOutput};
 
 use lazy_static::lazy_static;
 
+use crate::audio;
+
+
 /// ## `midi_list() -> Vec<String>`
 ///
 /// Returns a list of midi devices
@@ -40,11 +43,11 @@ lazy_static! {
     static ref NOTE: RwLock<Vec<f32>> = RwLock::new(Vec::new());
 }
 
-pub fn callback(sample_clock: &f32, sample_rate: &f32) -> f32 {
+pub fn callback(state: &audio::State) -> f32 {
     let note = NOTE.write().unwrap();
     let mut output = 0.0;
     for i in 0..note.len() {
-        output += (sample_clock * note[i] * 2.0 * std::f32::consts::PI / sample_rate).sin();
+        output += (state.sample_clock as f32 * note[i] * 2.0 * std::f32::consts::PI / state.sample_rate as f32).sin();
     }
     output
 }

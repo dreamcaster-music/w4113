@@ -847,7 +847,11 @@ pub fn audio_thread() -> Result<(), String> {
                         match strip.output {
                             Output::Channel(strip_channel) => {
                                 if strip_channel == channel % n_channels {
-                                    *sample = strip.process(&sample_clock, &sample_rate);
+                                    *sample = strip.process(State {
+										sample_rate: config.sample_rate.0 as u32,
+										sample_clock: sample_clock as u64,
+										buffer_size,
+									});
                                 }
                             }
                             _ => {}
@@ -888,6 +892,12 @@ pub fn audio_thread() -> Result<(), String> {
     Ok(())
 }
 
+pub struct State {
+	pub sample_rate: u32,
+	pub sample_clock: u64,
+	pub buffer_size: usize,
+}
+
 pub enum Output {
     Channel(u32),
     Bus(Box<Input>),
@@ -926,12 +936,15 @@ impl Strip {
         self.chain.remove(index);
     }
 
-    pub fn process(&mut self, sample_clock: &f32, sample_rate: &f32) -> f32 {
+    pub fn process(&mut self, state: State) -> f32 {
+		let sample_rate = state.sample_rate;
+		let sample_clock = state.sample_clock;
+
         match &self.input {
             Input::Generator(generator) => {
-                let mut sample = generator.generate(sample_clock, sample_rate);
+                let mut sample = generator.generate(&state);
                 for effect in self.chain.iter_mut() {
-                    effect.process(&mut sample);
+                    effect.process(&state, &mut sample);
                 }
                 sample
             }
@@ -942,21 +955,7 @@ impl Strip {
 
 #[allow(dead_code)]
 pub mod plugin {
-	/// ## Effect
-	/// 
-	/// Trait for audio effects
-	/// 
-	/// ### Traits
-	/// 
-	/// * `Send` - Can be sent between threads
-	/// * `Sync` - Is safe to share between threads
-	/// 
-	/// ### Functions
-	/// 
-	/// * `process(&mut self, sample: &mut f32)` - Processes a sample
-	pub trait Effect: Send + Sync {
-		fn process(&mut self, sample: &mut f32);
-	}
+	use super::State;
 
 	/// ## Generator
 	/// 
@@ -971,7 +970,7 @@ pub mod plugin {
 	/// 
 	/// * `generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32` - Generates a sample
 	pub trait Generator: Send + Sync {
-		fn generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32;
+		fn generate(&self, state: &State) -> f32;
 	}
 
 	/// ## ClosureGenerator
@@ -990,19 +989,35 @@ pub mod plugin {
 	/// }));
 	/// ```
 	pub struct ClosureGenerator {
-		closure: Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync>,
+		closure: Box<dyn Fn(&State) -> f32 + Send + Sync>,
 	}
 
 	impl ClosureGenerator {
-		pub fn new(closure: Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync>) -> Self {
+		pub fn new(closure: Box<dyn Fn(&State) -> f32 + Send + Sync>) -> Self {
 			Self { closure }
 		}
 	}
 
 	impl Generator for ClosureGenerator {
-		fn generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32 {
-			(self.closure)(sample_clock, sample_rate)
+		fn generate(&self, state: &State) -> f32 {
+			(self.closure)(state)
 		}
+	}
+
+	/// ## Effect
+	/// 
+	/// Trait for audio effects
+	/// 
+	/// ### Traits
+	/// 
+	/// * `Send` - Can be sent between threads
+	/// * `Sync` - Is safe to share between threads
+	/// 
+	/// ### Functions
+	/// 
+	/// * `process(&mut self, sample: &mut f32)` - Processes a sample
+	pub trait Effect: Send + Sync {
+		fn process(&mut self, state: &State, sample: &mut f32);
 	}
 
 	/// ## Clip
@@ -1023,7 +1038,7 @@ pub mod plugin {
 	}
 
 	impl Effect for Clip {
-		fn process(&mut self, sample: &mut f32) {
+		fn process(&mut self, state: &State, sample: &mut f32) {
 			if *sample > self.threshold {
 				*sample = self.threshold;
 			} else if *sample < -self.threshold {
@@ -1050,7 +1065,7 @@ pub mod plugin {
 	}
 
 	impl Effect for BitCrusher {
-		fn process(&mut self, sample: &mut f32) {
+		fn process(&mut self, state: &State, sample: &mut f32) {
 			*sample = (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
 		}
 	}
@@ -1086,7 +1101,7 @@ pub mod plugin {
 	}
 
 	impl Effect for Delay {
-		fn process(&mut self, sample: &mut f32) {
+		fn process(&mut self, state: &State, sample: &mut f32) {
 			let delay_signal = self.buffer[0];
 			self.buffer.remove(0);
 			self.buffer.push(*sample as f64 + delay_signal * self.feedback);
