@@ -56,6 +56,7 @@ lazy_static! {
 }
 
 pub fn callback(state: &audio::State) -> f32 {
+	
     let mut note = NOTE.write().unwrap();
     let mut output = 0.0;
     for i in 0..note.len() {

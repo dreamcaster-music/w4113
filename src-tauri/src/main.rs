@@ -5,6 +5,7 @@ mod audio;
 mod config;
 mod midi;
 mod tv;
+mod hotkey;
 
 use audio::Preference;
 use cpal::traits::DeviceTrait;
@@ -405,6 +406,19 @@ fn init(window: tauri::Window) -> Result<(), String> {
             debug!("Error locking TV_WINDOW: {}", e);
         }
     };
+
+	// let hid = hotkey::list_mac();
+	// match hid {
+	// 	Ok(hid) => {
+	// 		debug!("Found {} HID devices", hid.len());
+	// 		for device in hid {
+	// 			debug!("{}", device);
+	// 		}
+	// 	}
+	// 	Err(e) => {
+	// 		debug!("Error listing HID devices: {}", e);
+	// 	}
+	// }
 
     let _ = window.show();
 
