@@ -20,9 +20,9 @@ lazy_static! {
     pub static ref OUTPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
     pub static ref INPUT_CONFIG: Mutex<Option<cpal::StreamConfig>> = Mutex::new(None);
     pub static ref STRIPS: RwLock<Vec<Strip>> = RwLock::new(Vec::new());
-
-	pub static ref RELOAD: RwLock<bool> = RwLock::new(false);
-	pub static ref AUDIO_THREAD: Mutex<Option<std::thread::JoinHandle<Result<(), String>>>> = Mutex::new(None);
+    pub static ref RELOAD: RwLock<bool> = RwLock::new(false);
+    pub static ref AUDIO_THREAD: Mutex<Option<std::thread::JoinHandle<Result<(), String>>>> =
+        Mutex::new(None);
 }
 
 /// ## `get_host(host_name: &str) -> Host`
@@ -773,17 +773,17 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
 }
 
 pub fn reload() -> Result<(), String> {
-	let mut reload = match RELOAD.write() {
-		Ok(reload) => reload,
-		Err(e) => {
-			debug!("Error locking RELOAD: {}", e);
-			return Err(format!("Error locking RELOAD: {}", e));
-		}
-	};
+    let mut reload = match RELOAD.write() {
+        Ok(reload) => reload,
+        Err(e) => {
+            debug!("Error locking RELOAD: {}", e);
+            return Err(format!("Error locking RELOAD: {}", e));
+        }
+    };
 
-	*reload = true;
+    *reload = true;
 
-	Ok(())
+    Ok(())
 }
 
 pub fn audio_thread() -> Result<(), String> {
@@ -862,10 +862,10 @@ pub fn audio_thread() -> Result<(), String> {
                             Output::Channel(strip_channel) => {
                                 if strip_channel == channel % n_channels {
                                     *sample = strip.process(State {
-										sample_rate: config.sample_rate.0 as u32,
-										sample_clock: sample_clock as u64,
-										buffer_size,
-									});
+                                        sample_rate: config.sample_rate.0 as u32,
+                                        sample_clock: sample_clock as u64,
+                                        buffer_size,
+                                    });
                                 }
                             }
                             _ => {}
@@ -898,39 +898,39 @@ pub fn audio_thread() -> Result<(), String> {
 
         loop {
             std::thread::sleep(std::time::Duration::from_millis(1000));
-			//debug!("Reloading audio thread...");
+            //debug!("Reloading audio thread...");
         }
 
-		let result = Ok(());
-		//let result = audio_thread();
+        let result = Ok(());
+        //let result = audio_thread();
 
-		match &result {
-			Ok(_) => {}
-			Err(e) => {
-				debug!("Error restarting audio thread: {}", e);
-			}
-		}
+        match &result {
+            Ok(_) => {}
+            Err(e) => {
+                debug!("Error restarting audio thread: {}", e);
+            }
+        }
 
-		result
+        result
     });
 
-	match AUDIO_THREAD.lock() {
-		Ok(mut audio_thread) => {
-			*audio_thread = Some(thread);
-		}
-		Err(e) => {
-			debug!("Error locking AUDIO_THREAD: {}", e);
-			return Err(format!("Error locking AUDIO_THREAD: {}", e));
-		}
-	}
+    match AUDIO_THREAD.lock() {
+        Ok(mut audio_thread) => {
+            *audio_thread = Some(thread);
+        }
+        Err(e) => {
+            debug!("Error locking AUDIO_THREAD: {}", e);
+            return Err(format!("Error locking AUDIO_THREAD: {}", e));
+        }
+    }
 
     Ok(())
 }
 
 pub struct State {
-	pub sample_rate: u32,
-	pub sample_clock: u64,
-	pub buffer_size: usize,
+    pub sample_rate: u32,
+    pub sample_clock: u64,
+    pub buffer_size: usize,
 }
 
 pub enum Output {
@@ -972,8 +972,8 @@ impl Strip {
     }
 
     pub fn process(&mut self, state: State) -> f32 {
-		let sample_rate = state.sample_rate;
-		let sample_clock = state.sample_clock;
+        let sample_rate = state.sample_rate;
+        let sample_clock = state.sample_clock;
 
         match &self.input {
             Input::Generator(generator) => {
@@ -990,157 +990,199 @@ impl Strip {
 
 #[allow(dead_code)]
 pub mod plugin {
-	use super::State;
+    use super::State;
 
-	/// ## Generator
-	/// 
-	/// Trait for audio generators
-	/// 
-	/// ### Traits
-	/// 
-	/// * `Send` - Can be sent between threads
-	/// * `Sync` - Is safe to share between threads
-	/// 
-	/// ### Functions
-	/// 
-	/// * `generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32` - Generates a sample
-	pub trait Generator: Send + Sync {
-		fn generate(&self, state: &State) -> f32;
-	}
+    /// ## Generator
+    ///
+    /// Trait for audio generators
+    ///
+    /// ### Traits
+    ///
+    /// * `Send` - Can be sent between threads
+    /// * `Sync` - Is safe to share between threads
+    ///
+    /// ### Functions
+    ///
+    /// * `generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32` - Generates a sample
+    pub trait Generator: Send + Sync {
+        fn generate(&self, state: &State) -> f32;
+    }
 
-	/// ## ClosureGenerator
-	/// 
-	/// A generator that uses a closure to generate samples
-	/// 
-	/// ### Fields
-	/// 
-	/// * `closure: Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync>` - The closure used to generate samples
-	/// 
-	/// ### Examples
-	/// 
-	/// ```
-	/// let generator = ClosureGenerator::new(Box::new(|sample_clock: &f32, sample_rate: &f32| -> f32 {
-	/// 	(sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
-	/// }));
-	/// ```
-	pub struct ClosureGenerator {
-		closure: Box<dyn Fn(&State) -> f32 + Send + Sync>,
-	}
+    /// ## ClosureGenerator
+    ///
+    /// A generator that uses a closure to generate samples
+    ///
+    /// ### Fields
+    ///
+    /// * `closure: Box<dyn Fn(&f32, &f32) -> f32 + Send + Sync>` - The closure used to generate samples
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// let generator = ClosureGenerator::new(Box::new(|sample_clock: &f32, sample_rate: &f32| -> f32 {
+    /// 	(sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
+    /// }));
+    /// ```
+    pub struct ClosureGenerator {
+        closure: Box<dyn Fn(&State) -> f32 + Send + Sync>,
+    }
 
-	impl ClosureGenerator {
-		pub fn new(closure: Box<dyn Fn(&State) -> f32 + Send + Sync>) -> Self {
-			Self { closure }
-		}
-	}
+    impl ClosureGenerator {
+        pub fn new(closure: Box<dyn Fn(&State) -> f32 + Send + Sync>) -> Self {
+            Self { closure }
+        }
+    }
 
-	impl Generator for ClosureGenerator {
-		fn generate(&self, state: &State) -> f32 {
-			(self.closure)(state)
-		}
-	}
+    impl Generator for ClosureGenerator {
+        fn generate(&self, state: &State) -> f32 {
+            (self.closure)(state)
+        }
+    }
 
-	/// ## Effect
-	/// 
-	/// Trait for audio effects
-	/// 
-	/// ### Traits
-	/// 
-	/// * `Send` - Can be sent between threads
-	/// * `Sync` - Is safe to share between threads
-	/// 
-	/// ### Functions
-	/// 
-	/// * `process(&mut self, sample: &mut f32)` - Processes a sample
-	pub trait Effect: Send + Sync {
-		fn process(&mut self, state: &State, sample: &mut f32);
-	}
+    /// ## Effect
+    ///
+    /// Trait for audio effects
+    ///
+    /// ### Traits
+    ///
+    /// * `Send` - Can be sent between threads
+    /// * `Sync` - Is safe to share between threads
+    ///
+    /// ### Functions
+    ///
+    /// * `process(&mut self, sample: &mut f32)` - Processes a sample
+    pub trait Effect: Send + Sync {
+        fn process(&mut self, state: &State, sample: &mut f32);
+    }
 
-	/// ## Clip
-	/// 
-	/// An effect that clips samples above a certain threshold
-	/// 
-	/// ### Fields
-	/// 
-	/// * `threshold: f32` - The threshold above which samples will be clipped
-	pub struct Clip {
-		threshold: f32,
-	}
+    /// ## Clip
+    ///
+    /// An effect that clips samples above a certain threshold
+    ///
+    /// ### Fields
+    ///
+    /// * `threshold: f32` - The threshold above which samples will be clipped
+    pub struct Clip {
+        threshold: f32,
+    }
 
-	impl Clip {
-		pub fn new(threshold: f32) -> Self {
-			Self { threshold }
-		}
-	}
+    impl Clip {
+        pub fn new(threshold: f32) -> Self {
+            Self { threshold }
+        }
+    }
 
-	impl Effect for Clip {
-		fn process(&mut self, state: &State, sample: &mut f32) {
-			if *sample > self.threshold {
-				*sample = self.threshold;
-			} else if *sample < -self.threshold {
-				*sample = -self.threshold;
-			}
-		}
-	}
+    impl Effect for Clip {
+        fn process(&mut self, state: &State, sample: &mut f32) {
+            if *sample > self.threshold {
+                *sample = self.threshold;
+            } else if *sample < -self.threshold {
+                *sample = -self.threshold;
+            }
+        }
+    }
 
-	/// ## BitCrusher
-	/// 
-	/// An effect that reduces the bit depth of samples
-	/// 
-	/// ### Fields
-	/// 
-	/// * `bits: u32` - The number of bits to reduce the sample to
-	pub struct BitCrusher {
-		bits: u32,
-	}
+    /// ## BitCrusher
+    ///
+    /// An effect that reduces the bit depth of samples
+    ///
+    /// ### Fields
+    ///
+    /// * `bits: u32` - The number of bits to reduce the sample to
+    pub struct BitCrusher {
+        bits: u32,
+    }
 
-	impl BitCrusher {
-		pub fn new(bits: u32) -> Self {
-			Self { bits }
-		}
-	}
+    impl BitCrusher {
+        pub fn new(bits: u32) -> Self {
+            Self { bits }
+        }
+    }
 
-	impl Effect for BitCrusher {
-		fn process(&mut self, state: &State, sample: &mut f32) {
-			*sample = (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
-		}
-	}
+    impl Effect for BitCrusher {
+        fn process(&mut self, state: &State, sample: &mut f32) {
+            *sample =
+                (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
+        }
+    }
 
-	/// ## Delay
-	/// 
-	/// An effect that delays samples
-	/// 
-	/// ### Fields
-	/// 
-	/// * `length: usize` - The length of the delay buffer
-	/// * `feedback: f64` - The amount of feedback to apply to the delay signal
-	/// * `buffer: Vec<f64>` - The delay buffer
-	pub struct Delay {
-		length: usize,
-		feedback: f64,
-		buffer: Vec<f64>,
-	}
+    /// ## Delay
+    ///
+    /// An effect that delays samples
+    ///
+    /// ### Fields
+    ///
+    /// * `length: usize` - The length of the delay buffer
+    /// * `feedback: f64` - The amount of feedback to apply to the delay signal
+    /// * `buffer: Vec<f64>` - The delay buffer
+    pub struct Delay {
+        length: usize,
+        feedback: f64,
+        buffer: Vec<f64>,
+    }
 
-	impl Delay {
-		pub fn new(length: usize, feedback: f64) -> Self {
-			Self {
-				length,
-				feedback,
-				buffer: vec![0.0; length],
-			}
-		}
+    impl Delay {
+        pub fn new(length: usize, feedback: f64) -> Self {
+            Self {
+                length,
+                feedback,
+                buffer: vec![0.0; length],
+            }
+        }
 
-		pub fn resize(&mut self, length: usize) {
-			self.length = length;
-			self.buffer.resize(length, 0.0);
-		}
-	}
+        pub fn resize(&mut self, length: usize) {
+            self.length = length;
+            self.buffer.resize(length, 0.0);
+        }
+    }
 
-	impl Effect for Delay {
-		fn process(&mut self, state: &State, sample: &mut f32) {
-			let delay_signal = self.buffer[0];
-			self.buffer.remove(0);
-			self.buffer.push(*sample as f64 + delay_signal * self.feedback);
-			*sample = (*sample as f64 + delay_signal) as f32;
-		}
-	}
+    impl Effect for Delay {
+        fn process(&mut self, state: &State, sample: &mut f32) {
+            let delay_signal = self.buffer[0];
+            self.buffer.remove(0);
+            self.buffer
+                .push(*sample as f64 + delay_signal * self.feedback);
+            *sample = (*sample as f64 + delay_signal) as f32;
+        }
+    }
+    pub struct LofiDelay {
+        length: usize,
+        buffer: Vec<f64>,
+        feedback: f64,
+        detune: u64,
+    }
+
+    impl LofiDelay {
+        pub fn new(length: usize, feedback: f64, detune: u64) -> Self {
+            Self {
+                length,
+                buffer: vec![0.0; length],
+                feedback,
+                detune,
+            }
+        }
+
+        pub fn resize(&mut self, length: usize) {
+            self.length = length;
+            self.buffer.resize(length, 0.0);
+        }
+    }
+
+    impl Effect for LofiDelay {
+        fn process(&mut self, state: &State, sample: &mut f32) {
+            let main_signal = self.buffer[0];
+            let interp_signal = (self.buffer[0] + self.buffer[1]) / 2.0;
+            let detune = self.detune;
+
+            self.buffer.remove(0);
+
+            //add interp signal to buffer
+            if state.sample_clock % ((state.sample_rate as u64 * detune) / 1000) == 0 {
+                self.buffer.insert(self.buffer[1] as usize, interp_signal);
+            }
+            self.buffer
+                .push(*sample as f64 + main_signal * self.feedback);
+            *sample = (*sample as f64 + main_signal) as f32;
+        }
+    }
 }

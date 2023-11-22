@@ -3,9 +3,9 @@
 
 mod audio;
 mod config;
+mod hotkey;
 mod midi;
 mod tv;
-mod hotkey;
 
 use audio::Preference;
 use cpal::traits::DeviceTrait;
@@ -230,15 +230,15 @@ fn on_config_update(config: &mut config::Config) {
         }
     };
 
-	let result = audio::reload();
-	match result {
-		Ok(()) => {
-			debug!("Audio thread ran successfully");
-		}
-		Err(e) => {
-			debug!("Error in audio thread: {}", e);
-		}
-	};
+    let result = audio::reload();
+    match result {
+        Ok(()) => {
+            debug!("Audio thread ran successfully");
+        }
+        Err(e) => {
+            debug!("Error in audio thread: {}", e);
+        }
+    };
 }
 
 /// ## `run(_window: tauri::Window) -> String`
@@ -357,15 +357,16 @@ fn init(window: tauri::Window) -> Result<(), String> {
     // 	}
     // }
 
-	let midi_generator = audio::plugin::ClosureGenerator::new(Box::new(midi::callback));
+    let midi_generator = audio::plugin::ClosureGenerator::new(Box::new(midi::callback));
 
     let mut midi_strip = audio::Strip::new(
         audio::Input::Generator(Box::new(midi_generator)),
         audio::Output::Channel(0),
     );
-	
-	//midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));
-	// midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
+
+    //midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));
+    // midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
+    midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
 
     match strips {
         Ok(mut strips) => {
@@ -407,18 +408,18 @@ fn init(window: tauri::Window) -> Result<(), String> {
         }
     };
 
-	// let hid = hotkey::list_mac();
-	// match hid {
-	// 	Ok(hid) => {
-	// 		debug!("Found {} HID devices", hid.len());
-	// 		for device in hid {
-	// 			debug!("{}", device);
-	// 		}
-	// 	}
-	// 	Err(e) => {
-	// 		debug!("Error listing HID devices: {}", e);
-	// 	}
-	// }
+    // let hid = hotkey::list_mac();
+    // match hid {
+    // 	Ok(hid) => {
+    // 		debug!("Found {} HID devices", hid.len());
+    // 		for device in hid {
+    // 			debug!("{}", device);
+    // 		}
+    // 	}
+    // 	Err(e) => {
+    // 		debug!("Error listing HID devices: {}", e);
+    // 	}
+    // }
 
     let _ = window.show();
 
@@ -1226,13 +1227,13 @@ async fn midi_stop(_window: tauri::Window, device_name: String) -> ConsoleMessag
 
 #[tauri::command]
 async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
-	// call midi.rs function
-	debug!("Calling midi::hid_list()");
-	let hid_devices = hotkey::hid_list().unwrap_or(vec!["unknown".to_owned()]);
-	ConsoleMessage {
-		kind: MessageKind::Console,
-		message: hid_devices,
-	}
+    // call midi.rs function
+    debug!("Calling midi::hid_list()");
+    let hid_devices = hotkey::hid_list().unwrap_or(vec!["unknown".to_owned()]);
+    ConsoleMessage {
+        kind: MessageKind::Console,
+        message: hid_devices,
+    }
 }
 
 /// ## `main()`
@@ -1276,31 +1277,24 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             exit,
             confirm_exit,
-			
             run,
-
             config_show,
             config_save,
             config_load,
-
             host_list,
             host_select,
-
             output_list,
             output_select,
             output_stream_show,
             output_stream_set,
-
             input_list,
             input_select,
             input_stream_show,
             input_stream_set,
-
             midi_list,
             midi_start,
             midi_stop,
-
-			hid_list
+            hid_list
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
