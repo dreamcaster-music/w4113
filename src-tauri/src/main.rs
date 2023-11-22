@@ -1224,6 +1224,17 @@ async fn midi_stop(_window: tauri::Window, device_name: String) -> ConsoleMessag
     }
 }
 
+#[tauri::command]
+async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
+	// call midi.rs function
+	debug!("Calling midi::hid_list()");
+	let hid_devices = hotkey::hid_list().unwrap_or(vec!["unknown".to_owned()]);
+	ConsoleMessage {
+		kind: MessageKind::Console,
+		message: hid_devices,
+	}
+}
+
 /// ## `main()`
 ///
 /// The main function.
@@ -1265,23 +1276,31 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             exit,
             confirm_exit,
+			
             run,
+
             config_show,
             config_save,
             config_load,
+
             host_list,
             host_select,
+
             output_list,
             output_select,
             output_stream_show,
             output_stream_set,
+
             input_list,
             input_select,
             input_stream_show,
             input_stream_set,
+
             midi_list,
             midi_start,
-            midi_stop
+            midi_stop,
+
+			hid_list
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

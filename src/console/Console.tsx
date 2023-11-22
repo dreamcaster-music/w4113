@@ -22,7 +22,7 @@ function Console() {
 	const [commandHistoryIndex, setCommandHistoryIndex] = useState<number>(-1);
 	const [commandCurrent, setCommandCurrent] = useState<string>("");
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
-	const [textSize, setTextSize] = useState<number>(16);
+	const [textSize, setTextSize] = useState<number>(14);
 
 	/**
 	 * ## outputMessage(output: ConsoleMessage)
@@ -112,7 +112,7 @@ function Console() {
 				 * Displays list of available commands
 				 * Displays help for command -- requires command
 				 */
-				outputMessage({ kind: "Console", message: ["Available commands: help, clear, about, host, output, input, config, sine, reave, exit"] });
+				outputMessage({ kind: "Console", message: ["Available commands: help, clear, about, host, output, input, config, exit, reave, midi, hid"] });
 				break;
 			case "clear":
 				/*
@@ -421,26 +421,6 @@ function Console() {
 			case "reave":
 				outputMessage({ kind: "Console", message: ["You have been reaved."] });
 				break;
-			case "sine":
-				/*
-				 * Sine command
-				 * Usage: sine [frequency] [amplitude] [duration]
-				 * 
-				 * Plays a sine wave of frequency [frequency] Hz, amplitude [amplitude], and duration [duration] seconds
-				 */
-				if (args.length < 3) {
-					outputMessage({ kind: "Error", message: ["Not enough arguments for sine command."] });
-					outputMessage({ kind: "Error", message: ["Usage: sine [frequency] [amplitude] [duration]"] });
-					break;
-				}
-				let freq = parseFloat(args[0]);
-				let amp = parseFloat(args[1]);
-				let dur = parseFloat(args[2]);
-				invoke("sine", { frequency: freq, amplitude: amp, duration: dur }).then((response) => {
-					debug("Result from sine: " + strValue(response as ConsoleMessage));
-					outputMessage(response as ConsoleMessage);
-				});
-				break;
 			case "midi":
 				/*
 				 * Midi command
@@ -485,6 +465,33 @@ function Console() {
 					default:
 						outputMessage({ kind: "Error", message: ["Invalid midi command: " + midiCommand] });
 						outputMessage({ kind: "Error", message: ["Usage: midi [list|start|stop] [device]"] });
+						break;
+				};
+				break;
+			case "hid":
+				/*
+				 * HID command - Human Interface Device
+				 * Usage: hid [list]
+				 * 
+				 * list: list available hid devicest
+				 */
+				if (args.length < 1) {
+					outputMessage({ kind: "Error", message: ["Not enough arguments for hid command."] });
+					outputMessage({ kind: "Error", message: ["Usage: hid [list|start|stop] [device]"] });
+					break;
+				}
+
+				let hidCommand = args[0];
+				switch (hidCommand) {
+					case "list":
+						invoke("hid_list").then((response) => {
+							debug("Result from hid list: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+						break;
+					default:
+						outputMessage({ kind: "Error", message: ["Invalid hid command: " + hidCommand] });
+						outputMessage({ kind: "Error", message: ["Usage: hid [list|start|stop] [device]"] });
 						break;
 				};
 				break;
