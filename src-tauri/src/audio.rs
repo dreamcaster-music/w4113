@@ -2,18 +2,16 @@
 //!
 //! Module is used for interacting with audio drivers/hardware
 
-use std::sync::{Mutex, RwLock};
+#![allow(dead_code)]
 
-use tdpsola::{AlternatingHann, Speed, TdpsolaAnalysis, TdpsolaSynthesis};
+use std::sync::{Mutex, RwLock};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    BufferSize, Device, Host, StreamConfig, SupportedStreamConfigRange,
+    BufferSize, Device, Host, SupportedStreamConfigRange,
 };
 use lazy_static::lazy_static;
-use log::{debug, info};
-
-use crate::tv::VisualizerTrait;
+use log::debug;
 
 lazy_static! {
     pub static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
@@ -829,8 +827,6 @@ pub fn audio_thread() -> Result<(), String> {
                 }
             };
 
-            let sample_rate = config.sample_rate.0 as f32;
-
             // Produce a sinusoid of maximum amplitude.
             let mut sample_clock = 0f32;
 
@@ -917,18 +913,6 @@ pub fn audio_thread() -> Result<(), String> {
             std::thread::sleep(std::time::Duration::from_millis(1000));
             //debug!("Reloading audio thread...");
         }
-
-        let result = Ok(());
-        //let result = audio_thread();
-
-        match &result {
-            Ok(_) => {}
-            Err(e) => {
-                debug!("Error restarting audio thread: {}", e);
-            }
-        }
-
-        result
     });
 
     match AUDIO_THREAD.lock() {
@@ -1063,7 +1047,7 @@ pub enum Input {
 /// * `add_effect(&mut self, effect: Box<dyn Effect>)` - Adds an effect to the end of the chain
 /// * `insert_effect(&mut self, effect: Box<dyn Effect>, index: usize)` - Inserts an effect into the chain at the given index
 /// * `remove_effect(&mut self, index: usize)` - Removes an effect from the chain at the given index
-/// * `process(&mut self, state: State) -> f32` - Processes a sample
+/// * `process(&mut self, state: State) -> Sample` - Processes a sample
 pub struct Strip {
     input: Input,
     chain: Vec<Box<dyn plugin::Effect>>,
@@ -1102,19 +1086,42 @@ impl Strip {
         self.chain.push(effect);
     }
 
+	/// ## `insert_effect(&mut self, effect: Box<dyn Effect>, index: usize)`
+	/// 
+	/// Inserts an effect into the chain at the given index.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `effect: Box<dyn Effect>` - The effect to insert
+	/// * `index: usize` - The index to insert the effect at
     pub fn insert_effect(&mut self, effect: Box<dyn plugin::Effect>, index: usize) {
         self.chain.insert(index, effect);
     }
 
+	/// ## `remove_effect(&mut self, index: usize)`
+	/// 
+	/// Removes an effect from the chain at the given index.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `index: usize` - The index to remove the effect from
     pub fn remove_effect(&mut self, index: usize) {
         self.chain.remove(index);
     }
 
+	/// ## `process(&mut self, state: State) -> Sample`
+	/// 
+	/// Processes a sample.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `state: State` - The current state of the audio engine
+	/// 
+	/// ### Returns
+	/// 
+	/// * `Sample` - The resulting sample
     pub fn process(&mut self, state: State) -> Sample {
-        let sample_rate = state.sample_rate;
-        let sample_clock = state.sample_clock;
-
-        match &self.input {
+        let sample = match &self.input {
             Input::Generator(generator) => {
                 let mut sample = generator.generate(&state);
                 for effect in self.chain.iter_mut() {
@@ -1122,12 +1129,23 @@ impl Strip {
                 }
                 sample
             }
-            Input::Bus(bus) => Sample::Mono(0.0)
-        }
+            Input::Bus(_bus) => Sample::Mono(0.0)
+        };
+
+		match &self.output {
+			Output::Mono(_channel) => {
+				Sample::Mono(sample.mono())
+			}
+			Output::Stereo(_left_channel, _right_channel) => {
+				Sample::Stereo(sample.left(), sample.right())
+			}
+			Output::Bus(_bus) => {
+				Sample::Stereo(sample.left(), sample.right())
+			}
+		}
     }
 }
 
-#[allow(dead_code)]
 pub mod plugin {
     use super::State;
 	use super::Sample;
@@ -1213,7 +1231,7 @@ pub mod plugin {
     }
 
     impl Effect for Clip {
-        fn process(&mut self, state: &State, sample: &mut Sample) {
+        fn process(&mut self, _state: &State, sample: &mut Sample) {
 			match sample {
 				Sample::Mono(sample) => {
 					if *sample > self.threshold {
@@ -1256,7 +1274,7 @@ pub mod plugin {
     }
 
     impl Effect for BitCrusher {
-        fn process(&mut self, state: &State, sample: &mut Sample) {
+        fn process(&mut self, _state: &State, sample: &mut Sample) {
 			match sample {
 				Sample::Mono(sample) => {
 					*sample =
@@ -1279,8 +1297,8 @@ pub mod plugin {
     /// ### Fields
     ///
     /// * `length: usize` - The length of the delay buffer
-    /// * `feedback: f64` - The amount of feedback to apply to the delay signal
-    /// * `buffer: Vec<f64>` - The delay buffer
+	/// * `feedback: f32` - The amount of feedback to apply to the delay signal
+	/// * `buffer: Vec<Sample>` - The delay buffer
     pub struct Delay {
         length: usize,
         feedback: f32,
@@ -1303,7 +1321,7 @@ pub mod plugin {
     }
 
     impl Effect for Delay {
-        fn process(&mut self, state: &State, sample: &mut Sample) {
+        fn process(&mut self, _state: &State, sample: &mut Sample) {
 			match sample {
 				Sample::Mono(sample) => {
 					let delay_signal = self.buffer.remove(0);

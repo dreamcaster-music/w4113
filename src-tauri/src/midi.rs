@@ -4,7 +4,8 @@
 
 use std::sync::RwLock;
 
-use log::{debug, error};
+#[allow(unused_imports)]
+use log::{debug, error, info, trace, warn};
 use midir;
 
 use midir::{Ignore, MidiInput, MidiOutput};

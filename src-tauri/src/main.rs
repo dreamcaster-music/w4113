@@ -10,7 +10,7 @@ mod tv;
 use audio::Preference;
 use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
-use log::{debug, error, info, trace, LevelFilter};
+use log::{debug, error, LevelFilter};
 use std::sync::Mutex;
 use tauri::{LogicalPosition, Manager};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
@@ -359,7 +359,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
 
     let midi_generator = audio::plugin::ClosureGenerator::new(Box::new(midi::callback));
 
-    let mut midi_strip = audio::Strip::new(
+    let midi_strip = audio::Strip::new(
         audio::Input::Generator(Box::new(midi_generator)),
         audio::Output::Stereo(0, 1),
     );
@@ -1205,8 +1205,8 @@ async fn midi_start(_window: tauri::Window, device_name: String) -> ConsoleMessa
     // call midi.rs function
     debug!("Calling midi::midi_start()");
     let device_name_clone = device_name.clone();
-    let thread = std::thread::spawn(move || {
-        let midi_devices = midi::midi_start(device_name_clone);
+    let _thread = std::thread::spawn(move || {
+        let _midi_devices = midi::midi_start(device_name_clone);
     });
     ConsoleMessage {
         kind: MessageKind::Console,
