@@ -861,15 +861,30 @@ pub fn audio_thread() -> Result<(), String> {
 
                     for strip in strips.iter_mut() {
                         match strip.output {
-                            Output::Channel(strip_channel) => {
+                            Output::Mono(strip_channel) => {
                                 if strip_channel == channel % n_channels {
                                     *sample = strip.process(State {
                                         sample_rate: config.sample_rate.0 as u32,
                                         sample_clock: sample_clock as u64,
                                         buffer_size,
-                                    });
+                                    }).mono();
                                 }
                             }
+							Output::Stereo(left_channel, right_channel) => {
+								if left_channel == channel % n_channels {
+									*sample = strip.process(State {
+										sample_rate: config.sample_rate.0 as u32,
+										sample_clock: sample_clock as u64,
+										buffer_size,
+									}).left();
+								} else if right_channel == channel % n_channels {
+									*sample = strip.process(State {
+										sample_rate: config.sample_rate.0 as u32,
+										sample_clock: sample_clock as u64,
+										buffer_size,
+									}).right();
+								}
+							}
                             _ => {}
                         }
                     }
@@ -929,30 +944,145 @@ pub fn audio_thread() -> Result<(), String> {
     Ok(())
 }
 
+/// ## Sample
+/// 
+/// Represents a sample of audio data. Can be either mono or stereo.
+/// 
+/// ### Variants
+/// 
+/// * `Mono(f32)` - A mono sample
+/// * `Stereo(f32, f32)` - A stereo sample
+/// 
+/// ### Functions
+/// 
+/// * `mono(&self) -> f32` - Returns the mono version of the sample
+/// * `stereo(&self) -> (f32, f32)` - Returns the stereo version of the sample
+/// * `left(&self) -> f32` - Returns the left channel of the sample
+/// * `right(&self) -> f32` - Returns the right channel of the sample
+#[derive(Clone, Debug)]
+pub enum Sample {
+	Mono(f32),
+	Stereo(f32, f32),
+}
+
+impl Sample {
+	pub fn mono(&self) -> f32 {
+		match self {
+			Sample::Mono(sample) => *sample,
+			Sample::Stereo(left, right) => (*left + *right) / 2.0,
+		}
+	}
+
+	pub fn stereo(&self) -> (f32, f32) {
+		match self {
+			Sample::Mono(sample) => (*sample, *sample),
+			Sample::Stereo(left, right) => (*left, *right),
+		}
+	}
+
+	pub fn left(&self) -> f32 {
+		match self {
+			Sample::Mono(sample) => *sample,
+			Sample::Stereo(left, _right) => *left,
+		}
+	}
+
+	pub fn right(&self) -> f32 {
+		match self {
+			Sample::Mono(sample) => *sample,
+			Sample::Stereo(_left, right) => *right,
+		}
+	}
+
+	pub fn as_mono(&self) -> Sample {
+		Sample::Mono(self.mono())
+	}
+
+	pub fn as_stereo(&self) -> Sample {
+		Sample::Stereo(self.left(), self.right())
+	}
+}
+
+/// ## State
+/// 
+/// Represents the current state of the audio engine. Primarily configuration settings needed by the effects,
+/// and details on what the sample clock is currently at.
+/// 
+/// ### Fields
+/// 
+/// * `sample_rate: u32` - The sample rate of the audio engine
+/// * `sample_clock: u64` - The current sample clock of the audio engine
+/// * `buffer_size: usize` - The buffer size of the audio engine
 pub struct State {
     pub sample_rate: u32,
     pub sample_clock: u64,
     pub buffer_size: usize,
 }
 
+/// ## Output
+/// 
+/// Represents an output channel.
+/// 
+/// ### Variants
+/// 
+/// * `Mono(u32)` - A mono output channel. The u32 represents the output channel number, tied to the interface.
+/// * `Stereo(u32, u32)` - A stereo output channel. The u32s represent the left and right output channel numbers, tied to the interface.
+/// * `Bus(Box<Input>)` - A bus output channel
 pub enum Output {
-    Channel(u32),
+    Mono(u32),
+	Stereo(u32, u32),
     Bus(Box<Input>),
 }
 
+/// ## Input
+/// 
+/// Represents an input channel.
+/// 
+/// ### Variants
+/// 
+/// * `Generator(Box<dyn Generator>)` - A generator input channel
+/// * `Bus(Box<Output>)` - A bus input channel
 pub enum Input {
     Generator(Box<dyn plugin::Generator>),
     Bus(Box<Output>),
 }
 
+/// ## Strip
+/// 
+/// Represents a strip of audio effects.
+/// 
+/// ### Fields
+/// 
+/// * `input: Input` - The input channel
+/// * `chain: Vec<Box<dyn Effect>>` - The chain of effects
+/// * `output: Output` - The output channel
+/// 
+/// ### Functions
+/// 
+/// * `new(input: Input, output: Output) -> Self` - Creates a new strip
+/// * `add_effect(&mut self, effect: Box<dyn Effect>)` - Adds an effect to the end of the chain
+/// * `insert_effect(&mut self, effect: Box<dyn Effect>, index: usize)` - Inserts an effect into the chain at the given index
+/// * `remove_effect(&mut self, index: usize)` - Removes an effect from the chain at the given index
+/// * `process(&mut self, state: State) -> f32` - Processes a sample
 pub struct Strip {
     input: Input,
     chain: Vec<Box<dyn plugin::Effect>>,
     output: Output,
 }
 
-#[allow(dead_code)]
 impl Strip {
+	/// ## `new(input: Input, output: Output) -> Self`
+	/// 
+	/// Creates a new strip.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `input: Input` - The input channel
+	/// * `output: Output` - The output channel
+	/// 
+	/// ### Returns
+	/// 
+	/// * `Self` - The new strip
     pub fn new(input: Input, output: Output) -> Self {
         Self {
             input,
@@ -961,6 +1091,13 @@ impl Strip {
         }
     }
 
+	/// ## `add_effect(&mut self, effect: Box<dyn Effect>)`
+	/// 
+	/// Adds an effect to the end of the chain.
+	/// 
+	/// ### Arguments
+	/// 
+	/// * `effect: Box<dyn Effect>` - The effect to add
     pub fn add_effect(&mut self, effect: Box<dyn plugin::Effect>) {
         self.chain.push(effect);
     }
@@ -973,7 +1110,7 @@ impl Strip {
         self.chain.remove(index);
     }
 
-    pub fn process(&mut self, state: State) -> f32 {
+    pub fn process(&mut self, state: State) -> Sample {
         let sample_rate = state.sample_rate;
         let sample_clock = state.sample_clock;
 
@@ -985,7 +1122,7 @@ impl Strip {
                 }
                 sample
             }
-            Input::Bus(bus) => 0.0,
+            Input::Bus(bus) => Sample::Mono(0.0)
         }
     }
 }
@@ -993,6 +1130,7 @@ impl Strip {
 #[allow(dead_code)]
 pub mod plugin {
     use super::State;
+	use super::Sample;
 
     /// ## Generator
     ///
@@ -1007,7 +1145,7 @@ pub mod plugin {
     ///
     /// * `generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32` - Generates a sample
     pub trait Generator: Send + Sync {
-        fn generate(&self, state: &State) -> f32;
+        fn generate(&self, state: &State) -> Sample;
     }
 
     /// ## ClosureGenerator
@@ -1021,22 +1159,22 @@ pub mod plugin {
     /// ### Examples
     ///
     /// ```
-    /// let generator = ClosureGenerator::new(Box::new(|sample_clock: &f32, sample_rate: &f32| -> f32 {
-    /// 	(sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
+    /// let generator = ClosureGenerator::new(Box::new(|sample_clock: &f32, sample_rate: &f32| -> Sample {
+    /// 	Sample::Mono((sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin())
     /// }));
     /// ```
     pub struct ClosureGenerator {
-        closure: Box<dyn Fn(&State) -> f32 + Send + Sync>,
+        closure: Box<dyn Fn(&State) -> Sample + Send + Sync>,
     }
 
     impl ClosureGenerator {
-        pub fn new(closure: Box<dyn Fn(&State) -> f32 + Send + Sync>) -> Self {
+        pub fn new(closure: Box<dyn Fn(&State) -> Sample + Send + Sync>) -> Self {
             Self { closure }
         }
     }
 
     impl Generator for ClosureGenerator {
-        fn generate(&self, state: &State) -> f32 {
+        fn generate(&self, state: &State) -> Sample {
             (self.closure)(state)
         }
     }
@@ -1052,9 +1190,9 @@ pub mod plugin {
     ///
     /// ### Functions
     ///
-    /// * `process(&mut self, sample: &mut f32)` - Processes a sample
+    /// * `process(&mut self, sample: &mut Sample)` - Processes a sample
     pub trait Effect: Send + Sync {
-        fn process(&mut self, state: &State, sample: &mut f32);
+        fn process(&mut self, state: &State, sample: &mut Sample);
     }
 
     /// ## Clip
@@ -1075,12 +1213,28 @@ pub mod plugin {
     }
 
     impl Effect for Clip {
-        fn process(&mut self, state: &State, sample: &mut f32) {
-            if *sample > self.threshold {
-                *sample = self.threshold;
-            } else if *sample < -self.threshold {
-                *sample = -self.threshold;
-            }
+        fn process(&mut self, state: &State, sample: &mut Sample) {
+			match sample {
+				Sample::Mono(sample) => {
+					if *sample > self.threshold {
+						*sample = self.threshold;
+					} else if *sample < -self.threshold {
+						*sample = -self.threshold;
+					}
+				}
+				Sample::Stereo(left, right) => {
+					if *left > self.threshold {
+						*left = self.threshold;
+					} else if *left < -self.threshold {
+						*left = -self.threshold;
+					}
+					if *right > self.threshold {
+						*right = self.threshold;
+					} else if *right < -self.threshold {
+						*right = -self.threshold;
+					}
+				}
+			}
         }
     }
 
@@ -1102,9 +1256,19 @@ pub mod plugin {
     }
 
     impl Effect for BitCrusher {
-        fn process(&mut self, state: &State, sample: &mut f32) {
-            *sample =
-                (*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
+        fn process(&mut self, state: &State, sample: &mut Sample) {
+			match sample {
+				Sample::Mono(sample) => {
+					*sample =
+						(*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
+				}
+				Sample::Stereo(left, right) => {
+					*left =
+						(*left * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
+					*right = (*right * 2.0f32.powf(self.bits as f32)).floor()
+						/ 2.0f32.powf(self.bits as f32);
+				}
+			}
         }
     }
 
@@ -1119,32 +1283,45 @@ pub mod plugin {
     /// * `buffer: Vec<f64>` - The delay buffer
     pub struct Delay {
         length: usize,
-        feedback: f64,
-        buffer: Vec<f64>,
+        feedback: f32,
+        buffer: Vec<Sample>,
     }
 
     impl Delay {
-        pub fn new(length: usize, feedback: f64) -> Self {
+        pub fn new(length: usize, feedback: f32) -> Self {
             Self {
                 length,
                 feedback,
-                buffer: vec![0.0; length],
+                buffer: vec![Sample::Mono(0.0); length],
             }
         }
 
         pub fn resize(&mut self, length: usize) {
             self.length = length;
-            self.buffer.resize(length, 0.0);
+            self.buffer.resize(length, Sample::Mono(0.0));
         }
     }
 
     impl Effect for Delay {
-        fn process(&mut self, state: &State, sample: &mut f32) {
-            let delay_signal = self.buffer[0];
-            self.buffer.remove(0);
-            self.buffer
-                .push(*sample as f64 + delay_signal * self.feedback);
-            *sample = (*sample as f64 + delay_signal) as f32;
+        fn process(&mut self, state: &State, sample: &mut Sample) {
+			match sample {
+				Sample::Mono(sample) => {
+					let delay_signal = self.buffer.remove(0);
+					self.buffer.remove(0);
+					self.buffer.push(Sample::Mono(
+						*sample + delay_signal.mono() * self.feedback,
+					));
+				}
+				Sample::Stereo(left, right) => {
+					let delay_signal = self.buffer.remove(0);
+					self.buffer.push(Sample::Stereo(
+						*left as f32 + delay_signal.left() * self.feedback,
+						*right as f32 + delay_signal.right() * self.feedback,
+					));
+					*left = (*left as f32 + delay_signal.left()) as f32;
+					*right = (*right as f32 + delay_signal.right()) as f32;
+				}
+			}
         }
     }
 }

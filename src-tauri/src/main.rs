@@ -361,7 +361,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
 
     let mut midi_strip = audio::Strip::new(
         audio::Input::Generator(Box::new(midi_generator)),
-        audio::Output::Channel(0),
+        audio::Output::Stereo(0, 1),
     );
 
     //midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));

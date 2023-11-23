@@ -55,7 +55,7 @@ lazy_static! {
     static ref NOTE: RwLock<Vec<Note>> = RwLock::new(Vec::new());
 }
 
-pub fn callback(state: &audio::State) -> f32 {
+pub fn callback(state: &audio::State) -> audio::Sample {
 	
     let mut note = NOTE.write().unwrap();
     let mut output = 0.0;
@@ -74,7 +74,9 @@ pub fn callback(state: &audio::State) -> f32 {
 		let sample = sample.sin() * note[i].velocity;
 		output += sample;
     }
-    output
+	
+	audio::Sample::Stereo(output, output)
+
 }
 
 fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
