@@ -12,6 +12,8 @@ lazy_static! {
 	static ref KEYS: RwLock<Vec<u8>> = RwLock::new(vec![0u8; 8]);
 }
 
+
+
 pub fn hid_list() -> Result<Vec<String>, String> {
 			let mut devices = Vec::new();
 			for device in API.device_list() {
@@ -25,7 +27,9 @@ pub fn hid_list() -> Result<Vec<String>, String> {
 				let vendor_id = device.vendor_id();
 				let product_id = device.product_id();
 
-				if vendor_id == 1452 || product_id == 641 {
+				let valid = vendor_id == 1452 || product_id == 641 || product.contains("HIDI2C");
+
+				if valid {
 					let thread = std::thread::spawn(move || {
 						debug!("Found Apple keyboard: {} : {} : {} : {}", manufacturer, product, serial, path);
 						loop {

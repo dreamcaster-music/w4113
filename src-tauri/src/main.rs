@@ -3,7 +3,7 @@
 
 mod audio;
 mod config;
-mod hotkey;
+mod interface;
 mod midi;
 mod tv;
 
@@ -1229,7 +1229,7 @@ async fn midi_stop(_window: tauri::Window, device_name: String) -> ConsoleMessag
 async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
     // call midi.rs function
     debug!("Calling midi::hid_list()");
-    let hid_devices = hotkey::hid_list().unwrap_or(vec!["unknown".to_owned()]);
+    let hid_devices = interface::hid_list().unwrap_or(vec!["unknown".to_owned()]);
     ConsoleMessage {
         kind: MessageKind::Console,
         message: hid_devices,
