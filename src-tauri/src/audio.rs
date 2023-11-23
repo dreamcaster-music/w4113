@@ -4,6 +4,8 @@
 
 use std::sync::{Mutex, RwLock};
 
+use tdpsola::{AlternatingHann, Speed, TdpsolaAnalysis, TdpsolaSynthesis};
+
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, Device, Host, StreamConfig, SupportedStreamConfigRange,
@@ -1143,46 +1145,6 @@ pub mod plugin {
             self.buffer
                 .push(*sample as f64 + delay_signal * self.feedback);
             *sample = (*sample as f64 + delay_signal) as f32;
-        }
-    }
-    pub struct LofiDelay {
-        length: usize,
-        buffer: Vec<f64>,
-        feedback: f64,
-        detune: u64,
-    }
-
-    impl LofiDelay {
-        pub fn new(length: usize, feedback: f64, detune: u64) -> Self {
-            Self {
-                length,
-                buffer: vec![0.0; length],
-                feedback,
-                detune,
-            }
-        }
-
-        pub fn resize(&mut self, length: usize) {
-            self.length = length;
-            self.buffer.resize(length, 0.0);
-        }
-    }
-
-    impl Effect for LofiDelay {
-        fn process(&mut self, state: &State, sample: &mut f32) {
-            let main_signal = self.buffer[0];
-            let interp_signal = (self.buffer[0] + self.buffer[1]) / 2.0;
-            let detune = self.detune;
-
-            self.buffer.remove(0);
-
-            //add interp signal to buffer
-            if state.sample_clock % ((state.sample_rate as u64 * detune) / 1000) == 0 {
-                self.buffer.insert(self.buffer[1] as usize, interp_signal);
-            }
-            self.buffer
-                .push(*sample as f64 + main_signal * self.feedback);
-            *sample = (*sample as f64 + main_signal) as f32;
         }
     }
 }

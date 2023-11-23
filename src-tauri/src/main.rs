@@ -366,7 +366,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
 
     //midi_strip.add_effect(Box::new(audio::BitCrusher::new(2)));
     // midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
-    midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
+    //midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
 
     match strips {
         Ok(mut strips) => {

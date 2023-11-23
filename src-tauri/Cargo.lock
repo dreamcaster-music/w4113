@@ -3302,6 +3302,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "tdpsola"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2b8b9dbf876dfb5808e3693c033c4da41a07f6306a599a5db267629a8df1388"
+
+[[package]]
 name = "tempfile"
 version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3720,6 +3726,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
+ "tdpsola",
  "ts-rs",
 ]
 
