@@ -3,7 +3,7 @@ use tauri::Window;
 
 pub trait VisualizerTrait {
     fn new() -> Self;
-    fn render(&self, window: &Window, data: &[f32]) -> Result<(), String>;
+    fn render(&self, window: &Window, data: &Vec<f32>) -> Result<(), String>;
 }
 
 pub struct BasicVisualizer {}
@@ -13,7 +13,7 @@ impl VisualizerTrait for BasicVisualizer {
         BasicVisualizer {}
     }
 
-    fn render(&self, window: &Window, data: &[f32]) -> Result<(), String> {
+    fn render(&self, window: &Window, data: &Vec<f32>) -> Result<(), String> {
         let output = window.emit("loadbars", data);
         match output {
             Ok(_) => {}

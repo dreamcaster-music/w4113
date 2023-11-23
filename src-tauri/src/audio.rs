@@ -13,6 +13,8 @@ use cpal::{
 use lazy_static::lazy_static;
 use log::debug;
 
+use crate::tv::{BasicVisualizer, VisualizerTrait};
+
 lazy_static! {
     pub static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
     pub static ref OUTPUT_DEVICE: Mutex<Option<cpal::Device>> = Mutex::new(None);
@@ -772,6 +774,13 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
     Ok(streams)
 }
 
+/// ## `reload() -> Result<(), String>`
+/// 
+/// Reloads the audio thread.
+/// 
+/// ### Returns
+/// 
+/// * `Result<(), String>` - An error message, or nothing if successful
 pub fn reload() -> Result<(), String> {
     let mut reload = match RELOAD.write() {
         Ok(reload) => reload,
@@ -786,6 +795,13 @@ pub fn reload() -> Result<(), String> {
     Ok(())
 }
 
+/// ## `audio_thread() -> Result<(), String>`
+/// 
+/// Starts the audio thread.
+/// 
+/// ### Returns
+/// 
+/// * `Result<(), String>` - An error message, or nothing if successful
 pub fn audio_thread() -> Result<(), String> {
     let thread = std::thread::spawn(move || {
         let config = {
@@ -850,6 +866,7 @@ pub fn audio_thread() -> Result<(), String> {
                 //
                 // So there is a simple formula for determining what channel a sample is for:
                 // channel = sample_index % n_channels
+				let mut data_vec = Vec::new();
                 for sample in data.iter_mut() {
                     if channel % n_channels == 0 {
                         sample_clock += 1.0;
@@ -884,9 +901,32 @@ pub fn audio_thread() -> Result<(), String> {
                             _ => {}
                         }
                     }
+
+					if channel % n_channels == 0 {
+						data_vec.push(*sample);
+					}
                     channel += 1;
                 }
+
+				let tv_window = crate::TV_WINDOW.lock();
+				match tv_window {
+								Ok(tv_window) => {
+									match tv_window.as_ref() {
+										Some(tv_window) => {
+											let visualizer = <BasicVisualizer as VisualizerTrait>::new();
+											let _ = visualizer.render(tv_window, &data_vec);
+										}
+										None => {
+											debug!("TV_WINDOW is None");
+										}
+									}
+								}
+								Err(e) => {
+									debug!("Error locking TV_WINDOW: {}", e);
+								}
+							}
             };
+
             let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
             let output_stream =
                 output_device.build_output_stream(&config, data_callback, err_fn, None);
@@ -950,6 +990,13 @@ pub enum Sample {
 }
 
 impl Sample {
+	/// ## `mono(&self) -> f32`
+	/// 
+	/// Returns the mono version of the sample.
+	/// 
+	/// ### Returns
+	/// 
+	/// * `f32` - The mono version of the sample
 	pub fn mono(&self) -> f32 {
 		match self {
 			Sample::Mono(sample) => *sample,
@@ -957,6 +1004,13 @@ impl Sample {
 		}
 	}
 
+	/// ## `stereo(&self) -> (f32, f32)`
+	/// 
+	/// Returns the stereo version of the sample.
+	/// 
+	/// ### Returns
+	/// 
+	/// * `(f32, f32)` - The stereo version of the sample
 	pub fn stereo(&self) -> (f32, f32) {
 		match self {
 			Sample::Mono(sample) => (*sample, *sample),
@@ -964,6 +1018,13 @@ impl Sample {
 		}
 	}
 
+	/// ## `left(&self) -> f32`
+	/// 
+	/// Returns the left channel of the sample.
+	/// 
+	/// ### Returns
+	/// 
+	/// * `f32` - The left channel of the sample
 	pub fn left(&self) -> f32 {
 		match self {
 			Sample::Mono(sample) => *sample,
@@ -971,6 +1032,13 @@ impl Sample {
 		}
 	}
 
+	/// ## `right(&self) -> f32`
+	/// 
+	/// Returns the right channel of the sample.
+	/// 
+	/// ### Returns
+	/// 
+	/// * `f32` - The right channel of the sample
 	pub fn right(&self) -> f32 {
 		match self {
 			Sample::Mono(sample) => *sample,
@@ -978,10 +1046,24 @@ impl Sample {
 		}
 	}
 
+	/// ## `as_mono(&self) -> Sample`
+	/// 
+	/// Returns the mono version of the sample.
+	/// 
+	/// ### Returns
+	/// 
+	/// * `Sample` - The mono version of the sample
 	pub fn as_mono(&self) -> Sample {
 		Sample::Mono(self.mono())
 	}
 
+	/// ## `as_stereo(&self) -> Sample`
+	/// 
+	/// Returns the stereo version of the sample.
+	/// 
+	/// ### Returns
+	/// 
+	/// * `Sample` - The stereo version of the sample
 	pub fn as_stereo(&self) -> Sample {
 		Sample::Stereo(self.left(), self.right())
 	}
