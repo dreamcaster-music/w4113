@@ -1066,7 +1066,11 @@ async fn midi_stop(_window: tauri::Window, device_name: String) -> ConsoleMessag
 async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
     // call midi.rs function
     debug!("Calling midi::hid_list()");
-    let hid_devices = interface::hid_list().unwrap_or(vec!["unknown".to_owned()]);
+    let interfaces = interface::get_interfaces();
+	let mut hid_devices: Vec<String> = Vec::new();
+	for interface in &interfaces {
+		hid_devices.push(format!("{}", interface));
+	}
     ConsoleMessage {
         kind: MessageKind::Console,
         message: hid_devices,
