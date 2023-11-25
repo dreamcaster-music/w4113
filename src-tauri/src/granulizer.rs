@@ -1,3 +1,47 @@
+use crate::audio::plugin::Effect;
+use crate::audio::plugin::Generator;
+
+// take audio and break it down into grains
+pub struct Granulate {
+    grain_size: u32,
+    grain_size_ms: u32,
+    buffer: Vec<f32>,
+}
+
+impl Granulate {
+    pub fn new(grain_size_ms: u32, buffer: Vec<f32>) -> Self {
+        Self {
+            grain_size: grain_size_ms,
+            grain_size_ms,
+            buffer: vec![0.0; grain_size_ms],
+        }
+    }
+
+    pub fn resize_milliseconds(&mut self, milliseconds: u32, sample_rate: u32) {
+        let grain_size = milliseconds * sample_rate / 1000;
+        self.grain_size = grain_size;
+        self.grain_size_ms = milliseconds;
+        self.resize(grain_size);
+    }
+
+    fn resize(&mut self, grain_size: u32) {
+        self.grain_size = grain_size;
+        self.buffer.resize(grain_size, 0.0);
+    }
+}
+
+// use state.
+impl Effect for Granulate {
+    fn process(&mut self, state: &crate::audio::State, sample: &mut crate::audio::Sample) {
+        if state.sample_clock % state.sample_rate == 0 {
+            self.resize_milliseconds(self.grain_size_ms, state.sample_rate);
+        }
+        if state.sample_clock % self.grain_size_ms == 0 {
+            //write to buffer
+        }
+    }
+}
+
 //GRANULIZER
 pub struct Granulizer {
     pub grain_start: f32,

@@ -3,6 +3,7 @@
 
 mod audio;
 mod config;
+mod granulizer;
 mod interface;
 mod midi;
 mod tv;
@@ -204,6 +205,10 @@ fn init(window: tauri::Window) -> Result<(), String> {
     midi_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(2)));
     // midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
     //midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
+
+    let mut granulizer = granulizer::Granulizer::new();
+    granulizer.resize_milliseconds(1000, state.sample_rate);
+    midi_strip.add_effect(Box::new(granulizer));
 
     match strips {
         Ok(mut strips) => {
