@@ -201,8 +201,8 @@ fn init(window: tauri::Window) -> Result<(), String> {
         audio::Output::Stereo(0, 1),
     );
 
-    midi_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(2)));
-    // midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
+    midi_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(16)));
+    midi_strip.add_effect(Box::new(audio::plugin::Delay::new((44100.0 / 4.0) as usize, 0.1)));
     //midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
 
     match strips {
