@@ -17,13 +17,17 @@ function BasicVisualizer() {
 		setBars(event.payload as [number]);
 	});
 
+	let windowHeight = window.innerHeight;
+	let windowWidth = window.innerWidth;
+	let barWidth = windowWidth / 480;
+
 	let barsLength = bars.length;
 	let barsComponent = bars.map((bar, index) => {
 		if (bars[index] != 0) {
 			if (index % 8 != 0) {
 				return <></>;
 			}
-			let height = bar * 50;
+			let height = bar * ((windowHeight - 500) / 2);
 			let heightAbs = Math.abs(height);
 
 			// rainbow red to green to blue left to right
@@ -34,9 +38,9 @@ function BasicVisualizer() {
 
 
 			if (height > 0) {
-				return <div className="bar" key={index} style={{ bottom: "50%", height: heightAbs + "px", left: index / barsLength * 100 + "%", backgroundColor: color }}></div>
+				return <div className="bar" key={index} style={{ bottom: "50%", height: heightAbs + "px", width: barWidth + "px", left: index / barsLength * 100 + "%", backgroundColor: color }}></div>
 			} else {
-				return <div className="bar" key={index} style={{ top: "50%", height: heightAbs + "px", left: index / barsLength * 100 + "%", backgroundColor: color }}></div>
+				return <div className="bar" key={index} style={{ top: "50%", height: heightAbs + "px", width: barWidth + "px", left: index / barsLength * 100 + "%", backgroundColor: color }}></div>
 			}
 		}
 	});

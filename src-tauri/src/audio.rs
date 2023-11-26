@@ -1339,7 +1339,7 @@ pub mod plugin {
 			// remove freqs with amp 0.0
 			self.freqs.retain(|freq_amp| freq_amp.1 > 0.0);
 
-			Sample::Mono(sample)
+			Sample::Stereo(sample, sample)
 		}
 	}
 
@@ -1471,7 +1471,6 @@ pub mod plugin {
 			match sample {
 				Sample::Mono(sample) => {
 					let delay_signal = self.buffer.remove(0);
-					self.buffer.remove(0);
 					self.buffer.push(Sample::Mono(
 						*sample + delay_signal.mono() * self.feedback,
 					));

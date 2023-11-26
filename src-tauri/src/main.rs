@@ -12,7 +12,7 @@ use audio::{Preference, plugin::SineGenerator};
 use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
 use log::{debug, error, LevelFilter};
-use std::{sync::{Mutex, Arc}, path::PathBuf};
+use std::{sync::{Mutex, Arc}, path::{PathBuf, Path}};
 use tauri::{LogicalPosition, Manager, api::path::BaseDirectory};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
@@ -1075,12 +1075,14 @@ async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
     debug!("Calling midi::hid_list()");
     let mut interfaces = interface::get_interfaces();
 	for interface in interfaces.iter_mut() {
-		if interface.id() == 966156933{
+		if interface.id() == 966156933 {
 			let arc_generator = Arc::new(Mutex::new(SineGenerator::new()));
-			let new_strip = audio::Strip::new(
+			let mut new_strip = audio::Strip::new(
 				audio::Input::Generator(arc_generator.clone()),
 				audio::Output::Stereo(0, 1)
 			);
+			new_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(16)));
+			new_strip.add_effect(Box::new(audio::plugin::Delay::new((44100.0 / 4.0) as usize, 0.1)));
 
 			let arc_clone_keydown = arc_generator.clone();
 			let arc_clone_keyup = arc_generator.clone();
@@ -1162,7 +1164,7 @@ async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
 				}
 			}));
 
-			match audio::STRIPS.try_write() {
+			match audio::STRIPS.write() {
 				Ok(mut strips) => {
 					strips.push(new_strip);
 				}
@@ -1217,7 +1219,8 @@ fn main() {
             tauri_plugin_log::Builder::default()
                 .targets([
 					LogTarget::Stdout, 
-					LogTarget::Webview
+					LogTarget::Webview,
+					LogTarget::Folder(PathBuf::from("/Users/westdt/logs"))
 					])
                 .level(LevelFilter::Trace)
                 .build(),
