@@ -4,7 +4,7 @@
 
 #![allow(dead_code)]
 
-use std::sync::{Mutex, RwLock};
+use std::sync::{Mutex, RwLock, Arc};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -1097,7 +1097,7 @@ pub struct State {
 pub enum Output {
     Mono(u32),
 	Stereo(u32, u32),
-    Bus(Box<Input>),
+    Bus(Arc<Input>),
 }
 
 /// ## Input
@@ -1109,8 +1109,8 @@ pub enum Output {
 /// * `Generator(Box<dyn Generator>)` - A generator input channel
 /// * `Bus(Box<Output>)` - A bus input channel
 pub enum Input {
-    Generator(Box<dyn plugin::Generator>),
-    Bus(Box<Output>),
+    Generator(Arc<Mutex<dyn plugin::Generator>>),
+    Bus(Arc<Output>),
 }
 
 /// ## Strip
@@ -1205,7 +1205,14 @@ impl Strip {
     pub fn process(&mut self, state: State) -> Sample {
         let sample = match &self.input {
             Input::Generator(generator) => {
-                let mut sample = generator.generate(&state);
+                let mut sample = match generator.try_lock() {
+					Ok(mut generator) => {
+						generator.generate(&state)
+					}
+					Err(error) => {
+						return Sample::Mono(0.0)
+					}
+				};
                 for effect in self.chain.iter_mut() {
                     effect.process(&state, &mut sample);
                 }
@@ -1229,6 +1236,8 @@ impl Strip {
 }
 
 pub mod plugin {
+    use log::debug;
+
     use super::State;
 	use super::Sample;
 
@@ -1245,7 +1254,7 @@ pub mod plugin {
     ///
     /// * `generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32` - Generates a sample
     pub trait Generator: Send + Sync {
-        fn generate(&self, state: &State) -> Sample;
+        fn generate(&mut self, state: &State) -> Sample;
     }
 
     /// ## ClosureGenerator
@@ -1274,10 +1283,65 @@ pub mod plugin {
     }
 
     impl Generator for ClosureGenerator {
-        fn generate(&self, state: &State) -> Sample {
+        fn generate(&mut self, state: &State) -> Sample {
             (self.closure)(state)
         }
     }
+
+	static FALLOFF: f32 = 0.01;
+
+	pub struct SineGenerator {
+		// First value is frequency, second value is amplitude (0.0-1.0)
+		freqs: Vec<(f32, f32)>,
+	}
+
+	impl SineGenerator {
+		pub fn new() -> Self {
+			Self {
+				freqs: Vec::new(),
+			}
+		}
+
+		pub fn add_freq(&mut self, freq: f32, amp: f32) {
+			self.freqs.push((freq, amp));
+		}
+
+		pub fn remove_freq(&mut self, freq: f32) {
+			let mut index = 0;
+			for (i, freq_amp) in self.freqs.iter().enumerate() {
+				if freq_amp.0 == freq {
+					index = i;
+					break;
+				}
+			}
+
+			if index >= self.freqs.len() {
+				return;
+			}
+
+			self.freqs[index].1 = 1.0 - FALLOFF;
+		}
+	}
+
+	impl Generator for SineGenerator {
+		fn generate(&mut self, state: &State) -> Sample {
+			let mut sample = 0.0;
+			for mut freq_amp in self.freqs.iter_mut() {
+				if freq_amp.1 < 1.0 {
+					freq_amp.1 = freq_amp.1 - FALLOFF;
+					if freq_amp.1 < 0.0 {
+						continue;
+					}
+				}
+				sample += (state.sample_clock as f32 * freq_amp.0 * 2.0 * std::f32::consts::PI / state.sample_rate as f32).sin() * freq_amp.1;
+			}
+
+			// remove freqs with amp 0.0
+			self.freqs.retain(|freq_amp| freq_amp.1 > 0.0);
+
+			Sample::Mono(sample)
+		}
+	}
 
     /// ## Effect
     ///
