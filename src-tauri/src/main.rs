@@ -12,8 +12,8 @@ use audio::{Preference, plugin::SineGenerator};
 use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
 use log::{debug, error, LevelFilter};
-use std::sync::{Mutex, Arc};
-use tauri::{LogicalPosition, Manager};
+use std::{sync::{Mutex, Arc}, path::PathBuf};
+use tauri::{LogicalPosition, Manager, api::path::BaseDirectory};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
 use crate::interface::Key;
@@ -1215,8 +1215,10 @@ fn main() {
         })
         .plugin(
             tauri_plugin_log::Builder::default()
-                .targets([LogTarget::Stdout, LogTarget::Webview])
-                .with_colors(ColoredLevelConfig::default())
+                .targets([
+					LogTarget::Stdout, 
+					LogTarget::Webview
+					])
                 .level(LevelFilter::Trace)
                 .build(),
         )

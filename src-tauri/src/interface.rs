@@ -353,69 +353,78 @@ impl<'a> Interface {
 				loop {
 					match handle.read(&mut buf) {
 						Ok(_) => {
-							let mut keys = {
+							if buf[0] != 1 {
+								debug!("Killing thread.");
+								return;
+							}
 								match keys_reference.write() {
-									Ok(k) => {
+									Ok(mut keys) => {
 										// if the keys are the same, kill the thread
 										let mut kill = true;
 										let mut count = 0;
+										let mut vector = Vec::new();
 										for i in 3..8 {
-											count += k[i];
-											if k[i] != buf[i] {
-												let mut vec_b = Vec::new();
-												for j in 0..5 {
-													if buf[i] < 1 {
-														break;
-													} else {
-														vec_b.push(buf[i]);
-													}
-												}
+											count += buf[i];
+											vector.push(buf[i]);
+										}
 
-												let mut vec_k = Vec::new();
-												for j in 0..5 {
-													if k[i] < 1 {
-														break;
-													} else {
-														vec_k.push(k[i]);
-													}
-												}
+										let mut keys_add = Vec::new();
+										let mut keys_remove = Vec::new();
 
-												if vec_b.len() > vec_k.len() {
-													// keydown, last key in vec_b is the new key
-													let key = Key::from(vec_b[vec_b.len() - 1]);
-													match keydown_callback_reference.read() {
-														Ok(callback) => {
-															match callback.as_ref() {
-																Some(callback) => {
-																	callback(key)
-																}
-																None => {}
-															};
-														}
-														Err(e) => {
-															error!("Failed to get keydown callback: {}", e);
-														}
-													}
-												} else {
-													// keyup, last key in vec_k is the old key
-													let key = Key::from(vec_k[vec_k.len() - 1]);
-													match keyup_callback_reference.read() {
-														Ok(callback) => {
-															match callback.as_ref() {
-																Some(callback) => {
-																	callback(key);
-																}
-																None => {}
-															}
-														}
-														Err(e) => {
-															error!("Failed to get keyup callback: {}", e);
-														}
-													}
-												}
-
+										for i in 0..5 {
+											let new_key = vector[i];
+											if new_key > 0 {
 												kill = false;
-												break;
+
+												if !keys.contains(&new_key) {
+													keys_add.push(new_key);
+												}
+											}
+
+											if i < keys.len() {
+												let old_key = keys[i];
+												kill = false;
+												if !vector.contains(&old_key) {
+													keys_remove.push(old_key);
+												}
+											}
+										}
+
+										for key in keys_remove {
+											let callback = {
+												match keyup_callback_reference.read() {
+													Ok(callback) => callback,
+													Err(err) => {
+														error!("Failed to get keyup callback: {}", err);
+														return;
+													}
+												}
+											};
+											match callback.as_ref() {
+												Some(callback) => {
+													callback(Key::from(key));
+													keys.retain(|&x| x != key);
+												}
+												None => {}
+											}
+										}
+
+										for key in keys_add {
+											let callback = {
+												match keydown_callback_reference.read() {
+													Ok(callback) => callback,
+													Err(err) => {
+														error!("Failed to get keydown callback: {}", err);
+														return;
+													}
+												}
+											};
+											match callback.as_ref() {
+												Some(callback) => {
+													callback(Key::from(key));
+													keys.push(key);
+												}
+												None => {}
 											}
 										}
 
@@ -423,28 +432,19 @@ impl<'a> Interface {
 											// Fn key on Mac returns 1, 0, 0, 0, 0, 0, 0, 0
 											// Which is the same as the default state
 											// So we need to ignore these key presses
-											if count > 1 {
+											if count > 0 {
 												debug!("Killing thread");
 												return;
 											} else {
 												continue;
 											}
 										}
-										k
 									}
 									Err(e) => {
 										error!("Failed to lock keys: {}", e);
 										return;
 									}
 								}
-							};
-
-							// update the keys
-							for i in 0..8 {
-								keys[i] = buf[i];
-							}
-
-							trace!("Key event: {:?}", keys);
 						}
 						Err(e) => {
 							error!("Failed to read: {}", e);
@@ -481,7 +481,7 @@ pub fn get_interfaces() -> Vec<Interface> {
 			manufacturer: manufacturer.to_owned(),
 			product: product.to_owned(),
 			serial: serial.to_owned(),
-			keys: Arc::new(RwLock::new(vec![0u8; 8])),
+			keys: Arc::new(RwLock::new(Vec::new())),
 			keydown_callback: Arc::new(RwLock::new(None)),
 			keyup_callback: Arc::new(RwLock::new(None)),
 			handles: RwLock::new(Vec::new()),
