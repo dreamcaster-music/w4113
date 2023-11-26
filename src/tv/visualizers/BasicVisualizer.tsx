@@ -20,8 +20,24 @@ function BasicVisualizer() {
 	let barsLength = bars.length;
 	let barsComponent = bars.map((bar, index) => {
 		if (bars[index] != 0) {
-			let height = bar * 100;
-			return <div className="bar" key={index} style={{ top: "calc(50% - " + (height / 2) + "px)", height: "1px", left: index / barsLength * 100 + "%" }}></div>
+			if (index % 8 != 0) {
+				return <></>;
+			}
+			let height = bar * 50;
+			let heightAbs = Math.abs(height);
+
+			// rainbow red to green to blue left to right
+			let red = Math.floor(Math.sin(index / barsLength * Math.PI) * 127 + 128);
+			let green = Math.floor(Math.sin(index / barsLength * Math.PI + 2) * 127 + 128);
+			let blue = Math.floor(Math.sin(index / barsLength * Math.PI + 4) * 127 + 128);
+			let color = "rgb(" + red + "," + green + "," + blue + ")";
+
+
+			if (height > 0) {
+				return <div className="bar" key={index} style={{ bottom: "50%", height: heightAbs + "px", left: index / barsLength * 100 + "%", backgroundColor: color }}></div>
+			} else {
+				return <div className="bar" key={index} style={{ top: "50%", height: heightAbs + "px", left: index / barsLength * 100 + "%", backgroundColor: color }}></div>
+			}
 		}
 	});
 

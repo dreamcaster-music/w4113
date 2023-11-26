@@ -8,13 +8,15 @@ mod interface;
 mod midi;
 mod tv;
 
-use audio::Preference;
+use audio::{Preference, plugin::SineGenerator};
 use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
 use log::{debug, error, LevelFilter};
-use std::sync::Mutex;
+use std::sync::{Mutex, Arc};
 use tauri::{LogicalPosition, Manager};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
+
+use crate::interface::Key;
 
 // Apply to Windows only
 #[cfg(target_os = "windows")]
@@ -198,12 +200,12 @@ fn init(window: tauri::Window) -> Result<(), String> {
 
     let midi_generator = audio::plugin::ClosureGenerator::new(Box::new(midi::callback));
     let mut midi_strip = audio::Strip::new(
-        audio::Input::Generator(Box::new(midi_generator)),
+        audio::Input::Generator(Arc::new(Mutex::new(midi_generator))),
         audio::Output::Stereo(0, 1),
     );
 
-    midi_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(2)));
-    // midi_strip.add_effect(Box::new(audio::plugin::Delay::new(5000, 0.1)));
+    midi_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(16)));
+    midi_strip.add_effect(Box::new(audio::plugin::Delay::new((44100.0 / 4.0) as usize, 0.1)));
     //midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
 
     // let mut granulizer = granulizer::Granulizer::new();
@@ -1071,7 +1073,109 @@ async fn midi_stop(_window: tauri::Window, device_name: String) -> ConsoleMessag
 async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
     // call midi.rs function
     debug!("Calling midi::hid_list()");
-    let hid_devices = interface::hid_list().unwrap_or(vec!["unknown".to_owned()]);
+    let mut interfaces = interface::get_interfaces();
+	for interface in interfaces.iter_mut() {
+		if interface.id() == 966156933{
+			let arc_generator = Arc::new(Mutex::new(SineGenerator::new()));
+			let new_strip = audio::Strip::new(
+				audio::Input::Generator(arc_generator.clone()),
+				audio::Output::Stereo(0, 1)
+			);
+
+			let arc_clone_keydown = arc_generator.clone();
+			let arc_clone_keyup = arc_generator.clone();
+
+			interface.thread();
+			interface.keydown(Box::new(move |key| {
+				debug!("Key down: {}", key);
+				let mut generator = match arc_clone_keydown.lock() {
+					Ok(generator) => {
+						generator
+					}
+					Err(err) => {
+						return;
+					}
+				};
+
+				let freq: f32 = match key {
+					Key::A => 261.626,
+					Key::W => 277.183,
+					Key::S => 293.665,
+					Key::E => 311.127,
+					Key::D => 329.628,
+					Key::F => 349.228,
+					Key::T => 369.994,
+					Key::G => 391.995,
+					Key::Y => 415.305,
+					Key::H => 440.000,
+					Key::U => 466.164,
+					Key::J => 493.883,
+					Key::K => 523.251,
+					Key::O => 554.365,
+					Key::L => 587.330,
+					Key::P => 622.254,
+					Key::Semicolon => 659.255,
+					Key::Apostrophe => 698.456,
+					_ => 0.0,
+				};
+
+				if freq > 0.0 {
+					generator.add_freq(freq, 1.0);
+				}
+			}));
+
+			interface.keyup(Box::new(move |key| {
+				debug!("Key up: {}", key);
+				let mut generator = match arc_clone_keyup.lock() {
+					Ok(generator) => {
+						generator
+					}
+					Err(err) => {
+						return;
+					}
+				};
+
+				let freq: f32 = match key {
+					Key::A => 261.626,
+					Key::W => 277.183,
+					Key::S => 293.665,
+					Key::E => 311.127,
+					Key::D => 329.628,
+					Key::F => 349.228,
+					Key::T => 369.994,
+					Key::G => 391.995,
+					Key::Y => 415.305,
+					Key::H => 440.000,
+					Key::U => 466.164,
+					Key::J => 493.883,
+					Key::K => 523.251,
+					Key::O => 554.365,
+					Key::L => 587.330,
+					Key::P => 622.254,
+					Key::Semicolon => 659.255,
+					Key::Apostrophe => 698.456,
+					_ => 0.0,
+				};
+
+				if freq > 0.0 {
+					generator.remove_freq(freq);
+				}
+			}));
+
+			match audio::STRIPS.try_write() {
+				Ok(mut strips) => {
+					strips.push(new_strip);
+				}
+				Err(e) => {
+					debug!("Error locking STRIPS: {}", e);
+				}
+			}
+		}
+	}
+	let mut hid_devices: Vec<String> = Vec::new();
+	for interface in &interfaces {
+		hid_devices.push(format!("{}", interface));
+	}
     ConsoleMessage {
         kind: MessageKind::Console,
         message: hid_devices,
@@ -1113,7 +1217,7 @@ fn main() {
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::Stdout, LogTarget::Webview])
                 .with_colors(ColoredLevelConfig::default())
-                .level(LevelFilter::Debug)
+                .level(LevelFilter::Trace)
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![

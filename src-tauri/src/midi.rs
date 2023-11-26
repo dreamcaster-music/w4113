@@ -40,7 +40,9 @@ pub fn midi_list() -> Vec<String> {
     return vec![test.to_string()];
 }
 
+
 struct Note {
+	amp: f32,
 	freq: f32,
 	velocity: f32,
 	sample_clock: Option<u64>,
@@ -56,26 +58,44 @@ lazy_static! {
     static ref NOTE: RwLock<Vec<Note>> = RwLock::new(Vec::new());
 }
 
+static NOTE_SPEED: f32 = 0.002;
+
 pub fn callback(state: &audio::State) -> audio::Sample {
 	
-    let mut note = NOTE.write().unwrap();
+    let mut notes = NOTE.write().unwrap();
     let mut output = 0.0;
-    for i in 0..note.len() {
-		let sample_start = match note[i].sample_clock {
+    for note in notes.iter_mut() {
+		let sample_start = match note.sample_clock {
 			Some(x) => x,
 			None => {
-				note[i].sample_clock = Some(state.sample_clock);
+				note.sample_clock = Some(state.sample_clock);
 				state.sample_clock
 			}
 		};
 
+		let sample = (state.sample_clock as i128 - sample_start as i128) as f32 * note.freq * 2.0 * std::f32::consts::PI / state.sample_rate as f32;
+		let sample = sample.sin() * note.velocity * note.amp;
 
-
-		let sample = (state.sample_clock as i128 - sample_start as i128) as f32 * note[i].freq * 2.0 * std::f32::consts::PI / state.sample_rate as f32;
-		let sample = sample.sin() * note[i].velocity;
+		if note.amp > 1.0 {
+			note.amp = 1.0;
+		}
+		if note.amp < 1.0 && note.amp > 0.0 {
+			note.amp -= NOTE_SPEED;
+		}
+		
 		output += sample;
     }
-	
+	// remove notes where amp <= 0
+	for mut i in 0..notes.len() {
+		if i >= notes.len() {
+			break;
+		}
+		if notes[i].amp <= 0.0 {
+			notes.remove(i);
+		}
+	}
+
+
 	audio::Sample::Stereo(output, output)
 
 }
@@ -92,16 +112,18 @@ fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
 			match velocity {
 				0 => {
 					debug!("Note off: {} {} {}", note, velocity, freq);
-					let note = Note {
-						freq: freq,
-						velocity: velocity as f32 / 127.0,
-						sample_clock: None,
-					};
-					NOTE.write().unwrap().retain(|x| x.key() != note.key());
+					// subtract note amp by 0.1
+					let mut note = NOTE.write().unwrap();
+					for i in 0..note.len() {
+						if note[i].key() == freq {
+							note[i].amp -= 0.01;
+						}
+					}
 				}
 				_ => {
 					debug!("Note on: {} {} {}", note, velocity, freq);
 					NOTE.write().unwrap().push(Note {
+						amp: 1.0,
 						freq: freq,
 						velocity: velocity as f32 / 127.0,
 						sample_clock: None,
@@ -110,13 +132,14 @@ fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
 			}
         }
         128 => {
-            debug!("Note off: {} {} {}", note, velocity, freq);
-			let note = Note {
-				freq: freq,
-				velocity: velocity as f32 / 127.0,
-				sample_clock: None,
-			};
-            NOTE.write().unwrap().retain(|x| x.key() != note.key());
+			debug!("Note off: {} {} {}", note, velocity, freq);
+			// subtract note amp by 0.1
+			let mut note = NOTE.write().unwrap();
+			for i in 0..note.len() {
+				if note[i].key() == freq {
+					note[i].amp -= 0.1;
+				}
+			}
         }
         _ => {}
     }
