@@ -19,7 +19,7 @@
 	--foreground-color-primary: #fff;
 	--background-color-secondary: #222;
 	--foreground-color-secondary: #fff;
-	--text-color-primary: #00ba10;
+	--text-color-primary: lime;
 	--text-color-error: #a30000;
 }
 
@@ -97,4 +97,22 @@ body,
 	color: var(--foreground-color-primary);
 
 	cursor: text;
+}
+
+select {
+	/* */
+	all: unset;
+	font-family: var(--font-mono);
+	font-size: 1rem;
+	font-weight: 900;
+	color: var(--text-color-primary);
+
+	padding: 2px;
+	border: 1px solid var(--text-color-primary);
+	/* display a little white arrow to the right of the dropdown button */
+	background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='5'><polygon points='0,0 10,0 5,5' style='fill:lime'/></svg>") no-repeat right var(--background-color-secondary);
+	background-size: 10px 5px;
+	background-position-x: calc(100% - 5px);
+	background-position-y: center;
+
 }

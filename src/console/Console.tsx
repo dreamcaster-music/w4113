@@ -24,7 +24,9 @@ function Console() {
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 	const [textSize, setTextSize] = useState<number>(14);
 	const [outputOptions, setOutputOptions] = useState<string[]>([]);
+	const [outputStreamOptions, setOutputStreamOptions] = useState<string[]>([]);
 	const [inputOptions, setInputOptions] = useState<string[]>([]);
+	const [inputStreamOptions, setInputStreamOptions] = useState<string[]>([]);
 
 	/**
 	 * ## outputMessage(output: ConsoleMessage)
@@ -249,6 +251,11 @@ function Console() {
 						switch (streamCommand) {
 							case "show":
 								invoke("output_stream_show").then((response) => {
+									let outputs = (response as ConsoleMessage).message;
+									setOutputStreamOptions([]);
+									outputs.forEach((value) => {
+										setOutputStreamOptions((outputOptions) => [...outputOptions, value]);
+									});
 									debug("Result from output stream show: " + strValue(response as ConsoleMessage));
 									outputMessage(response as ConsoleMessage);
 								});
@@ -306,6 +313,11 @@ function Console() {
 				switch (inputCommand) {
 					case "list":
 						invoke("input_list").then((response) => {
+							let inputs = (response as ConsoleMessage).message;
+							setInputOptions([]);
+							inputs.forEach((value) => {
+								setInputOptions((inputOptions) => [...inputOptions, value]);
+							});
 							debug("Result from input list: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
@@ -332,6 +344,11 @@ function Console() {
 						switch (streamCommand) {
 							case "show":
 								invoke("input_stream_show").then((response) => {
+									let outputs = (response as ConsoleMessage).message;
+									setInputStreamOptions([]);
+									outputs.forEach((value) => {
+										setInputStreamOptions((outputOptions) => [...outputOptions, value]);
+									});
 									debug("Result from input stream show: " + strValue(response as ConsoleMessage));
 									outputMessage(response as ConsoleMessage);
 								});
@@ -610,13 +627,28 @@ function Console() {
 	outputOptions.map((value) => {
 		debug("mapping the jount: " + value);
 		outputOptionsElements.push(<option value={value}>{value}</option>);
-	})
+	});
+
+	let outputStreamOptionsElements = [];
+	outputStreamOptions.map((value) => {
+		outputStreamOptionsElements.push(<option value={value}>{value}</option>);
+	});
+
+	let inputOptionsElements = [];
+	inputOptions.map((value) => {
+		inputOptionsElements.push(<option value={value}>{value}</option>);
+	});
+
+	let inputStreamOptionsElements = [];
+	inputStreamOptions.map((value) => {
+		inputStreamOptionsElements.push(<option value={value}>{value}</option>);
+	});
 
 	return (
 		<>
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
-					<select style={{ position: "absolute", top: "100px", left: "100px" }} onChange={(event) => {
+					<select className="dropdown" style={{ top: "100px", left: "100px" }} onChange={(event) => {
 						let output = event.target.value;
 						debug("Output selected: " + output);
 						invoke("output_select", { output: output }).then((response) => {
@@ -626,6 +658,39 @@ function Console() {
 					}}>
 						{outputOptionsElements}
 					</select>
+					<select className="dropdown" style={{ top: "100px", left: "300px" }} onChange={(event) => {
+						let input = event.target.value;
+						debug("Input selected: " + input);
+						invoke("input_select", { input: input }).then((response) => {
+							debug("Result from input select: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+					}}>
+						{inputOptionsElements}
+					</select>
+					<select className="dropdown" style={{ top: "100px", left: "500px" }} onChange={(event) => {
+						let stream = event.target.value;
+						debug("Stream selected: " + stream);
+						invoke("output_stream_set", { stream: stream }).then((response) => {
+							debug("Result from stream select: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+					}
+					}>
+						{outputStreamOptionsElements}
+					</select>
+					<select className="dropdown" style={{ top: "200px", left: "500px" }} onChange={(event) => {
+						let stream = event.target.value;
+						debug("Stream selected: " + stream);
+						invoke("input_stream_set", { stream: stream }).then((response) => {
+							debug("Result from stream select: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+					}
+					}>
+						{inputStreamOptionsElements}
+					</select>
+
 					{midi}
 					<div className="console">
 						<div className="console-output">
