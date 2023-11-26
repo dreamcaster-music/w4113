@@ -23,6 +23,8 @@ function Console() {
 	const [commandCurrent, setCommandCurrent] = useState<string>("");
 	const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
 	const [textSize, setTextSize] = useState<number>(14);
+	const [outputOptions, setOutputOptions] = useState<string[]>([]);
+	const [inputOptions, setInputOptions] = useState<string[]>([]);
 
 	/**
 	 * ## outputMessage(output: ConsoleMessage)
@@ -203,6 +205,24 @@ function Console() {
 				switch (outputCommand) {
 					case "list":
 						invoke("output_list").then((response) => {
+							let outputs = (response as ConsoleMessage).message;
+							setOutputOptions([]);
+							outputs.forEach((value) => {
+								setOutputOptions((outputOptions) => [...outputOptions, value]);
+							});
+							/*let i = 0;
+							while (true) {
+								if (i >= outputs.length) {
+									break;
+								}
+								
+
+								debug("guy: " + outputs[i]);
+								setOutputOptions((outputOptions) => [...outputOptions, outputs[i].asString]);
+								i++;
+							}
+							debug(JSON.stringify(outputs));*/
+
 							debug("Result from output list: " + strValue(response as ConsoleMessage));
 							outputMessage(response as ConsoleMessage);
 						});
@@ -586,10 +606,26 @@ function Console() {
 	let midi = <></>;
 	//midi = <Midi />;
 
+	let outputOptionsElements = [];
+	outputOptions.map((value) => {
+		debug("mapping the jount: " + value);
+		outputOptionsElements.push(<option value={value}>{value}</option>);
+	})
+
 	return (
 		<>
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
+					<select style={{ position: "absolute", top: "100px", left: "100px" }} onChange={(event) => {
+						let output = event.target.value;
+						debug("Output selected: " + output);
+						invoke("output_select", { output: output }).then((response) => {
+							debug("Result from output select: " + strValue(response as ConsoleMessage));
+							outputMessage(response as ConsoleMessage);
+						});
+					}}>
+						{outputOptionsElements}
+					</select>
 					{midi}
 					<div className="console">
 						<div className="console-output">
