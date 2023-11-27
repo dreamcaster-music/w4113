@@ -212,7 +212,7 @@ fn init(window: tauri::Window) -> Result<(), String> {
     //     (44100.0 / 4.0) as usize,
     //     0.1,
     // )));
-    // midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
+    midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
 
     // let mut granulizer = granulizer::Granulizer::new();
     // granulizer.resize_milliseconds(1000, state.sample_rate);
