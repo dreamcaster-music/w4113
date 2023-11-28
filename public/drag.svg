@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="64.103104mm"
+   height="64.103073mm"
+   viewBox="0 0 64.103104 64.103072"
+   version="1.1"
+   id="svg5"
+   inkscape:export-filename="drag.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   sodipodi:docname="drag.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     showguides="true"
+     inkscape:zoom="0.45349661"
+     inkscape:cx="52.922116"
+     inkscape:cy="-4.4101763"
+     inkscape:window-width="1309"
+     inkscape:window-height="456"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-78.395772,-89.722045)">
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3201"
+       width="16.085375"
+       height="16.085375"
+       x="78.395775"
+       y="89.722046" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3203"
+       width="16.085375"
+       height="16.085375"
+       x="102.40463"
+       y="89.722046" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3205"
+       width="16.085375"
+       height="16.085375"
+       x="126.4135"
+       y="89.722046" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3207"
+       width="16.085375"
+       height="16.085375"
+       x="113.7309"
+       y="-94.481148"
+       transform="rotate(90)" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3209"
+       width="16.085375"
+       height="16.085375"
+       x="137.73975"
+       y="-94.481148"
+       transform="rotate(90)" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3211"
+       width="16.085375"
+       height="16.085375"
+       x="113.7309"
+       y="-118.49"
+       transform="rotate(90)" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3213"
+       width="16.085375"
+       height="16.085375"
+       x="137.73975"
+       y="-118.49"
+       transform="rotate(90)" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3215"
+       width="16.085375"
+       height="16.085375"
+       x="113.7309"
+       y="-142.49887"
+       transform="rotate(90)" />
+    <rect
+       style="opacity:0.248387;fill:#ffffff;stroke:#00aa00;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect3217"
+       width="16.085375"
+       height="16.085375"
+       x="137.73975"
+       y="-142.49887"
+       transform="rotate(90)" />
+  </g>
+</svg>

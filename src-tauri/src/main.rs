@@ -388,23 +388,6 @@ async fn config_load(filename: String) -> ConsoleMessage {
     }
 }
 
-/// ## `host_list(_window: tauri::Window) -> ConsoleMessage`
-///
-/// Lists all available hosts.
-///
-/// ### Returns
-///
-/// * `ConsoleMessage` - The result of the command
-#[tauri::command]
-async fn host_list(_window: tauri::Window) -> ConsoleMessage {
-    let hosts = audio::list_hosts();
-
-    ConsoleMessage {
-        kind: MessageKind::Console,
-        message: hosts,
-    }
-}
-
 /// ## `host_select(_window: tauri::Window, host_name: &str) -> ConsoleMessage`
 ///
 /// Selects a host.
@@ -441,43 +424,6 @@ async fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
         kind: MessageKind::Console,
         message: vec![format!("Selected host {}", host_name)],
     };
-}
-
-/// ## `output_list(_window: tauri::Window) -> ConsoleMessage`
-///
-/// Lists all available output devices.
-///
-/// ### Returns
-///
-/// * `ConsoleMessage` - The result of the command
-#[tauri::command]
-async fn output_list(_window: tauri::Window) -> ConsoleMessage {
-    let host = audio::HOST.lock();
-
-    let host = match host {
-        Ok(host) => host,
-        Err(e) => {
-            debug!("Error locking HOST: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking HOST: {}", e)],
-            };
-        }
-    };
-
-    match host.as_ref() {
-        Some(host) => {
-            let devices = audio::list_output_devices(host);
-            ConsoleMessage {
-                kind: MessageKind::Console,
-                message: devices,
-            }
-        }
-        None => ConsoleMessage {
-            kind: MessageKind::Error,
-            message: vec![format!("No host selected")],
-        },
-    }
 }
 
 /// ## `output_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage`
@@ -540,57 +486,6 @@ async fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage
             kind: MessageKind::Error,
             message: vec![format!("No host selected")],
         },
-    }
-}
-
-/// ## `output_stream_show(_window: tauri::Window) -> ConsoleMessage`
-///
-/// Lists all available output stream configurations.
-///
-/// ### Returns
-///
-/// * `ConsoleMessage` - The result of the command
-#[tauri::command]
-async fn output_stream_show(_window: tauri::Window) -> ConsoleMessage {
-    let output_device = audio::OUTPUT_DEVICE.lock();
-    let output_device = match output_device {
-        Ok(output_device) => output_device,
-        Err(e) => {
-            debug!("Error locking OUTPUT_DEVICE: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking OUTPUT_DEVICE: {}", e)],
-            };
-        }
-    };
-
-    let output_device = match output_device.as_ref() {
-        Some(output_device) => output_device,
-        None => {
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("No output device selected")],
-            };
-        }
-    };
-
-    let output_channels = audio::list_output_streams(output_device);
-    let mut output_channels = match output_channels {
-        Ok(output_channels) => output_channels,
-        Err(e) => {
-            debug!("Error getting output channels: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error getting output channels: {}", e)],
-            };
-        }
-    };
-
-    output_channels.insert(0, "Available output stream configurations:".to_owned());
-
-    ConsoleMessage {
-        kind: MessageKind::Console,
-        message: output_channels,
     }
 }
 
@@ -699,43 +594,6 @@ async fn output_stream_set(
     }
 }
 
-/// ## `input_list(_window: tauri::Window) -> ConsoleMessage`
-///
-/// Lists all available input devices.
-///
-/// ### Returns
-///
-/// * `ConsoleMessage` - The result of the command
-#[tauri::command]
-async fn input_list(_window: tauri::Window) -> ConsoleMessage {
-    let host = audio::HOST.lock();
-
-    let host = match host {
-        Ok(host) => host,
-        Err(e) => {
-            debug!("Error locking HOST: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking HOST: {}", e)],
-            };
-        }
-    };
-
-    match host.as_ref() {
-        Some(host) => {
-            let devices = audio::list_input_devices(host);
-            ConsoleMessage {
-                kind: MessageKind::Console,
-                message: devices,
-            }
-        }
-        None => ConsoleMessage {
-            kind: MessageKind::Error,
-            message: vec![format!("No host selected")],
-        },
-    }
-}
-
 /// ## `input_select(_window: tauri::Window, device_name: &str) -> ConsoleMessage`
 ///
 /// Selects an input device.
@@ -796,57 +654,6 @@ async fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
             kind: MessageKind::Error,
             message: vec![format!("No host selected")],
         },
-    }
-}
-
-/// ## `input_stream_show(_window: tauri::Window) -> ConsoleMessage`
-///
-/// Lists all available input stream configurations.
-///
-/// ### Returns
-///
-/// * `ConsoleMessage` - The result of the command
-#[tauri::command]
-async fn input_stream_show(_window: tauri::Window) -> ConsoleMessage {
-    let input_device = audio::INPUT_DEVICE.lock();
-    let input_device = match input_device {
-        Ok(input_device) => input_device,
-        Err(e) => {
-            debug!("Error locking INPUT_DEVICE: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking INPUT_DEVICE: {}", e)],
-            };
-        }
-    };
-
-    let input_device = match input_device.as_ref() {
-        Some(input_device) => input_device,
-        None => {
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("No input device selected")],
-            };
-        }
-    };
-
-    let input_channels = audio::list_input_streams(input_device);
-    let mut input_channels = match input_channels {
-        Ok(input_channels) => input_channels,
-        Err(e) => {
-            debug!("Error getting input channels: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error getting input channels: {}", e)],
-            };
-        }
-    };
-
-    input_channels.insert(0, "Available input stream configurations:".to_owned());
-
-    ConsoleMessage {
-        kind: MessageKind::Console,
-        message: input_channels,
     }
 }
 
@@ -1232,15 +1039,17 @@ fn main() {
             config_show,
             config_save,
             config_load,
-            host_list,
+            audio::list_hosts,
+			audio::list_output_devices,
+			audio::list_input_devices,
+			audio::set_output_device,
+			audio::list_output_streams,
+			audio::set_input_device,
+			audio::list_input_streams,
             host_select,
-            output_list,
             output_select,
-            output_stream_show,
             output_stream_set,
-            input_list,
             input_select,
-            input_stream_show,
             input_stream_set,
             midi_list,
             midi_start,

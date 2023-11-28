@@ -230,6 +230,7 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
 /// ### Returns
 ///
 /// * `Vec<String>` - The list of hosts
+#[tauri::command]
 pub fn list_hosts() -> Vec<String> {
     let mut hosts = Vec::new();
     let host_ids = cpal::available_hosts();
@@ -251,7 +252,28 @@ pub fn list_hosts() -> Vec<String> {
 /// ### Returns
 ///
 /// * `Vec<String>` - The list of output devices
-pub fn list_output_devices(host: &Host) -> Vec<String> {
+#[tauri::command]
+pub fn list_output_devices() -> Vec<String> {
+	let host = match HOST.lock() {
+		Ok(host) => {
+			host
+		},
+		Err(e) => {
+			debug!("Error locking HOST: {}", e);
+			return Vec::new();
+		}
+	};
+
+	let host = match host.as_ref() {
+		Some(host) => {
+			host
+		},
+		None => {
+			debug!("HOST is None");
+			return Vec::new();
+		}
+	};
+
     let mut devices = Vec::new();
     let output_devices = host.output_devices();
     let output_devices = match output_devices {
@@ -275,6 +297,58 @@ pub fn list_output_devices(host: &Host) -> Vec<String> {
     devices
 }
 
+#[tauri::command]
+pub fn set_output_device(name: String) -> Result<(), String> {
+	let host = match HOST.lock() {
+		Ok(host) => {
+			host
+		},
+		Err(e) => {
+			debug!("Error locking HOST: {}", e);
+			return Err(format!("Error locking HOST: {}", e));
+		}
+	};
+
+	let host = match host.as_ref() {
+		Some(host) => {
+			host
+		},
+		None => {
+			debug!("HOST is None");
+			return Err("HOST is None".to_owned());
+		}
+	};
+
+	let device = get_output_device(&name, &host);
+	let device = match device {
+		Some(device) => device,
+		None => {
+			debug!("Could not find output device {}", name);
+			return Err(format!("Could not find output device {}", name));
+		}
+	};
+
+	let mut mutex = match OUTPUT_DEVICE.lock() {
+		Ok(output_device) => output_device,
+		Err(e) => {
+			debug!("Error locking OUTPUT_DEVICE: {}", e);
+			return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
+		}
+	};
+
+	let output_device = match mutex.as_mut() {
+		Some(output_device) => output_device,
+		None => {
+			debug!("OUTPUT_DEVICE is None");
+			return Err("OUTPUT_DEVICE is None".to_owned());
+		}
+	};
+
+	*output_device = device;
+
+	Ok(())
+}
+
 /// ## `list_input_devices(host: &Host) -> Vec<String>`
 ///
 /// Lists all available input devices on a host.
@@ -286,7 +360,28 @@ pub fn list_output_devices(host: &Host) -> Vec<String> {
 /// ### Returns
 ///
 /// * `Vec<String>` - The list of input devices
-pub fn list_input_devices(host: &Host) -> Vec<String> {
+#[tauri::command]
+pub fn list_input_devices() -> Vec<String> {
+	let host = match HOST.lock() {
+		Ok(host) => {
+			host
+		},
+		Err(e) => {
+			debug!("Error locking HOST: {}", e);
+			return Vec::new();
+		}
+	};
+
+	let host = match host.as_ref() {
+		Some(host) => {
+			host
+		},
+		None => {
+			debug!("HOST is None");
+			return Vec::new();
+		}
+	};
+
     let mut devices = Vec::new();
     let input_devices = host.input_devices();
     let input_devices = match input_devices {
@@ -308,6 +403,58 @@ pub fn list_input_devices(host: &Host) -> Vec<String> {
         devices.push(input_device_name);
     }
     devices
+}
+
+#[tauri::command]
+pub fn set_input_device(name: String) -> Result<(), String> {
+	let host = match HOST.lock() {
+		Ok(host) => {
+			host
+		},
+		Err(e) => {
+			debug!("Error locking HOST: {}", e);
+			return Err(format!("Error locking HOST: {}", e));
+		}
+	};
+
+	let host = match host.as_ref() {
+		Some(host) => {
+			host
+		},
+		None => {
+			debug!("HOST is None");
+			return Err("HOST is None".to_owned());
+		}
+	};
+
+	let device = get_input_device(&name, &host);
+	let device = match device {
+		Some(device) => device,
+		None => {
+			debug!("Could not find input device {}", name);
+			return Err(format!("Could not find input device {}", name));
+		}
+	};
+
+	let mut mutex = match INPUT_DEVICE.lock() {
+		Ok(input_device) => input_device,
+		Err(e) => {
+			debug!("Error locking INPUT_DEVICE: {}", e);
+			return Err(format!("Error locking INPUT_DEVICE: {}", e));
+		}
+	};
+
+	let input_device = match mutex.as_mut() {
+		Some(input_device) => input_device,
+		None => {
+			debug!("INPUT_DEVICE is None");
+			return Err("INPUT_DEVICE is None".to_owned());
+		}
+	};
+
+	*input_device = device;
+
+	Ok(())
 }
 
 /*
@@ -709,11 +856,32 @@ pub fn get_input_config(
 /// ### Returns
 ///
 /// * `Result<Vec<String>, String>` - The list of output stream configurations, or an error message
-pub fn list_output_streams(device: &Device) -> Result<Vec<String>, String> {
+#[tauri::command]
+pub fn list_output_streams() -> Vec<String> {
+	let device = match OUTPUT_DEVICE.lock() {
+		Ok(device) => {
+			device
+		},
+		Err(e) => {
+			debug!("Error locking OUTPUT_DEVICE: {}", e);
+			return Vec::new();
+		}
+	};
+
+	let device = match device.as_ref() {
+		Some(device) => {
+			device
+		},
+		None => {
+			debug!("OUTPUT_DEVICE is None");
+			return Vec::new();
+		}
+	};
+
     let supported_configs = match device.supported_output_configs() {
         Ok(supported_configs) => supported_configs,
         Err(err) => {
-            return Err(format!("Error getting supported output configs: {}", err));
+            return vec![format!("Error getting supported output configs.")]
         }
     };
 
@@ -733,7 +901,7 @@ pub fn list_output_streams(device: &Device) -> Result<Vec<String>, String> {
         streams.push(stream);
     }
 
-    Ok(streams)
+	streams
 }
 
 /// ## `list_input_streams(device: &Device) -> Result<Vec<String>, String>`
@@ -747,11 +915,32 @@ pub fn list_output_streams(device: &Device) -> Result<Vec<String>, String> {
 /// ### Returns
 ///
 /// * `Result<Vec<String>, String>` - The list of input stream configurations, or an error message
-pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
+#[tauri::command]
+pub fn list_input_streams() -> Vec<String> {
+	let device = match INPUT_DEVICE.lock() {
+		Ok(device) => {
+			device
+		},
+		Err(e) => {
+			debug!("Error locking INPUT_DEVICE: {}", e);
+			return Vec::new();
+		}
+	};
+
+	let device = match device.as_ref() {
+		Some(device) => {
+			device
+		},
+		None => {
+			debug!("INPUT_DEVICE is None");
+			return Vec::new();
+		}
+	};
+
     let supported_configs = match device.supported_input_configs() {
         Ok(supported_configs) => supported_configs,
         Err(err) => {
-            return Err(format!("Error getting supported input configs: {}", err));
+            return vec![format!("Error getting supported input configs.")]
         }
     };
 
@@ -771,7 +960,7 @@ pub fn list_input_streams(device: &Device) -> Result<Vec<String>, String> {
         streams.push(stream);
     }
 
-    Ok(streams)
+    streams
 }
 
 /// ## `reload() -> Result<(), String>`

@@ -1,0 +1,21 @@
+.option {
+	margin: 20px;
+	display: flex;
+	flex-direction: row;
+
+	white-space: nowrap;
+
+	font: 900 18px var(--font-mono);
+	color: var(--accent);
+
+	height: 20px;
+	max-height: 20px;
+}
+
+.option select {
+	width: 100%;
+}
+
+.option input {
+	width: 100%;
+}
