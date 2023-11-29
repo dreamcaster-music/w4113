@@ -1,12 +1,12 @@
-import { trace } from "tauri-plugin-log-api";
+import { debug, trace } from "tauri-plugin-log-api";
 import "../../globals.css";
 import { useEffect, useState } from "react";
 
-function Frame(props: { width?: string, height?: string, title?: string, visible?: boolean, className?: any, children?: any }) {
+function Frame(props: { width?: string, height?: string, x?: number, y?: number, title?: string, visible?: boolean, className?: any, children?: any, refreshCallback?: () => void }) {
 	const handleSize = 12;
-	const [position, setPosition] = useState({ x: 0, y: 0, dx: 0, dy: 0, dragging: false });
+	const [position, setPosition] = useState({ x: props.x || 0, y: props.y || 0, dx: 0, dy: 0, dragging: false });
 	const [size, setSize] = useState({ width: "auto", height: "auto" });
-	const [visible, setVisible] = useState(props.visible);
+	const [visible, setVisible] = useState(!props.visible);
 
 	function onMouseDown(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
 		if (!visible) return;
@@ -20,6 +20,11 @@ function Frame(props: { width?: string, height?: string, title?: string, visible
 			setPosition({ x: event.clientX - dx, y: event.clientY - dy, dx: dx, dy: dy, dragging: true });
 		} else if (target == "close") {
 			setVisible(false);
+		} else if (target == "refresh") {
+			if (props.refreshCallback) {
+				trace((props.title || "Untitled") + ": refresh callback");
+				props.refreshCallback();
+			}
 		}
 	}
 
@@ -49,17 +54,31 @@ function Frame(props: { width?: string, height?: string, title?: string, visible
 		}
 	}, [position.dragging]);
 
+	useEffect(() => {
+		setVisible(!visible);
+	}, [props.visible]);
+
+	let refreshHandle = <></>
+	if (props.refreshCallback) {
+		refreshHandle = (
+			<img src="refresh.svg" data-target="refresh" className="handle refresh" style={{ width: handleSize * 1.3 + "px", height: handleSize * 1.3 + "px" }} draggable="false" onClick={() => {
+
+			}} />
+		);
+	}
+
 	return (
 		<>
 			<style>
 				{css}
 			</style>
 			{(visible) && (
-				<div className={"frame " + props.className} style={{ width: size.width, height: size.height, left: position.x, top: position.y }} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove}>
+				<div className={"frame mono bg-black " + props.className} style={{ width: size.width, height: size.height, left: position.x, top: position.y }} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove}>
 					<div className="title-bar">
 						<img src="close.svg" data-target="close" className="handle close" style={{ width: handleSize + "px", height: handleSize + "px" }} draggable="false" />
 						<img src="drag.svg" data-target="drag" className="handle drag" style={{ width: handleSize + "px", height: handleSize + "px" }} draggable="false" />
 						{props.title || "Untitled"}
+						{refreshHandle}
 					</div>
 					<div className="frame-body" style={{ width: props.width, height: props.height }}>
 						{props.children}
@@ -102,6 +121,10 @@ const css = `
 	opacity: 1;
 }
 
+.refresh {
+	margin-left: auto;
+}
+/*
 .drag {
 	cursor: move;
 }
@@ -109,6 +132,11 @@ const css = `
 .close {
 	cursor: pointer;
 }
+
+.refresh {
+	cursor: pointer;
+}
+*/
 
 `;
 

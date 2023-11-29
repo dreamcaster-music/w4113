@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
-import "./Console.css";
+import "../globals.css";
 import { debug, error } from "tauri-plugin-log-api";
 
 import { ConsoleMessage } from "../bindings/ConsoleMessage";
@@ -10,6 +10,9 @@ import { FreqMessage } from "../bindings/FreqMessage";
 import Settings from "./Settings";
 import Frame from "./ui/Frame";
 
+const dockWidth = 68;
+const dockIconSize = 30;
+
 /**
  * ## App()
  * 
@@ -18,6 +21,8 @@ import Frame from "./ui/Frame";
  * @returns w4113 app element
  */
 function Console() {
+	const [settingsVisible, setSettingsVisible] = useState(false);
+
 	// Runs once on app load
 	useEffect(() => {
 		debug("React App finished loading, now calling Tauri.")
@@ -28,20 +33,107 @@ function Console() {
 
 	return (
 		<>
+			<style>
+				{css}
+			</style>
+
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
-					<Settings visible={true} />
+					<Settings visible={settingsVisible} />
 
-					<button onClick={() => {
-						// invoke hid_list
-						invoke("hid_list").then((response) => {
-							//debug(response);
-						});
-					}} style={{ position: "absolute", left: "50px", bottom: "50px" }}>HID List</button>
+					<div className="dock">
+						<img src="settings.svg" className="dock-icon" draggable="false" onClick={() => {
+							setSettingsVisible(!settingsVisible);
+						}} />
+						<button className="dock-text-icon" draggable="false">
+							MIDI
+						</button>
+						<button className="dock-text-icon" draggable="false">
+							Key
+						</button>
+					</div>
 				</div>
-			</div>
+			</div >
 		</>
 	);
 }
+
+const css = `
+
+			html,
+			body,
+			:root,
+			.root,
+			.container {
+				position: absolute;
+			height: 100%;
+			width: 100%;
+			top: 0;
+			left: 0;
+			margin: 0;
+			padding: 0;
+
+			background-color: var(--dark);
+			overflow: hidden;
+}
+
+			.dock {
+				padding-top: 28px;
+				position: absolute;
+			width: ${dockWidth}px;
+			height: 100%;
+			background-color: var(--dark);
+			overflow: hidden;
+
+			border-right: 1px solid var(--accent);
+}
+
+			.console {
+				position: absolute;
+}
+
+			.dock-icon {
+				
+
+				margin-left: ${(dockWidth - dockIconSize) / 2}px;
+				margin-right: ${(dockWidth - dockIconSize) / 2}px;
+
+				width: ${dockIconSize}px;
+				height: ${dockIconSize}px;
+
+				margin-top: 5px;
+				margin-bottom: 5px;
+
+				opacity: 0.5;
+			}
+
+			.dock-text-icon {
+				background-color: transparent;
+				border: none;
+
+				color: var(--accent);
+				font: 900 16px var(--mono);
+				
+				text-align: left;
+
+				margin: auto;
+				width: 100%;
+				height: ${dockIconSize}px;
+
+				text-align: center;
+				vertical-align: middle;
+				line-height: 30px;
+				opacity: 0.5;
+			}
+
+			.dock-icon:hover {
+				opacity: 1;
+			}
+
+			.dock-text-icon:hover {
+				opacity: 1;
+			}
+
+			`
 
 export default Console;

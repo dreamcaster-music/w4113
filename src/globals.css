@@ -10,6 +10,10 @@
 	--font-size: 1rem;
 }
 
+.bg-black {
+	background-color: var(--dark);
+}
+
 .panel {
 	position: absolute;
 	border: 1px solid var(--accent);
@@ -33,7 +37,7 @@ select {
 	padding: 2px;
 	border: 1px solid var(--accent);
 	/* display a little white arrow to the right of the dropdown button */
-	background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='5'><polygon points='0,0 10,0 5,5' style='fill:lime'/></svg>") no-repeat right var(--background-color-secondary);
+	background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='5'><polygon points='0,0 10,0 5,5' style='fill:lime'/></svg>") no-repeat right var(--dark);
 	background-size: 10px 5px;
 	background-position-x: calc(100% - 5px);
 	background-position-y: center;
