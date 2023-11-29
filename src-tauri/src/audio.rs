@@ -1512,7 +1512,7 @@ pub mod plugin {
             self.buffer.remove(0);
             //add interp signal to buffer
             if state.sample_clock % ((state.sample_rate as u64 * detune) / 1000) == 0 {
-                self.buffer.insert(self.buffer[1] as usize, interp_signal);
+                self.buffer.replace(0, interp_signal);
             }
             self.buffer.push(sample_mono + main_signal * self.feedback);
             *sample = Sample::Mono((sample_mono + main_signal as f32));
