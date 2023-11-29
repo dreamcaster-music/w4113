@@ -4,6 +4,7 @@
 	--light: #ffffff;
 	--light-alt: #cccccc;
 	--accent: lime;
+	--accent-alt: green;
 	--mono: "Courier New", Courier, monospace;
 	--sans: "Lato", sans-serif;
 	--font-size: 1rem;
@@ -36,7 +37,6 @@ select {
 	background-size: 10px 5px;
 	background-position-x: calc(100% - 5px);
 	background-position-y: center;
-
 }
 
 input {
@@ -49,7 +49,6 @@ input {
 	padding: 2px;
 	border: 1px solid var(--accent);
 	background-color: var(--background-color-secondary);
-
 }
 
 .noselect {

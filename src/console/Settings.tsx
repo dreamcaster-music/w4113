@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import "../globals.css";
 import "./Settings.css";
-import "./Frame.css";
 import { debug } from "tauri-plugin-log-api";
-import Frame from "./Frame";
+import Frame from "./ui/Frame";
 import { event, invoke } from "@tauri-apps/api";
 
 function Settings(props: { visible?: boolean }) {
@@ -61,16 +60,16 @@ function Settings(props: { visible?: boolean }) {
 		});
 	}, [inputDevice]);
 
-	let defaultOption = <></>;
-	// defaultOption = <option>default</option>;
+	let defaultOption = <option>default</option>;
 
 	return (
 		<Frame className="panel settings noselect" width={"700px"} height={"auto"} title={"Audio Settings"} visible={props.visible}>
 			<div className="option">
 				Host:
-				<select className="host-select" onChange={(event) => {
-					setHost(event.target.value);
-				}}>
+				<select className="host-select"
+					onChange={(event) => {
+						setHost(event.target.value);
+					}}>
 					{hostOption.map((host: any) => {
 						return <option>{host}</option>;
 					})}
@@ -123,10 +122,10 @@ function Settings(props: { visible?: boolean }) {
 			</div>
 
 			<div className="option">
-				Output Buffer: <input type="number" className="output-buffer-input" />
-				Input Buffer: <input type="number" className="input-buffer-input" />
+				Output Buffer: <input type="number" defaultValue="1024" className="output-buffer-input" />
+				Input Buffer: <input type="number" defaultValue="1024" className="input-buffer-input" />
 			</div>
-		</Frame>
+		</Frame >
 	);
 }
 

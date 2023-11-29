@@ -1,6 +1,5 @@
 import { trace } from "tauri-plugin-log-api";
-import "../globals.css";
-import "./Frame.css";
+import "../../globals.css";
 import { useEffect, useState } from "react";
 
 function Frame(props: { width?: string, height?: string, title?: string, visible?: boolean, className?: any, children?: any }) {
@@ -52,6 +51,9 @@ function Frame(props: { width?: string, height?: string, title?: string, visible
 
 	return (
 		<>
+			<style>
+				{css}
+			</style>
 			{(visible) && (
 				<div className={"frame " + props.className} style={{ width: size.width, height: size.height, left: position.x, top: position.y }} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove}>
 					<div className="title-bar">
@@ -59,7 +61,7 @@ function Frame(props: { width?: string, height?: string, title?: string, visible
 						<img src="drag.svg" data-target="drag" className="handle drag" style={{ width: handleSize + "px", height: handleSize + "px" }} draggable="false" />
 						{props.title || "Untitled"}
 					</div>
-					<div className="frame-body">
+					<div className="frame-body" style={{ width: props.width, height: props.height }}>
 						{props.children}
 					</div>
 				</div>
@@ -67,5 +69,47 @@ function Frame(props: { width?: string, height?: string, title?: string, visible
 		</>
 	);
 }
+
+const css = `
+
+.frame {
+	position: absolute;
+	border: 1px solid var(--accent);
+}
+
+.title-bar {
+	display: flex;
+	flex-direction: row;
+
+	color: var(--accent);
+	font: 900 16px var(--font-mono);
+	padding-top: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+
+	height: 15px;
+	max-height: 15px;
+}
+
+.handle {
+	padding-top: 2px;
+	padding-right: 10px;
+	margin: 0px;
+	opacity: 0.5;
+}
+
+.handle:hover {
+	opacity: 1;
+}
+
+.drag {
+	cursor: move;
+}
+
+.close {
+	cursor: pointer;
+}
+
+`;
 
 export default Frame;

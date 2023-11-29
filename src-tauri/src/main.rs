@@ -1026,8 +1026,7 @@ fn main() {
             tauri_plugin_log::Builder::default()
                 .targets([
 					LogTarget::Stdout, 
-					LogTarget::Webview,
-					LogTarget::Folder(PathBuf::from("/Users/westdt/logs"))
+					LogTarget::Webview
 					])
                 .level(LevelFilter::Trace)
                 .build(),

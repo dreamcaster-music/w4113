@@ -8,7 +8,7 @@ import { appWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { FreqMessage } from "../bindings/FreqMessage";
 import Settings from "./Settings";
-import Frame from "./Frame";
+import Frame from "./ui/Frame";
 
 /**
  * ## App()
@@ -31,6 +31,13 @@ function Console() {
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
 					<Settings visible={true} />
+
+					<button onClick={() => {
+						// invoke hid_list
+						invoke("hid_list").then((response) => {
+							//debug(response);
+						});
+					}} style={{ position: "absolute", left: "50px", bottom: "50px" }}>HID List</button>
 				</div>
 			</div>
 		</>
