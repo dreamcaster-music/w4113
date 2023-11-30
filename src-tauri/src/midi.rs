@@ -22,22 +22,45 @@ use crate::audio;
 /// ### Returns
 ///
 /// `Vec<String>` - A vector of strings containing the midi devices
+#[tauri::command]
 pub fn midi_list() -> Vec<String> {
     //list midi devices
-    let mut midi_in = MidiInput::new("midir reading input").unwrap();
+    let mut midi_in = match MidiInput::new("midir reading input") {
+		Ok(midi_in) => midi_in,
+		Err(err) => {
+			debug!("Error: {}", err);
+			return vec!["Error".to_string()];
+		}
+	};
     midi_in.ignore(Ignore::None);
-    let midi_out = MidiOutput::new("midir writing output").unwrap();
+    let midi_out = match MidiOutput::new("midir writing output") {
+		Ok(midi_out) => midi_out,
+		Err(err) => {
+			debug!("Error: {}", err);
+			return vec!["Error".to_string()];
+		}
+	};
     let _midi_out_ports = midi_out.ports();
     let midi_in_ports = midi_in.ports();
-    let mut test = String::new();
+    let mut midi_devices = Vec::new();
     for i in 0..midi_in_ports.len() {
-        test.push_str(&format!(
+        midi_devices.push(format!(
             "{}: {:?}\n",
             i,
-            midi_in.port_name(&midi_in_ports[i]).unwrap()
+            match midi_in.port_name(&midi_in_ports[i]) {
+				Ok(name) => name,
+				Err(err) => {
+					debug!("Error: {}", err);
+					return vec!["Error".to_string()];
+				}
+			}
         ));
     }
-    return vec![test.to_string()];
+    
+	if midi_devices.len() == 0 {
+		midi_devices.push("No midi devices found".to_string());
+	}
+	midi_devices
 }
 
 

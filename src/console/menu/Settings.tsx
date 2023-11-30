@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import "../globals.css";
+import "../../globals.css";
 import { debug } from "tauri-plugin-log-api";
-import Frame from "./ui/Frame";
+import Frame from "../components/Frame";
 import { event, invoke } from "@tauri-apps/api";
 
 function Settings(props: { visible: boolean }) {
@@ -63,7 +63,12 @@ function Settings(props: { visible: boolean }) {
 			<style>
 				{css}
 			</style>
-			<Frame x={150} className="settings noselect" width={"700px"} height={"auto"} title={"Audio Settings"} visible={props.visible}>
+			<Frame x={100} y={50} className="noselect" width={"700px"} height={"auto"} title={"Audio Settings"} visible={props.visible} refreshCallback={() => {
+				debug("refreshing audio settings");
+				invoke("list_hosts").then((hosts: any) => {
+					setHostOption(hosts);
+				});
+			}}>
 				<div className="option">
 					Host:
 					<select className="host-select"

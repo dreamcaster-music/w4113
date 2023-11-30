@@ -336,15 +336,7 @@ pub fn set_output_device(name: String) -> Result<(), String> {
 		}
 	};
 
-	let output_device = match mutex.as_mut() {
-		Some(output_device) => output_device,
-		None => {
-			debug!("OUTPUT_DEVICE is None");
-			return Err("OUTPUT_DEVICE is None".to_owned());
-		}
-	};
-
-	*output_device = device;
+	*mutex = Some(device);
 
 	Ok(())
 }
@@ -444,15 +436,7 @@ pub fn set_input_device(name: String) -> Result<(), String> {
 		}
 	};
 
-	let input_device = match mutex.as_mut() {
-		Some(input_device) => input_device,
-		None => {
-			debug!("INPUT_DEVICE is None");
-			return Err("INPUT_DEVICE is None".to_owned());
-		}
-	};
-
-	*input_device = device;
+	*mutex = Some(device);
 
 	Ok(())
 }

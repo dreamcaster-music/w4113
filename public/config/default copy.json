@@ -1,7 +1,0 @@
-{
-  "audio": {
-    "host": "CoreAudio",
-    "input": "MacBook Air Microphone",
-    "output": "MacBook Air Speakers"
-  }
-}

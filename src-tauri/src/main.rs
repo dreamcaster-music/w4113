@@ -18,16 +18,7 @@ use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
 use crate::interface::Key;
 
-// Apply to Windows only
-#[cfg(target_os = "windows")]
-static CONFIG_FILE: &str = "public_win/config.json";
-#[cfg(target_os = "windows")]
-static CONFIG_ROOT: &str = "public_win/config/";
-
-// Apply to any non-Windows platform
-#[cfg(not(target_os = "windows"))]
 static CONFIG_FILE: &str = "public/config.json";
-#[cfg(not(target_os = "windows"))]
 static CONFIG_ROOT: &str = "public/config/";
 
 // The current configuration
@@ -93,8 +84,8 @@ struct ConsoleMessage {
 /// ### Returns
 ///
 /// * `String` - The result of the command, formatted as a string
-#[tauri::command]
-async fn run(window: tauri::Window) -> String {
+
+async fn run(window: &tauri::Window) -> String {
     let result = match init(window) {
         Ok(()) => "Initialization ran successfully".to_owned(),
         Err(e) => format!("Error in initialization: {}", e),
@@ -177,7 +168,7 @@ async fn run(window: tauri::Window) -> String {
 /// ### Returns
 ///
 /// * `Result<(), String>` - The result of the command
-fn init(window: tauri::Window) -> Result<(), String> {
+fn init(window: &tauri::Window) -> Result<(), String> {
     debug!("Initializing Tauri");
 
     let strips = audio::STRIPS.try_write();
@@ -220,53 +211,6 @@ fn init(window: tauri::Window) -> Result<(), String> {
             debug!("Error locking STRIPS: {}", e);
         }
     }
-
-    // Make the window visible
-    debug!("Showing windows");
-    let console_window = CONSOLE_WINDOW.try_lock();
-    match console_window {
-        Ok(console_window) => match console_window.as_ref() {
-            Some(console_window) => {
-                let _ = console_window.show();
-            }
-            None => {}
-        },
-        Err(e) => {
-            debug!("Error locking CONSOLE_WINDOW: {}", e);
-        }
-    };
-
-    let tv_window = TV_WINDOW.try_lock();
-    match tv_window {
-        Ok(tv_window) => match tv_window.as_ref() {
-            Some(tv_window) => {
-                let _ = tv_window.show();
-                let position = LogicalPosition::new(100.0, 100.0);
-                let _ = tv_window.set_position(position);
-                //let _ = tv_window.close();
-            }
-            None => {}
-        },
-        Err(e) => {
-            debug!("Error locking TV_WINDOW: {}", e);
-        }
-    };
-
-    // let hid = hotkey::list_mac();
-    // match hid {
-    // 	Ok(hid) => {
-    // 		debug!("Found {} HID devices", hid.len());
-    // 		for device in hid {
-    // 			debug!("{}", device);
-    // 		}
-    // 	}
-    // 	Err(e) => {
-    // 		debug!("Error listing HID devices: {}", e);
-    // 	}
-    // }
-
-    let _ = window.show();
-
     Ok(())
 }
 
@@ -410,7 +354,7 @@ async fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
             *host_mutex = Some(host);
         }
         Err(e) => {
-            debug!("Error locking HOST: {}", e);
+            error!("Error locking HOST: {}", e);
             return ConsoleMessage {
                 kind: MessageKind::Error,
                 message: vec![format!("Error locking HOST: {}", e)],
@@ -840,17 +784,6 @@ async fn confirm_exit() -> ConsoleMessage {
 }
 
 #[tauri::command]
-async fn midi_list(_window: tauri::Window) -> ConsoleMessage {
-    // call midi.rs function
-    debug!("Calling midi::midi_list()");
-    let midi_devices = midi::midi_list();
-    ConsoleMessage {
-        kind: MessageKind::Console,
-        message: midi_devices,
-    }
-}
-
-#[tauri::command]
 async fn midi_start(_window: tauri::Window, device_name: String) -> ConsoleMessage {
     // let device_name = "AKM320".to_owned();
     // call midi.rs function
@@ -1002,6 +935,8 @@ fn main() {
             let console_window = app.get_window("console").unwrap();
             let tv_window = app.get_window("tv").unwrap();
 
+			let _ = run(&console_window);
+
             match CONSOLE_WINDOW.lock() {
                 Ok(mut console_window_mutex) => {
                     *console_window_mutex = Some(console_window);
@@ -1028,13 +963,13 @@ fn main() {
 					LogTarget::Stdout, 
 					LogTarget::Webview
 					])
-                .level(LevelFilter::Trace)
+                .level(LevelFilter::Debug)
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
             exit,
             confirm_exit,
-            run,
+            //run,
             config_show,
             config_save,
             config_load,
@@ -1050,9 +985,10 @@ fn main() {
             output_stream_set,
             input_select,
             input_stream_set,
-            midi_list,
+            midi::midi_list,
             midi_start,
             midi_stop,
+			interface::list_interfaces_name,
             hid_list
         ])
         .run(tauri::generate_context!())
@@ -1067,6 +1003,7 @@ fn main() {
 ///
 /// * `config: &mut config::Config` - The config
 fn on_config_update(config: &mut config::Config) {
+	debug!("Config updated");
     let host_name = match config.get_str_or("audio.host", || "default".to_owned()) {
         Ok(host_name) => host_name,
         Err(e) => {

@@ -1,0 +1,70 @@
+"filename", "language", "TypeScript JSX", "CSS", "JSON with Comments", "TypeScript", "Markdown", "HTML", "JSON", "Rust", "XML", "YAML", "comment", "blank", "total"
+"/Users/westdt/Documents/GitHub/w4113/.github/dependabot.yml", "YAML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 4, 3, 17
+"/Users/westdt/Documents/GitHub/w4113/README.md", "Markdown", 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 2, 7
+"/Users/westdt/Documents/GitHub/w4113/index.html", "HTML", 0, 0, 0, 0, 0, 13, 0, 0, 0, 0, 0, 3, 16
+"/Users/westdt/Documents/GitHub/w4113/package.json", "JSON", 0, 0, 0, 0, 0, 0, 26, 0, 0, 0, 0, 0, 26
+"/Users/westdt/Documents/GitHub/w4113/public/close.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/public/config.json", "JSON", 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3
+"/Users/westdt/Documents/GitHub/w4113/public/config/MacBook.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/public/config/airpods.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/public/config/bonin reaver.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/public/config/default copy.json", "JSON", 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 7
+"/Users/westdt/Documents/GitHub/w4113/public/config/default.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/public/config/scarlett.json", "JSON", 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 5
+"/Users/westdt/Documents/GitHub/w4113/public/drag.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/public/icon.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 65, 0, 1, 2, 68
+"/Users/westdt/Documents/GitHub/w4113/public/refresh.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/public/settings.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 51, 0, 1, 2, 54
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/build.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 4
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/close.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/config.json", "JSON", 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/MacBook.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/airpods.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/bonin reaver.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/default copy.json", "JSON", 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 7
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/default.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/scarlett.json", "JSON", 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 5
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/drag.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/icon.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 65, 0, 1, 2, 68
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/refresh.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public/settings.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 51, 0, 1, 2, 54
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/close.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config.json", "JSON", 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/MacBook.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/airpods.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/bonin reaver.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/default copy.json", "JSON", 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 7
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/default.json", "JSON", 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 17
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/scarlett.json", "JSON", 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 5
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/drag.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/icon.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 65, 0, 1, 2, 68
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/refresh.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 1, 2, 53
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/settings.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 51, 0, 1, 2, 54
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/audio.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 1078, 0, 0, 456, 146, 1680
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/config.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 266, 0, 0, 333, 38, 637
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/delay.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0, 7, 58
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/granulizer.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 102, 25, 127
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/interface.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 487, 0, 0, 8, 40, 535
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/main.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 904, 0, 0, 216, 110, 1230
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/midi.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 153, 0, 0, 70, 29, 252
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/stereo_cross_feedback.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 4
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/src/tv/mod.rs", "Rust", 0, 0, 0, 0, 0, 0, 0, 23, 0, 0, 0, 5, 28
+"/Users/westdt/Documents/GitHub/w4113/src-tauri/tauri.conf.json", "JSON", 0, 0, 0, 0, 0, 0, 67, 0, 0, 0, 0, 0, 67
+"/Users/westdt/Documents/GitHub/w4113/src/bindings/ConsoleMessage.ts", "TypeScript", 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 1, 4
+"/Users/westdt/Documents/GitHub/w4113/src/bindings/FreqMessage.ts", "TypeScript", 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 3
+"/Users/westdt/Documents/GitHub/w4113/src/bindings/MessageKind.ts", "TypeScript", 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 3
+"/Users/westdt/Documents/GitHub/w4113/src/console.tsx", "TypeScript JSX", 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 12
+"/Users/westdt/Documents/GitHub/w4113/src/console/Console.tsx", "TypeScript JSX", 121, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 11, 140
+"/Users/westdt/Documents/GitHub/w4113/src/console/Settings.tsx", "TypeScript JSX", 146, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 17, 165
+"/Users/westdt/Documents/GitHub/w4113/src/console/ui/Frame.tsx", "TypeScript JSX", 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 14, 143
+"/Users/westdt/Documents/GitHub/w4113/src/globals.css", "CSS", 0, 55, 0, 0, 0, 0, 0, 0, 0, 0, 2, 8, 65
+"/Users/westdt/Documents/GitHub/w4113/src/tv.tsx", "TypeScript JSX", 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 12
+"/Users/westdt/Documents/GitHub/w4113/src/tv/TV.css", "CSS", 0, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 14
+"/Users/westdt/Documents/GitHub/w4113/src/tv/TV.tsx", "TypeScript JSX", 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 29
+"/Users/westdt/Documents/GitHub/w4113/src/tv/visualizers/BasicVisualizer.css", "CSS", 0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 22
+"/Users/westdt/Documents/GitHub/w4113/src/tv/visualizers/BasicVisualizer.tsx", "TypeScript JSX", 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 16, 61
+"/Users/westdt/Documents/GitHub/w4113/tsconfig.json", "JSON with Comments", 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 9, 0, 41
+"/Users/westdt/Documents/GitHub/w4113/tsconfig.node.json", "JSON", 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 1, 11
+"/Users/westdt/Documents/GitHub/w4113/tv.html", "HTML", 0, 0, 0, 0, 0, 13, 0, 0, 0, 0, 0, 3, 16
+"/Users/westdt/Documents/GitHub/w4113/vite.config.ts", "TypeScript", 0, 0, 0, 22, 0, 0, 0, 0, 0, 0, 9, 3, 34
+"Total", "-", 478, 86, 32, 26, 5, 26, 352, 2967, 798, 10, 1242, 533, 6555

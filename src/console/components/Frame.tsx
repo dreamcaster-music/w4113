@@ -1,15 +1,45 @@
 import { debug, trace } from "tauri-plugin-log-api";
 import "../../globals.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
+
+function createUniqueId() {
+	let id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+	let element = document.getElementById(id);
+
+	if (element) {
+		return createUniqueId();
+	}
+
+	return id;
+}
 
 function Frame(props: { width?: string, height?: string, x?: number, y?: number, title?: string, visible?: boolean, className?: any, children?: any, refreshCallback?: () => void }) {
 	const handleSize = 12;
 	const [position, setPosition] = useState({ x: props.x || 0, y: props.y || 0, dx: 0, dy: 0, dragging: false });
 	const [size, setSize] = useState({ width: "auto", height: "auto" });
 	const [visible, setVisible] = useState(!props.visible);
+	const uniqueId = createUniqueId();
+
+	function focusFrame() {
+		trace((props.title || "Untitled") + ": focusing frame");
+		let frames = document.getElementsByClassName("frame");
+		for (let i = 0; i < frames.length; i++) {
+			let frame = frames[i] as HTMLDivElement;
+
+			if (frame.id == uniqueId) {
+				frame.style.zIndex = "2";
+			} else {
+				frame.style.zIndex = "1";
+			}
+		}
+	}
 
 	function onMouseDown(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
 		if (!visible) return;
+
+		focusFrame();
 
 		// @ts-ignore
 		let target = event.target.dataset.target;
@@ -41,6 +71,7 @@ function Frame(props: { width?: string, height?: string, x?: number, y?: number,
 	useEffect(() => {
 		if (visible) {
 			trace((props.title || "Untitled") + ": showing frame");
+			focusFrame();
 		} else {
 			trace((props.title || "Untitled") + ": hiding frame");
 		}
@@ -73,7 +104,7 @@ function Frame(props: { width?: string, height?: string, x?: number, y?: number,
 				{css}
 			</style>
 			{(visible) && (
-				<div className={"frame mono bg-black " + props.className} style={{ width: size.width, height: size.height, left: position.x, top: position.y }} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove}>
+				<div id={uniqueId} className={"frame mono bg-black " + props.className} style={{ width: size.width, height: size.height, left: position.x, top: position.y }} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove}>
 					<div className="title-bar">
 						<img src="close.svg" data-target="close" className="handle close" style={{ width: handleSize + "px", height: handleSize + "px" }} draggable="false" />
 						<img src="drag.svg" data-target="drag" className="handle drag" style={{ width: handleSize + "px", height: handleSize + "px" }} draggable="false" />
@@ -96,6 +127,10 @@ const css = `
 	border: 1px solid var(--accent);
 }
 
+.frame-body {
+	overflow: scroll;
+}
+
 .title-bar {
 	display: flex;
 	flex-direction: row;
@@ -106,8 +141,8 @@ const css = `
 	padding-left: 10px;
 	padding-right: 10px;
 
-	height: 15px;
-	max-height: 15px;
+	height: 24px;
+	max-height: 24px;
 }
 
 .handle {

@@ -7,8 +7,11 @@ import { ConsoleMessage } from "../bindings/ConsoleMessage";
 import { appWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { FreqMessage } from "../bindings/FreqMessage";
-import Settings from "./Settings";
-import Frame from "./ui/Frame";
+import Frame from "./components/Frame";
+import Settings from "./menu/Settings";
+import Midi from "./menu/Midi";
+import Keyboard from "./menu/Keyboard";
+import Terminal from "./menu/Terminal";
 
 const dockWidth = 68;
 const dockIconSize = 30;
@@ -22,6 +25,9 @@ const dockIconSize = 30;
  */
 function Console() {
 	const [settingsVisible, setSettingsVisible] = useState(false);
+	const [midiVisible, setMidiVisible] = useState(false);
+	const [keyboardVisible, setKeyboardVisible] = useState(false);
+	const [terminalVisible, setTerminalVisible] = useState(false);
 
 	// Runs once on app load
 	useEffect(() => {
@@ -40,15 +46,29 @@ function Console() {
 			<div className="app">
 				<div className="container" data-tauri-drag-region>
 					<Settings visible={settingsVisible} />
+					<Midi visible={midiVisible} />
+					<Keyboard visible={keyboardVisible} />
+					<Terminal visible={terminalVisible} />
+
+
 
 					<div className="dock">
 						<img src="settings.svg" className="dock-icon" draggable="false" onClick={() => {
 							setSettingsVisible(!settingsVisible);
 						}} />
-						<button className="dock-text-icon" draggable="false">
+						<button className="dock-text-icon" draggable="false" onClick={() => {
+							setTerminalVisible(!terminalVisible);
+						}}>
+							&gt;_
+						</button>
+						<button className="dock-text-icon" draggable="false" onClick={() => {
+							setMidiVisible(!midiVisible);
+						}}>
 							MIDI
 						</button>
-						<button className="dock-text-icon" draggable="false">
+						<button className="dock-text-icon" draggable="false" onClick={() => {
+							setKeyboardVisible(!keyboardVisible);
+						}}>
 							Key
 						</button>
 					</div>

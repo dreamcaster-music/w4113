@@ -1,0 +1,126 @@
+Date : 2023-11-28 22:36:04
+Directory : /Users/westdt/Documents/GitHub/w4113
+Total : 68 files,  4780 codes, 1242 comments, 533 blanks, all 6555 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| Rust               |         10 |      2,967 |      1,185 |        403 |      4,555 |
+| XML                |         15 |        798 |         15 |         30 |        843 |
+| TypeScript JSX     |          7 |        478 |         14 |         70 |        562 |
+| JSON               |         24 |        352 |          0 |          1 |        353 |
+| CSS                |          3 |         86 |          3 |         12 |        101 |
+| JSON with Comments |          1 |         32 |          9 |          0 |         41 |
+| TypeScript         |          4 |         26 |         12 |          6 |         44 |
+| HTML               |          2 |         26 |          0 |          6 |         32 |
+| YAML               |          1 |         10 |          4 |          3 |         17 |
+| Markdown           |          1 |          5 |          0 |          2 |          7 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                               | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                  |         68 |      4,780 |      1,242 |        533 |      6,555 |
+| . (Files)                                                                          |          7 |        121 |         18 |         12 |        151 |
+| .github                                                                            |          1 |         10 |          4 |          3 |         17 |
+| public                                                                             |         12 |        349 |          5 |         10 |        364 |
+| public (Files)                                                                     |          6 |        269 |          5 |         10 |        284 |
+| public/config                                                                      |          6 |         80 |          0 |          0 |         80 |
+| src                                                                                |         13 |        568 |         20 |         85 |        673 |
+| src (Files)                                                                        |          3 |         73 |          2 |         14 |         89 |
+| src-tauri                                                                          |         35 |      3,732 |      1,195 |        423 |      5,350 |
+| src-tauri (Files)                                                                  |          2 |         70 |          0 |          1 |         71 |
+| src-tauri/public                                                                   |         12 |        349 |          5 |         10 |        364 |
+| src-tauri/public (Files)                                                           |          6 |        269 |          5 |         10 |        284 |
+| src-tauri/public/config                                                            |          6 |         80 |          0 |          0 |         80 |
+| src-tauri/public_win                                                               |         12 |        349 |          5 |         10 |        364 |
+| src-tauri/public_win (Files)                                                       |          6 |        269 |          5 |         10 |        284 |
+| src-tauri/public_win/config                                                        |          6 |         80 |          0 |          0 |         80 |
+| src-tauri/src                                                                      |          9 |      2,964 |      1,185 |        402 |      4,551 |
+| src-tauri/src (Files)                                                              |          8 |      2,941 |      1,185 |        397 |      4,523 |
+| src-tauri/src/tv                                                                   |          1 |         23 |          0 |          5 |         28 |
+| src/bindings                                                                       |          3 |          4 |          3 |          3 |         10 |
+| src/console                                                                        |          3 |        395 |         11 |         42 |        448 |
+| src/console (Files)                                                                |          2 |        267 |         10 |         28 |        305 |
+| src/console/ui                                                                     |          1 |        128 |          1 |         14 |        143 |
+| src/tv                                                                             |          4 |         96 |          4 |         26 |        126 |
+| src/tv (Files)                                                                     |          2 |         36 |          0 |          7 |         43 |
+| src/tv/visualizers                                                                 |          2 |         60 |          4 |         19 |         83 |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                           | language           | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| /Users/westdt/Documents/GitHub/w4113/.github/dependabot.yml                        | YAML               |         10 |          4 |          3 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/README.md                                     | Markdown           |          5 |          0 |          2 |          7 |
+| /Users/westdt/Documents/GitHub/w4113/index.html                                    | HTML               |         13 |          0 |          3 |         16 |
+| /Users/westdt/Documents/GitHub/w4113/package.json                                  | JSON               |         26 |          0 |          0 |         26 |
+| /Users/westdt/Documents/GitHub/w4113/public/close.svg                              | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/public/config.json                            | JSON               |          3 |          0 |          0 |          3 |
+| /Users/westdt/Documents/GitHub/w4113/public/config/MacBook.json                    | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/public/config/airpods.json                    | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/public/config/bonin reaver.json               | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/public/config/default copy.json               | JSON               |          7 |          0 |          0 |          7 |
+| /Users/westdt/Documents/GitHub/w4113/public/config/default.json                    | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/public/config/scarlett.json                   | JSON               |          5 |          0 |          0 |          5 |
+| /Users/westdt/Documents/GitHub/w4113/public/drag.svg                               | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/public/icon.svg                               | XML                |         65 |          1 |          2 |         68 |
+| /Users/westdt/Documents/GitHub/w4113/public/refresh.svg                            | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/public/settings.svg                           | XML                |         51 |          1 |          2 |         54 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/build.rs                            | Rust               |          3 |          0 |          1 |          4 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/close.svg                    | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/config.json                  | JSON               |          3 |          0 |          0 |          3 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/MacBook.json          | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/airpods.json          | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/bonin reaver.json     | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/default copy.json     | JSON               |          7 |          0 |          0 |          7 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/default.json          | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/config/scarlett.json         | JSON               |          5 |          0 |          0 |          5 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/drag.svg                     | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/icon.svg                     | XML                |         65 |          1 |          2 |         68 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/refresh.svg                  | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public/settings.svg                 | XML                |         51 |          1 |          2 |         54 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/close.svg                | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config.json              | JSON               |          3 |          0 |          0 |          3 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/MacBook.json      | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/airpods.json      | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/bonin reaver.json | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/default copy.json | JSON               |          7 |          0 |          0 |          7 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/default.json      | JSON               |         17 |          0 |          0 |         17 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/config/scarlett.json     | JSON               |          5 |          0 |          0 |          5 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/drag.svg                 | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/icon.svg                 | XML                |         65 |          1 |          2 |         68 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/refresh.svg              | XML                |         50 |          1 |          2 |         53 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/public_win/settings.svg             | XML                |         51 |          1 |          2 |         54 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/audio.rs                        | Rust               |      1,078 |        456 |        146 |      1,680 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/config.rs                       | Rust               |        266 |        333 |         38 |        637 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/delay.rs                        | Rust               |         51 |          0 |          7 |         58 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/granulizer.rs                   | Rust               |          0 |        102 |         25 |        127 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/interface.rs                    | Rust               |        487 |          8 |         40 |        535 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/main.rs                         | Rust               |        904 |        216 |        110 |      1,230 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/midi.rs                         | Rust               |        153 |         70 |         29 |        252 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/stereo_cross_feedback.rs        | Rust               |          2 |          0 |          2 |          4 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/src/tv/mod.rs                       | Rust               |         23 |          0 |          5 |         28 |
+| /Users/westdt/Documents/GitHub/w4113/src-tauri/tauri.conf.json                     | JSON               |         67 |          0 |          0 |         67 |
+| /Users/westdt/Documents/GitHub/w4113/src/bindings/ConsoleMessage.ts                | TypeScript         |          2 |          1 |          1 |          4 |
+| /Users/westdt/Documents/GitHub/w4113/src/bindings/FreqMessage.ts                   | TypeScript         |          1 |          1 |          1 |          3 |
+| /Users/westdt/Documents/GitHub/w4113/src/bindings/MessageKind.ts                   | TypeScript         |          1 |          1 |          1 |          3 |
+| /Users/westdt/Documents/GitHub/w4113/src/console.tsx                               | TypeScript JSX     |          9 |          0 |          3 |         12 |
+| /Users/westdt/Documents/GitHub/w4113/src/console/Console.tsx                       | TypeScript JSX     |        121 |          8 |         11 |        140 |
+| /Users/westdt/Documents/GitHub/w4113/src/console/Settings.tsx                      | TypeScript JSX     |        146 |          2 |         17 |        165 |
+| /Users/westdt/Documents/GitHub/w4113/src/console/ui/Frame.tsx                      | TypeScript JSX     |        128 |          1 |         14 |        143 |
+| /Users/westdt/Documents/GitHub/w4113/src/globals.css                               | CSS                |         55 |          2 |          8 |         65 |
+| /Users/westdt/Documents/GitHub/w4113/src/tv.tsx                                    | TypeScript JSX     |          9 |          0 |          3 |         12 |
+| /Users/westdt/Documents/GitHub/w4113/src/tv/TV.css                                 | CSS                |         13 |          0 |          1 |         14 |
+| /Users/westdt/Documents/GitHub/w4113/src/tv/TV.tsx                                 | TypeScript JSX     |         23 |          0 |          6 |         29 |
+| /Users/westdt/Documents/GitHub/w4113/src/tv/visualizers/BasicVisualizer.css        | CSS                |         18 |          1 |          3 |         22 |
+| /Users/westdt/Documents/GitHub/w4113/src/tv/visualizers/BasicVisualizer.tsx        | TypeScript JSX     |         42 |          3 |         16 |         61 |
+| /Users/westdt/Documents/GitHub/w4113/tsconfig.json                                 | JSON with Comments |         32 |          9 |          0 |         41 |
+| /Users/westdt/Documents/GitHub/w4113/tsconfig.node.json                            | JSON               |         10 |          0 |          1 |         11 |
+| /Users/westdt/Documents/GitHub/w4113/tv.html                                       | HTML               |         13 |          0 |          3 |         16 |
+| /Users/westdt/Documents/GitHub/w4113/vite.config.ts                                | TypeScript         |         22 |          9 |          3 |         34 |
+| Total                                                                              |                    |      4,780 |      1,242 |        533 |      6,555 |
++------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

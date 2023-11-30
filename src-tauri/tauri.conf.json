@@ -41,17 +41,6 @@
 		},
 		"windows": [
 			{
-				"label": "console",
-				"fullscreen": false,
-				"resizable": true,
-				"titleBarStyle": "Overlay",
-				"title": "w4113-console",
-				"width": 800,
-				"height": 600,
-				"visible": false,
-				"url": "index.html"
-			},
-			{
 				"label": "tv",
 				"fullscreen": false,
 				"resizable": true,
@@ -59,8 +48,19 @@
 				"title": "w4113-tv",
 				"width": 800,
 				"height": 600,
-				"visible": false,
+				"visible": true,
 				"url": "tv.html"
+			},
+			{
+				"label": "console",
+				"fullscreen": false,
+				"resizable": true,
+				"titleBarStyle": "Overlay",
+				"title": "w4113-console",
+				"width": 800,
+				"height": 600,
+				"visible": true,
+				"url": "index.html"
 			}
 		]
 	}

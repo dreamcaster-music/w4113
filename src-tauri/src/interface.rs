@@ -12,6 +12,8 @@ lazy_static! {
 }
 
 #[allow(dead_code)]
+#[derive(ts_rs::TS)]
+#[ts(export, export_to = "../src/bindings/Key.ts")]
 pub enum Key {
 	Unknown = 0,
 	A = 4,
@@ -230,6 +232,8 @@ impl Key {
 	}
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export, export_to = "../src/bindings/Mod.ts")]
 enum Mod {
 	LeftControl = 1,
 
@@ -464,14 +468,51 @@ fn hash(string: String) -> u32 {
 	return hash;
 }
 
+pub fn list_interfaces_id() -> Vec<u32> {
+	let interfaces = get_interfaces();
+	let mut ids: Vec<u32> = Vec::new();
+	for interface in interfaces {
+		ids.push(interface.id);
+	}
+	return ids;
+}
+
+#[tauri::command]
+pub fn list_interfaces_name() -> Vec<String> {
+	let interfaces = get_interfaces();
+	let mut names: Vec<String> = Vec::new();
+	for interface in interfaces {
+		names.push(format!("{}:{}", interface.manufacturer, interface.product));
+	}
+	return names;
+}
+
+pub fn get_interface_by_id(id: u32) -> Option<Interface> {
+	let interfaces = get_interfaces();
+	for interface in interfaces {
+		if interface.id == id {
+			return Some(interface);
+		}
+	}
+	return None;
+}
+
+pub fn get_interface_by_name(name: String) -> Option<Interface> {
+	let interfaces = get_interfaces();
+	for interface in interfaces {
+		if format!("{}:{}", interface.manufacturer, interface.product) == name {
+			return Some(interface);
+		}
+	}
+	return None;
+}
+
 pub fn get_interfaces() -> Vec<Interface> {
 	let mut interfaces: Vec<Interface> = Vec::new();
 	for device in API.device_list() {
 		let manufacturer = device.manufacturer_string().unwrap_or("Unknown");
 		let product = device.product_string().unwrap_or("Unknown");
 		let serial = device.serial_number().unwrap_or("Unknown");
-		let vendor_id = device.vendor_id();
-		let product_id = device.product_id();
 
 		let combo = manufacturer.to_owned() + &product + &serial;
 		let id = hash(combo);
