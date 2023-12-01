@@ -4,7 +4,7 @@
 
 #![allow(dead_code)]
 
-use std::sync::{Mutex, RwLock, Arc};
+use std::sync::{Arc, Mutex, RwLock};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -254,25 +254,21 @@ pub fn list_hosts() -> Vec<String> {
 /// * `Vec<String>` - The list of output devices
 #[tauri::command]
 pub fn list_output_devices() -> Vec<String> {
-	let host = match HOST.lock() {
-		Ok(host) => {
-			host
-		},
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return Vec::new();
-		}
-	};
+    let host = match HOST.lock() {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return Vec::new();
+        }
+    };
 
-	let host = match host.as_ref() {
-		Some(host) => {
-			host
-		},
-		None => {
-			debug!("HOST is None");
-			return Vec::new();
-		}
-	};
+    let host = match host.as_ref() {
+        Some(host) => host,
+        None => {
+            debug!("HOST is None");
+            return Vec::new();
+        }
+    };
 
     let mut devices = Vec::new();
     let output_devices = host.output_devices();
@@ -299,46 +295,42 @@ pub fn list_output_devices() -> Vec<String> {
 
 #[tauri::command]
 pub fn set_output_device(name: String) -> Result<(), String> {
-	let host = match HOST.lock() {
-		Ok(host) => {
-			host
-		},
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return Err(format!("Error locking HOST: {}", e));
-		}
-	};
+    let host = match HOST.lock() {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return Err(format!("Error locking HOST: {}", e));
+        }
+    };
 
-	let host = match host.as_ref() {
-		Some(host) => {
-			host
-		},
-		None => {
-			debug!("HOST is None");
-			return Err("HOST is None".to_owned());
-		}
-	};
+    let host = match host.as_ref() {
+        Some(host) => host,
+        None => {
+            debug!("HOST is None");
+            return Err("HOST is None".to_owned());
+        }
+    };
 
-	let device = get_output_device(&name, &host);
-	let device = match device {
-		Some(device) => device,
-		None => {
-			debug!("Could not find output device {}", name);
-			return Err(format!("Could not find output device {}", name));
-		}
-	};
+    let device = get_output_device(&name, &host);
+    let device = match device {
+        Some(device) => device,
+        None => {
+            debug!("Could not find output device {}", name);
+            return Err(format!("Could not find output device {}", name));
+        }
+    };
 
-	let mut mutex = match OUTPUT_DEVICE.lock() {
-		Ok(output_device) => output_device,
-		Err(e) => {
-			debug!("Error locking OUTPUT_DEVICE: {}", e);
-			return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
-		}
-	};
+    let mut mutex = match OUTPUT_DEVICE.lock() {
+        Ok(output_device) => output_device,
+        Err(e) => {
+            debug!("Error locking OUTPUT_DEVICE: {}", e);
+            return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
+        }
+    };
 
-	*mutex = Some(device);
+    *mutex = Some(device);
 
-	Ok(())
+    Ok(())
 }
 
 /// ## `list_input_devices(host: &Host) -> Vec<String>`
@@ -354,25 +346,21 @@ pub fn set_output_device(name: String) -> Result<(), String> {
 /// * `Vec<String>` - The list of input devices
 #[tauri::command]
 pub fn list_input_devices() -> Vec<String> {
-	let host = match HOST.lock() {
-		Ok(host) => {
-			host
-		},
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return Vec::new();
-		}
-	};
+    let host = match HOST.lock() {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return Vec::new();
+        }
+    };
 
-	let host = match host.as_ref() {
-		Some(host) => {
-			host
-		},
-		None => {
-			debug!("HOST is None");
-			return Vec::new();
-		}
-	};
+    let host = match host.as_ref() {
+        Some(host) => host,
+        None => {
+            debug!("HOST is None");
+            return Vec::new();
+        }
+    };
 
     let mut devices = Vec::new();
     let input_devices = host.input_devices();
@@ -399,46 +387,42 @@ pub fn list_input_devices() -> Vec<String> {
 
 #[tauri::command]
 pub fn set_input_device(name: String) -> Result<(), String> {
-	let host = match HOST.lock() {
-		Ok(host) => {
-			host
-		},
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return Err(format!("Error locking HOST: {}", e));
-		}
-	};
+    let host = match HOST.lock() {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return Err(format!("Error locking HOST: {}", e));
+        }
+    };
 
-	let host = match host.as_ref() {
-		Some(host) => {
-			host
-		},
-		None => {
-			debug!("HOST is None");
-			return Err("HOST is None".to_owned());
-		}
-	};
+    let host = match host.as_ref() {
+        Some(host) => host,
+        None => {
+            debug!("HOST is None");
+            return Err("HOST is None".to_owned());
+        }
+    };
 
-	let device = get_input_device(&name, &host);
-	let device = match device {
-		Some(device) => device,
-		None => {
-			debug!("Could not find input device {}", name);
-			return Err(format!("Could not find input device {}", name));
-		}
-	};
+    let device = get_input_device(&name, &host);
+    let device = match device {
+        Some(device) => device,
+        None => {
+            debug!("Could not find input device {}", name);
+            return Err(format!("Could not find input device {}", name));
+        }
+    };
 
-	let mut mutex = match INPUT_DEVICE.lock() {
-		Ok(input_device) => input_device,
-		Err(e) => {
-			debug!("Error locking INPUT_DEVICE: {}", e);
-			return Err(format!("Error locking INPUT_DEVICE: {}", e));
-		}
-	};
+    let mut mutex = match INPUT_DEVICE.lock() {
+        Ok(input_device) => input_device,
+        Err(e) => {
+            debug!("Error locking INPUT_DEVICE: {}", e);
+            return Err(format!("Error locking INPUT_DEVICE: {}", e));
+        }
+    };
 
-	*mutex = Some(device);
+    *mutex = Some(device);
 
-	Ok(())
+    Ok(())
 }
 
 /*
@@ -842,31 +826,25 @@ pub fn get_input_config(
 /// * `Result<Vec<String>, String>` - The list of output stream configurations, or an error message
 #[tauri::command]
 pub fn list_output_streams() -> Vec<String> {
-	let device = match OUTPUT_DEVICE.lock() {
-		Ok(device) => {
-			device
-		},
-		Err(e) => {
-			debug!("Error locking OUTPUT_DEVICE: {}", e);
-			return Vec::new();
-		}
-	};
+    let device = match OUTPUT_DEVICE.lock() {
+        Ok(device) => device,
+        Err(e) => {
+            debug!("Error locking OUTPUT_DEVICE: {}", e);
+            return Vec::new();
+        }
+    };
 
-	let device = match device.as_ref() {
-		Some(device) => {
-			device
-		},
-		None => {
-			debug!("OUTPUT_DEVICE is None");
-			return Vec::new();
-		}
-	};
+    let device = match device.as_ref() {
+        Some(device) => device,
+        None => {
+            debug!("OUTPUT_DEVICE is None");
+            return Vec::new();
+        }
+    };
 
     let supported_configs = match device.supported_output_configs() {
         Ok(supported_configs) => supported_configs,
-        Err(err) => {
-            return vec![format!("Error getting supported output configs.")]
-        }
+        Err(err) => return vec![format!("Error getting supported output configs.")],
     };
 
     let mut streams = Vec::new();
@@ -885,7 +863,7 @@ pub fn list_output_streams() -> Vec<String> {
         streams.push(stream);
     }
 
-	streams
+    streams
 }
 
 /// ## `list_input_streams(device: &Device) -> Result<Vec<String>, String>`
@@ -901,31 +879,25 @@ pub fn list_output_streams() -> Vec<String> {
 /// * `Result<Vec<String>, String>` - The list of input stream configurations, or an error message
 #[tauri::command]
 pub fn list_input_streams() -> Vec<String> {
-	let device = match INPUT_DEVICE.lock() {
-		Ok(device) => {
-			device
-		},
-		Err(e) => {
-			debug!("Error locking INPUT_DEVICE: {}", e);
-			return Vec::new();
-		}
-	};
+    let device = match INPUT_DEVICE.lock() {
+        Ok(device) => device,
+        Err(e) => {
+            debug!("Error locking INPUT_DEVICE: {}", e);
+            return Vec::new();
+        }
+    };
 
-	let device = match device.as_ref() {
-		Some(device) => {
-			device
-		},
-		None => {
-			debug!("INPUT_DEVICE is None");
-			return Vec::new();
-		}
-	};
+    let device = match device.as_ref() {
+        Some(device) => device,
+        None => {
+            debug!("INPUT_DEVICE is None");
+            return Vec::new();
+        }
+    };
 
     let supported_configs = match device.supported_input_configs() {
         Ok(supported_configs) => supported_configs,
-        Err(err) => {
-            return vec![format!("Error getting supported input configs.")]
-        }
+        Err(err) => return vec![format!("Error getting supported input configs.")],
     };
 
     let mut streams = Vec::new();
@@ -948,11 +920,11 @@ pub fn list_input_streams() -> Vec<String> {
 }
 
 /// ## `reload() -> Result<(), String>`
-/// 
+///
 /// Reloads the audio thread.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 pub fn reload() -> Result<(), String> {
     let mut reload = match RELOAD.write() {
@@ -969,11 +941,11 @@ pub fn reload() -> Result<(), String> {
 }
 
 /// ## `audio_thread() -> Result<(), String>`
-/// 
+///
 /// Starts the audio thread.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 pub fn audio_thread() -> Result<(), String> {
     let thread = std::thread::spawn(move || {
@@ -1039,7 +1011,7 @@ pub fn audio_thread() -> Result<(), String> {
                 //
                 // So there is a simple formula for determining what channel a sample is for:
                 // channel = sample_index % n_channels
-				let mut data_vec = Vec::new();
+                let mut data_vec = Vec::new();
                 for sample in data.iter_mut() {
                     if channel % n_channels == 0 {
                         sample_clock += 1.0;
@@ -1049,55 +1021,59 @@ pub fn audio_thread() -> Result<(), String> {
                         match strip.output {
                             Output::Mono(strip_channel) => {
                                 if strip_channel == channel % n_channels {
-                                    *sample = strip.process(State {
-                                        sample_rate: config.sample_rate.0 as u32,
-                                        sample_clock: sample_clock as u64,
-                                        buffer_size,
-                                    }).mono();
+                                    *sample = strip
+                                        .process(State {
+                                            sample_rate: config.sample_rate.0 as u32,
+                                            sample_clock: sample_clock as u64,
+                                            buffer_size,
+                                        })
+                                        .mono();
                                 }
                             }
-							Output::Stereo(left_channel, right_channel) => {
-								if left_channel == channel % n_channels {
-									*sample = strip.process(State {
-										sample_rate: config.sample_rate.0 as u32,
-										sample_clock: sample_clock as u64,
-										buffer_size,
-									}).left();
-								} else if right_channel == channel % n_channels {
-									*sample = strip.process(State {
-										sample_rate: config.sample_rate.0 as u32,
-										sample_clock: sample_clock as u64,
-										buffer_size,
-									}).right();
-								}
-							}
+                            Output::Stereo(left_channel, right_channel) => {
+                                if left_channel == channel % n_channels {
+                                    *sample = strip
+                                        .process(State {
+                                            sample_rate: config.sample_rate.0 as u32,
+                                            sample_clock: sample_clock as u64,
+                                            buffer_size,
+                                        })
+                                        .left();
+                                } else if right_channel == channel % n_channels {
+                                    *sample = strip
+                                        .process(State {
+                                            sample_rate: config.sample_rate.0 as u32,
+                                            sample_clock: sample_clock as u64,
+                                            buffer_size,
+                                        })
+                                        .right();
+                                }
+                            }
                             _ => {}
                         }
                     }
 
-					if channel % n_channels == 0 {
-						data_vec.push(*sample);
-					}
+                    if channel % n_channels == 0 {
+                        data_vec.push(*sample);
+                    }
                     channel += 1;
                 }
 
-				let tv_window = crate::TV_WINDOW.lock();
-				match tv_window {
-								Ok(tv_window) => {
-									match tv_window.as_ref() {
-										Some(tv_window) => {
-											let visualizer = <BasicVisualizer as VisualizerTrait>::new();
-											let _ = visualizer.render(tv_window, &data_vec);
-										}
-										None => {
-											debug!("TV_WINDOW is None");
-										}
-									}
-								}
-								Err(e) => {
-									debug!("Error locking TV_WINDOW: {}", e);
-								}
-							}
+                let tv_window = crate::TV_WINDOW.lock();
+                match tv_window {
+                    Ok(tv_window) => match tv_window.as_ref() {
+                        Some(tv_window) => {
+                            let visualizer = <BasicVisualizer as VisualizerTrait>::new();
+                            let _ = visualizer.render(tv_window, &data_vec);
+                        }
+                        None => {
+                            debug!("TV_WINDOW is None");
+                        }
+                    },
+                    Err(e) => {
+                        debug!("Error locking TV_WINDOW: {}", e);
+                    }
+                }
             };
 
             let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
@@ -1142,113 +1118,113 @@ pub fn audio_thread() -> Result<(), String> {
 }
 
 /// ## Sample
-/// 
+///
 /// Represents a sample of audio data. Can be either mono or stereo.
-/// 
+///
 /// ### Variants
-/// 
+///
 /// * `Mono(f32)` - A mono sample
 /// * `Stereo(f32, f32)` - A stereo sample
-/// 
+///
 /// ### Functions
-/// 
+///
 /// * `mono(&self) -> f32` - Returns the mono version of the sample
 /// * `stereo(&self) -> (f32, f32)` - Returns the stereo version of the sample
 /// * `left(&self) -> f32` - Returns the left channel of the sample
 /// * `right(&self) -> f32` - Returns the right channel of the sample
 #[derive(Clone, Debug)]
 pub enum Sample {
-	Mono(f32),
-	Stereo(f32, f32),
+    Mono(f32),
+    Stereo(f32, f32),
 }
 
 impl Sample {
-	/// ## `mono(&self) -> f32`
-	/// 
-	/// Returns the mono version of the sample.
-	/// 
-	/// ### Returns
-	/// 
-	/// * `f32` - The mono version of the sample
-	pub fn mono(&self) -> f32 {
-		match self {
-			Sample::Mono(sample) => *sample,
-			Sample::Stereo(left, right) => (*left + *right) / 2.0,
-		}
-	}
+    /// ## `mono(&self) -> f32`
+    ///
+    /// Returns the mono version of the sample.
+    ///
+    /// ### Returns
+    ///
+    /// * `f32` - The mono version of the sample
+    pub fn mono(&self) -> f32 {
+        match self {
+            Sample::Mono(sample) => *sample,
+            Sample::Stereo(left, right) => (*left + *right) / 2.0,
+        }
+    }
 
-	/// ## `stereo(&self) -> (f32, f32)`
-	/// 
-	/// Returns the stereo version of the sample.
-	/// 
-	/// ### Returns
-	/// 
-	/// * `(f32, f32)` - The stereo version of the sample
-	pub fn stereo(&self) -> (f32, f32) {
-		match self {
-			Sample::Mono(sample) => (*sample, *sample),
-			Sample::Stereo(left, right) => (*left, *right),
-		}
-	}
+    /// ## `stereo(&self) -> (f32, f32)`
+    ///
+    /// Returns the stereo version of the sample.
+    ///
+    /// ### Returns
+    ///
+    /// * `(f32, f32)` - The stereo version of the sample
+    pub fn stereo(&self) -> (f32, f32) {
+        match self {
+            Sample::Mono(sample) => (*sample, *sample),
+            Sample::Stereo(left, right) => (*left, *right),
+        }
+    }
 
-	/// ## `left(&self) -> f32`
-	/// 
-	/// Returns the left channel of the sample.
-	/// 
-	/// ### Returns
-	/// 
-	/// * `f32` - The left channel of the sample
-	pub fn left(&self) -> f32 {
-		match self {
-			Sample::Mono(sample) => *sample,
-			Sample::Stereo(left, _right) => *left,
-		}
-	}
+    /// ## `left(&self) -> f32`
+    ///
+    /// Returns the left channel of the sample.
+    ///
+    /// ### Returns
+    ///
+    /// * `f32` - The left channel of the sample
+    pub fn left(&self) -> f32 {
+        match self {
+            Sample::Mono(sample) => *sample,
+            Sample::Stereo(left, _right) => *left,
+        }
+    }
 
-	/// ## `right(&self) -> f32`
-	/// 
-	/// Returns the right channel of the sample.
-	/// 
-	/// ### Returns
-	/// 
-	/// * `f32` - The right channel of the sample
-	pub fn right(&self) -> f32 {
-		match self {
-			Sample::Mono(sample) => *sample,
-			Sample::Stereo(_left, right) => *right,
-		}
-	}
+    /// ## `right(&self) -> f32`
+    ///
+    /// Returns the right channel of the sample.
+    ///
+    /// ### Returns
+    ///
+    /// * `f32` - The right channel of the sample
+    pub fn right(&self) -> f32 {
+        match self {
+            Sample::Mono(sample) => *sample,
+            Sample::Stereo(_left, right) => *right,
+        }
+    }
 
-	/// ## `as_mono(&self) -> Sample`
-	/// 
-	/// Returns the mono version of the sample.
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Sample` - The mono version of the sample
-	pub fn as_mono(&self) -> Sample {
-		Sample::Mono(self.mono())
-	}
+    /// ## `as_mono(&self) -> Sample`
+    ///
+    /// Returns the mono version of the sample.
+    ///
+    /// ### Returns
+    ///
+    /// * `Sample` - The mono version of the sample
+    pub fn as_mono(&self) -> Sample {
+        Sample::Mono(self.mono())
+    }
 
-	/// ## `as_stereo(&self) -> Sample`
-	/// 
-	/// Returns the stereo version of the sample.
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Sample` - The stereo version of the sample
-	pub fn as_stereo(&self) -> Sample {
-		Sample::Stereo(self.left(), self.right())
-	}
+    /// ## `as_stereo(&self) -> Sample`
+    ///
+    /// Returns the stereo version of the sample.
+    ///
+    /// ### Returns
+    ///
+    /// * `Sample` - The stereo version of the sample
+    pub fn as_stereo(&self) -> Sample {
+        Sample::Stereo(self.left(), self.right())
+    }
 }
 
 /// ## State
-/// 
+///
 /// Represents the current state of the audio engine. Primarily configuration settings needed by the effects,
 /// and details on what the sample clock is currently at.
-/// 
+///
 /// ### Fields
-/// 
+///
 /// * `sample_rate: u32` - The sample rate of the audio engine
 /// * `sample_clock: u64` - The current sample clock of the audio engine
 /// * `buffer_size: usize` - The buffer size of the audio engine
@@ -1259,26 +1235,26 @@ pub struct State {
 }
 
 /// ## Output
-/// 
+///
 /// Represents an output channel.
-/// 
+///
 /// ### Variants
-/// 
+///
 /// * `Mono(u32)` - A mono output channel. The u32 represents the output channel number, tied to the interface.
 /// * `Stereo(u32, u32)` - A stereo output channel. The u32s represent the left and right output channel numbers, tied to the interface.
 /// * `Bus(Box<Input>)` - A bus output channel
 pub enum Output {
     Mono(u32),
-	Stereo(u32, u32),
+    Stereo(u32, u32),
     Bus(Arc<Input>),
 }
 
 /// ## Input
-/// 
+///
 /// Represents an input channel.
-/// 
+///
 /// ### Variants
-/// 
+///
 /// * `Generator(Box<dyn Generator>)` - A generator input channel
 /// * `Bus(Box<Output>)` - A bus input channel
 pub enum Input {
@@ -1287,17 +1263,17 @@ pub enum Input {
 }
 
 /// ## Strip
-/// 
+///
 /// Represents a strip of audio effects.
-/// 
+///
 /// ### Fields
-/// 
+///
 /// * `input: Input` - The input channel
 /// * `chain: Vec<Box<dyn Effect>>` - The chain of effects
 /// * `output: Output` - The output channel
-/// 
+///
 /// ### Functions
-/// 
+///
 /// * `new(input: Input, output: Output) -> Self` - Creates a new strip
 /// * `add_effect(&mut self, effect: Box<dyn Effect>)` - Adds an effect to the end of the chain
 /// * `insert_effect(&mut self, effect: Box<dyn Effect>, index: usize)` - Inserts an effect into the chain at the given index
@@ -1310,18 +1286,18 @@ pub struct Strip {
 }
 
 impl Strip {
-	/// ## `new(input: Input, output: Output) -> Self`
-	/// 
-	/// Creates a new strip.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `input: Input` - The input channel
-	/// * `output: Output` - The output channel
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Self` - The new strip
+    /// ## `new(input: Input, output: Output) -> Self`
+    ///
+    /// Creates a new strip.
+    ///
+    /// ### Arguments
+    ///
+    /// * `input: Input` - The input channel
+    /// * `output: Output` - The output channel
+    ///
+    /// ### Returns
+    ///
+    /// * `Self` - The new strip
     pub fn new(input: Input, output: Output) -> Self {
         Self {
             input,
@@ -1330,89 +1306,81 @@ impl Strip {
         }
     }
 
-	/// ## `add_effect(&mut self, effect: Box<dyn Effect>)`
-	/// 
-	/// Adds an effect to the end of the chain.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `effect: Box<dyn Effect>` - The effect to add
+    /// ## `add_effect(&mut self, effect: Box<dyn Effect>)`
+    ///
+    /// Adds an effect to the end of the chain.
+    ///
+    /// ### Arguments
+    ///
+    /// * `effect: Box<dyn Effect>` - The effect to add
     pub fn add_effect(&mut self, effect: Box<dyn plugin::Effect>) {
         self.chain.push(effect);
     }
 
-	/// ## `insert_effect(&mut self, effect: Box<dyn Effect>, index: usize)`
-	/// 
-	/// Inserts an effect into the chain at the given index.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `effect: Box<dyn Effect>` - The effect to insert
-	/// * `index: usize` - The index to insert the effect at
+    /// ## `insert_effect(&mut self, effect: Box<dyn Effect>, index: usize)`
+    ///
+    /// Inserts an effect into the chain at the given index.
+    ///
+    /// ### Arguments
+    ///
+    /// * `effect: Box<dyn Effect>` - The effect to insert
+    /// * `index: usize` - The index to insert the effect at
     pub fn insert_effect(&mut self, effect: Box<dyn plugin::Effect>, index: usize) {
         self.chain.insert(index, effect);
     }
 
-	/// ## `remove_effect(&mut self, index: usize)`
-	/// 
-	/// Removes an effect from the chain at the given index.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `index: usize` - The index to remove the effect from
+    /// ## `remove_effect(&mut self, index: usize)`
+    ///
+    /// Removes an effect from the chain at the given index.
+    ///
+    /// ### Arguments
+    ///
+    /// * `index: usize` - The index to remove the effect from
     pub fn remove_effect(&mut self, index: usize) {
         self.chain.remove(index);
     }
 
-	/// ## `process(&mut self, state: State) -> Sample`
-	/// 
-	/// Processes a sample.
-	/// 
-	/// ### Arguments
-	/// 
-	/// * `state: State` - The current state of the audio engine
-	/// 
-	/// ### Returns
-	/// 
-	/// * `Sample` - The resulting sample
+    /// ## `process(&mut self, state: State) -> Sample`
+    ///
+    /// Processes a sample.
+    ///
+    /// ### Arguments
+    ///
+    /// * `state: State` - The current state of the audio engine
+    ///
+    /// ### Returns
+    ///
+    /// * `Sample` - The resulting sample
     pub fn process(&mut self, state: State) -> Sample {
         let sample = match &self.input {
             Input::Generator(generator) => {
                 let mut sample = match generator.try_lock() {
-					Ok(mut generator) => {
-						generator.generate(&state)
-					}
-					Err(error) => {
-						return Sample::Mono(0.0)
-					}
-				};
+                    Ok(mut generator) => generator.generate(&state),
+                    Err(error) => return Sample::Mono(0.0),
+                };
                 for effect in self.chain.iter_mut() {
                     effect.process(&state, &mut sample);
                 }
                 sample
             }
-            Input::Bus(_bus) => Sample::Mono(0.0)
+            Input::Bus(_bus) => Sample::Mono(0.0),
         };
 
-		match &self.output {
-			Output::Mono(_channel) => {
-				Sample::Mono(sample.mono())
-			}
-			Output::Stereo(_left_channel, _right_channel) => {
-				Sample::Stereo(sample.left(), sample.right())
-			}
-			Output::Bus(_bus) => {
-				Sample::Stereo(sample.left(), sample.right())
-			}
-		}
+        match &self.output {
+            Output::Mono(_channel) => Sample::Mono(sample.mono()),
+            Output::Stereo(_left_channel, _right_channel) => {
+                Sample::Stereo(sample.left(), sample.right())
+            }
+            Output::Bus(_bus) => Sample::Stereo(sample.left(), sample.right()),
+        }
     }
 }
 
 pub mod plugin {
     use log::debug;
 
+    use super::Sample;
     use super::State;
-	use super::Sample;
 
     /// ## Generator
     ///
@@ -1461,60 +1429,61 @@ pub mod plugin {
         }
     }
 
-	static FALLOFF: f32 = 0.01;
+    static FALLOFF: f32 = 0.01;
 
-	pub struct SineGenerator {
-		// First value is frequency, second value is amplitude (0.0-1.0)
-		freqs: Vec<(f32, f32)>,
-	}
+    pub struct SineGenerator {
+        // First value is frequency, second value is amplitude (0.0-1.0)
+        freqs: Vec<(f32, f32)>,
+    }
 
-	impl SineGenerator {
-		pub fn new() -> Self {
-			Self {
-				freqs: Vec::new(),
-			}
-		}
+    impl SineGenerator {
+        pub fn new() -> Self {
+            Self { freqs: Vec::new() }
+        }
 
-		pub fn add_freq(&mut self, freq: f32, amp: f32) {
-			self.freqs.push((freq, amp));
-		}
+        pub fn add_freq(&mut self, freq: f32, amp: f32) {
+            self.freqs.push((freq, amp));
+        }
 
-		pub fn remove_freq(&mut self, freq: f32) {
-			let mut index = 0;
-			for (i, freq_amp) in self.freqs.iter().enumerate() {
-				if freq_amp.0 == freq {
-					index = i;
-					break;
-				}
-			}
+        pub fn remove_freq(&mut self, freq: f32) {
+            let mut index = 0;
+            for (i, freq_amp) in self.freqs.iter().enumerate() {
+                if freq_amp.0 == freq {
+                    index = i;
+                    break;
+                }
+            }
 
-			if index >= self.freqs.len() {
-				return;
-			}
+            if index >= self.freqs.len() {
+                return;
+            }
 
-			self.freqs[index].1 = 1.0 - FALLOFF;
-		}
-	}
+            self.freqs[index].1 = 1.0 - FALLOFF;
+        }
+    }
 
-	impl Generator for SineGenerator {
-		fn generate(&mut self, state: &State) -> Sample {
-			let mut sample = 0.0;
-			for mut freq_amp in self.freqs.iter_mut() {
-				if freq_amp.1 < 1.0 {
-					freq_amp.1 = freq_amp.1 - FALLOFF;
-					if freq_amp.1 < 0.0 {
-						continue;
-					}
-				}
-				sample += (state.sample_clock as f32 * freq_amp.0 * 2.0 * std::f32::consts::PI / state.sample_rate as f32).sin() * freq_amp.1;
-			}
+    impl Generator for SineGenerator {
+        fn generate(&mut self, state: &State) -> Sample {
+            let mut sample = 0.0;
+            for mut freq_amp in self.freqs.iter_mut() {
+                if freq_amp.1 < 1.0 {
+                    freq_amp.1 = freq_amp.1 - FALLOFF;
+                    if freq_amp.1 < 0.0 {
+                        continue;
+                    }
+                }
+                sample += (state.sample_clock as f32 * freq_amp.0 * 2.0 * std::f32::consts::PI
+                    / state.sample_rate as f32)
+                    .sin()
+                    * freq_amp.1;
+            }
 
-			// remove freqs with amp 0.0
-			self.freqs.retain(|freq_amp| freq_amp.1 > 0.0);
+            // remove freqs with amp 0.0
+            self.freqs.retain(|freq_amp| freq_amp.1 > 0.0);
 
-			Sample::Stereo(sample, sample)
-		}
-	}
+            Sample::Stereo(sample, sample)
+        }
+    }
 
     /// ## Effect
     ///
@@ -1551,27 +1520,27 @@ pub mod plugin {
 
     impl Effect for Clip {
         fn process(&mut self, _state: &State, sample: &mut Sample) {
-			match sample {
-				Sample::Mono(sample) => {
-					if *sample > self.threshold {
-						*sample = self.threshold;
-					} else if *sample < -self.threshold {
-						*sample = -self.threshold;
-					}
-				}
-				Sample::Stereo(left, right) => {
-					if *left > self.threshold {
-						*left = self.threshold;
-					} else if *left < -self.threshold {
-						*left = -self.threshold;
-					}
-					if *right > self.threshold {
-						*right = self.threshold;
-					} else if *right < -self.threshold {
-						*right = -self.threshold;
-					}
-				}
-			}
+            match sample {
+                Sample::Mono(sample) => {
+                    if *sample > self.threshold {
+                        *sample = self.threshold;
+                    } else if *sample < -self.threshold {
+                        *sample = -self.threshold;
+                    }
+                }
+                Sample::Stereo(left, right) => {
+                    if *left > self.threshold {
+                        *left = self.threshold;
+                    } else if *left < -self.threshold {
+                        *left = -self.threshold;
+                    }
+                    if *right > self.threshold {
+                        *right = self.threshold;
+                    } else if *right < -self.threshold {
+                        *right = -self.threshold;
+                    }
+                }
+            }
         }
     }
 
@@ -1594,18 +1563,18 @@ pub mod plugin {
 
     impl Effect for BitCrusher {
         fn process(&mut self, _state: &State, sample: &mut Sample) {
-			match sample {
-				Sample::Mono(sample) => {
-					*sample =
-						(*sample * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
-				}
-				Sample::Stereo(left, right) => {
-					*left =
-						(*left * 2.0f32.powf(self.bits as f32)).floor() / 2.0f32.powf(self.bits as f32);
-					*right = (*right * 2.0f32.powf(self.bits as f32)).floor()
-						/ 2.0f32.powf(self.bits as f32);
-				}
-			}
+            match sample {
+                Sample::Mono(sample) => {
+                    *sample = (*sample * 2.0f32.powf(self.bits as f32)).floor()
+                        / 2.0f32.powf(self.bits as f32);
+                }
+                Sample::Stereo(left, right) => {
+                    *left = (*left * 2.0f32.powf(self.bits as f32)).floor()
+                        / 2.0f32.powf(self.bits as f32);
+                    *right = (*right * 2.0f32.powf(self.bits as f32)).floor()
+                        / 2.0f32.powf(self.bits as f32);
+                }
+            }
         }
     }
 
@@ -1616,8 +1585,8 @@ pub mod plugin {
     /// ### Fields
     ///
     /// * `length: usize` - The length of the delay buffer
-	/// * `feedback: f32` - The amount of feedback to apply to the delay signal
-	/// * `buffer: Vec<Sample>` - The delay buffer
+    /// * `feedback: f32` - The amount of feedback to apply to the delay signal
+    /// * `buffer: Vec<Sample>` - The delay buffer
     pub struct Delay {
         length: usize,
         feedback: f32,
@@ -1641,23 +1610,22 @@ pub mod plugin {
 
     impl Effect for Delay {
         fn process(&mut self, _state: &State, sample: &mut Sample) {
-			match sample {
-				Sample::Mono(sample) => {
-					let delay_signal = self.buffer.remove(0);
-					self.buffer.push(Sample::Mono(
-						*sample + delay_signal.mono() * self.feedback,
-					));
-				}
-				Sample::Stereo(left, right) => {
-					let delay_signal = self.buffer.remove(0);
-					self.buffer.push(Sample::Stereo(
-						*left as f32 + delay_signal.left() * self.feedback,
-						*right as f32 + delay_signal.right() * self.feedback,
-					));
-					*left = (*left as f32 + delay_signal.left()) as f32;
-					*right = (*right as f32 + delay_signal.right()) as f32;
-				}
-			}
+            match sample {
+                Sample::Mono(sample) => {
+                    let delay_signal = self.buffer.remove(0);
+                    self.buffer
+                        .push(Sample::Mono(*sample + delay_signal.mono() * self.feedback));
+                }
+                Sample::Stereo(left, right) => {
+                    let delay_signal = self.buffer.remove(0);
+                    self.buffer.push(Sample::Stereo(
+                        *left as f32 + delay_signal.left() * self.feedback,
+                        *right as f32 + delay_signal.right() * self.feedback,
+                    ));
+                    *left = (*left as f32 + delay_signal.left()) as f32;
+                    *right = (*right as f32 + delay_signal.right()) as f32;
+                }
+            }
         }
     }
 }

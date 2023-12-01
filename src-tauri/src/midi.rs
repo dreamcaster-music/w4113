@@ -14,7 +14,6 @@ use lazy_static::lazy_static;
 
 use crate::audio;
 
-
 /// ## `midi_list() -> Vec<String>`
 ///
 /// Returns a list of midi devices
@@ -26,20 +25,20 @@ use crate::audio;
 pub fn midi_list() -> Vec<String> {
     //list midi devices
     let mut midi_in = match MidiInput::new("midir reading input") {
-		Ok(midi_in) => midi_in,
-		Err(err) => {
-			debug!("Error: {}", err);
-			return vec!["Error".to_string()];
-		}
-	};
+        Ok(midi_in) => midi_in,
+        Err(err) => {
+            debug!("Error: {}", err);
+            return vec!["Error".to_string()];
+        }
+    };
     midi_in.ignore(Ignore::None);
     let midi_out = match MidiOutput::new("midir writing output") {
-		Ok(midi_out) => midi_out,
-		Err(err) => {
-			debug!("Error: {}", err);
-			return vec!["Error".to_string()];
-		}
-	};
+        Ok(midi_out) => midi_out,
+        Err(err) => {
+            debug!("Error: {}", err);
+            return vec!["Error".to_string()];
+        }
+    };
     let _midi_out_ports = midi_out.ports();
     let midi_in_ports = midi_in.ports();
     let mut midi_devices = Vec::new();
@@ -48,33 +47,32 @@ pub fn midi_list() -> Vec<String> {
             "{}: {:?}\n",
             i,
             match midi_in.port_name(&midi_in_ports[i]) {
-				Ok(name) => name,
-				Err(err) => {
-					debug!("Error: {}", err);
-					return vec!["Error".to_string()];
-				}
-			}
+                Ok(name) => name,
+                Err(err) => {
+                    debug!("Error: {}", err);
+                    return vec!["Error".to_string()];
+                }
+            }
         ));
     }
-    
-	if midi_devices.len() == 0 {
-		midi_devices.push("No midi devices found".to_string());
-	}
-	midi_devices
+
+    if midi_devices.len() == 0 {
+        midi_devices.push("No midi devices found".to_string());
+    }
+    midi_devices
 }
 
-
 struct Note {
-	amp: f32,
-	freq: f32,
-	velocity: f32,
-	sample_clock: Option<u64>,
+    amp: f32,
+    freq: f32,
+    velocity: f32,
+    sample_clock: Option<u64>,
 }
 
 impl Note {
-	fn key(&self) -> f32 {
-		self.freq
-	}
+    fn key(&self) -> f32 {
+        self.freq
+    }
 }
 
 lazy_static! {
@@ -84,43 +82,44 @@ lazy_static! {
 static NOTE_SPEED: f32 = 0.002;
 
 pub fn callback(state: &audio::State) -> audio::Sample {
-	
     let mut notes = NOTE.write().unwrap();
     let mut output = 0.0;
     for note in notes.iter_mut() {
-		let sample_start = match note.sample_clock {
-			Some(x) => x,
-			None => {
-				note.sample_clock = Some(state.sample_clock);
-				state.sample_clock
-			}
-		};
+        let sample_start = match note.sample_clock {
+            Some(x) => x,
+            None => {
+                note.sample_clock = Some(state.sample_clock);
+                state.sample_clock
+            }
+        };
 
-		let sample = (state.sample_clock as i128 - sample_start as i128) as f32 * note.freq * 2.0 * std::f32::consts::PI / state.sample_rate as f32;
-		let sample = sample.sin() * note.velocity * note.amp;
+        let sample = (state.sample_clock as i128 - sample_start as i128) as f32
+            * note.freq
+            * 2.0
+            * std::f32::consts::PI
+            / state.sample_rate as f32;
+        let sample = sample.sin() * note.velocity * note.amp;
 
-		if note.amp > 1.0 {
-			note.amp = 1.0;
-		}
-		if note.amp < 1.0 && note.amp > 0.0 {
-			note.amp -= NOTE_SPEED;
-		}
-		
-		output += sample;
+        if note.amp > 1.0 {
+            note.amp = 1.0;
+        }
+        if note.amp < 1.0 && note.amp > 0.0 {
+            note.amp -= NOTE_SPEED;
+        }
+
+        output += sample;
     }
-	// remove notes where amp <= 0
-	for mut i in 0..notes.len() {
-		if i >= notes.len() {
-			break;
-		}
-		if notes[i].amp <= 0.0 {
-			notes.remove(i);
-		}
-	}
+    // remove notes where amp <= 0
+    for mut i in 0..notes.len() {
+        if i >= notes.len() {
+            break;
+        }
+        if notes[i].amp <= 0.0 {
+            notes.remove(i);
+        }
+    }
 
-
-	audio::Sample::Stereo(output, output)
-
+    audio::Sample::Stereo(output, output)
 }
 
 fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
@@ -132,37 +131,37 @@ fn midi_callback(stamp: u64, message: &[u8], _: &mut ()) {
 
     match status {
         144 => {
-			match velocity {
-				0 => {
-					debug!("Note off: {} {} {}", note, velocity, freq);
-					// subtract note amp by 0.1
-					let mut note = NOTE.write().unwrap();
-					for i in 0..note.len() {
-						if note[i].key() == freq {
-							note[i].amp -= 0.01;
-						}
-					}
-				}
-				_ => {
-					debug!("Note on: {} {} {}", note, velocity, freq);
-					NOTE.write().unwrap().push(Note {
-						amp: 1.0,
-						freq: freq,
-						velocity: velocity as f32 / 127.0,
-						sample_clock: None,
-					});
-				}
-			}
+            match velocity {
+                0 => {
+                    debug!("Note off: {} {} {}", note, velocity, freq);
+                    // subtract note amp by 0.1
+                    let mut note = NOTE.write().unwrap();
+                    for i in 0..note.len() {
+                        if note[i].key() == freq {
+                            note[i].amp -= 0.01;
+                        }
+                    }
+                }
+                _ => {
+                    debug!("Note on: {} {} {}", note, velocity, freq);
+                    NOTE.write().unwrap().push(Note {
+                        amp: 1.0,
+                        freq: freq,
+                        velocity: velocity as f32 / 127.0,
+                        sample_clock: None,
+                    });
+                }
+            }
         }
         128 => {
-			debug!("Note off: {} {} {}", note, velocity, freq);
-			// subtract note amp by 0.1
-			let mut note = NOTE.write().unwrap();
-			for i in 0..note.len() {
-				if note[i].key() == freq {
-					note[i].amp -= 0.1;
-				}
-			}
+            debug!("Note off: {} {} {}", note, velocity, freq);
+            // subtract note amp by 0.1
+            let mut note = NOTE.write().unwrap();
+            for i in 0..note.len() {
+                if note[i].key() == freq {
+                    note[i].amp -= 0.1;
+                }
+            }
         }
         _ => {}
     }

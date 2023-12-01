@@ -8,12 +8,15 @@ mod interface;
 mod midi;
 mod tv;
 
-use audio::{Preference, plugin::SineGenerator};
+use audio::{plugin::SineGenerator, Preference};
 use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
 use log::{debug, error, LevelFilter};
-use std::{sync::{Mutex, Arc}, path::{PathBuf, Path}};
-use tauri::{LogicalPosition, Manager, api::path::BaseDirectory};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
+use tauri::{api::path::BaseDirectory, AppHandle, LogicalPosition, Manager};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
 use crate::interface::Key;
@@ -23,7 +26,8 @@ static CONFIG_ROOT: &str = "public/config/";
 
 // The current configuration
 lazy_static! {
-    static ref CONFIG: Mutex<config::Config> = Mutex::new(config::Config::empty());
+    static ref APP: Mutex<Option<AppHandle>> = Mutex::new(None);
+    static ref CONFIG: Mutex<config::ConfigOld> = Mutex::new(config::ConfigOld::empty());
     static ref CONSOLE_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
     static ref TV_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
 }
@@ -94,7 +98,7 @@ async fn run(window: &tauri::Window) -> String {
     // make sure CONFIG_ROOT exists; do nothing if it already exists
     std::fs::create_dir_all(CONFIG_ROOT).unwrap_or_default();
 
-    let config = config::Config::load_from_file(CONFIG_FILE);
+    let config = config::ConfigOld::load_from_file(CONFIG_FILE);
     let config_path = match config {
         Ok(mut config) => {
             debug!("Loaded config from {}", CONFIG_FILE);
@@ -117,7 +121,7 @@ async fn run(window: &tauri::Window) -> String {
         }
     };
 
-    let config = config::Config::load_from_file(&config_path);
+    let config = config::ConfigOld::load_from_file(&config_path);
     let mut config = match config {
         Ok(config) => {
             debug!("Loaded config from {}", config_path);
@@ -125,7 +129,7 @@ async fn run(window: &tauri::Window) -> String {
         }
         Err(e) => {
             debug!("Error loading config: {}", e);
-            config::Config::empty()
+            config::ConfigOld::empty()
         }
     };
 
@@ -196,7 +200,10 @@ fn init(window: &tauri::Window) -> Result<(), String> {
     );
 
     midi_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(16)));
-    midi_strip.add_effect(Box::new(audio::plugin::Delay::new((44100.0 / 4.0) as usize, 0.1)));
+    midi_strip.add_effect(Box::new(audio::plugin::Delay::new(
+        (44100.0 / 4.0) as usize,
+        0.1,
+    )));
     //midi_strip.add_effect(Box::new(audio::plugin::LofiDelay::new(500, 0.5, 10)));
 
     // let mut granulizer = granulizer::Granulizer::new();
@@ -301,7 +308,7 @@ async fn config_load(filename: String) -> ConsoleMessage {
     let filename = format!("{}{}", CONFIG_ROOT, filename);
     let filename = &filename;
 
-    let config = config::Config::load_from_file(filename);
+    let config = config::ConfigOld::load_from_file(filename);
     let config = match config {
         Ok(config) => {
             debug!("Loaded config from {}", filename);
@@ -309,7 +316,7 @@ async fn config_load(filename: String) -> ConsoleMessage {
         }
         Err(e) => {
             debug!("Error loading config: {}", e);
-            config::Config::empty()
+            config::ConfigOld::empty()
         }
     };
 
@@ -814,110 +821,109 @@ async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
     // call midi.rs function
     debug!("Calling midi::hid_list()");
     let mut interfaces = interface::get_interfaces();
-	for interface in interfaces.iter_mut() {
-		if interface.id() == 966156933 {
-			let arc_generator = Arc::new(Mutex::new(SineGenerator::new()));
-			let mut new_strip = audio::Strip::new(
-				audio::Input::Generator(arc_generator.clone()),
-				audio::Output::Stereo(0, 1)
-			);
-			new_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(16)));
-			new_strip.add_effect(Box::new(audio::plugin::Delay::new((44100.0 / 4.0) as usize, 0.1)));
+    for interface in interfaces.iter_mut() {
+        if interface.id() == 966156933 {
+            let arc_generator = Arc::new(Mutex::new(SineGenerator::new()));
+            let mut new_strip = audio::Strip::new(
+                audio::Input::Generator(arc_generator.clone()),
+                audio::Output::Stereo(0, 1),
+            );
+            new_strip.add_effect(Box::new(audio::plugin::BitCrusher::new(16)));
+            new_strip.add_effect(Box::new(audio::plugin::Delay::new(
+                (44100.0 / 4.0) as usize,
+                0.1,
+            )));
 
-			let arc_clone_keydown = arc_generator.clone();
-			let arc_clone_keyup = arc_generator.clone();
+            let arc_clone_keydown = arc_generator.clone();
+            let arc_clone_keyup = arc_generator.clone();
 
-			interface.thread();
-			interface.keydown(Box::new(move |key| {
-				debug!("Key down: {}", key);
-				let mut generator = match arc_clone_keydown.lock() {
-					Ok(generator) => {
-						generator
-					}
-					Err(err) => {
-						return;
-					}
-				};
+            interface.thread();
+            interface.keydown(Box::new(move |key| {
+                debug!("Key down: {}", key);
+                let mut generator = match arc_clone_keydown.lock() {
+                    Ok(generator) => generator,
+                    Err(err) => {
+                        return;
+                    }
+                };
 
-				let freq: f32 = match key {
-					Key::A => 261.626,
-					Key::W => 277.183,
-					Key::S => 293.665,
-					Key::E => 311.127,
-					Key::D => 329.628,
-					Key::F => 349.228,
-					Key::T => 369.994,
-					Key::G => 391.995,
-					Key::Y => 415.305,
-					Key::H => 440.000,
-					Key::U => 466.164,
-					Key::J => 493.883,
-					Key::K => 523.251,
-					Key::O => 554.365,
-					Key::L => 587.330,
-					Key::P => 622.254,
-					Key::Semicolon => 659.255,
-					Key::Apostrophe => 698.456,
-					_ => 0.0,
-				};
+                let freq: f32 = match key {
+                    Key::A => 261.626,
+                    Key::W => 277.183,
+                    Key::S => 293.665,
+                    Key::E => 311.127,
+                    Key::D => 329.628,
+                    Key::F => 349.228,
+                    Key::T => 369.994,
+                    Key::G => 391.995,
+                    Key::Y => 415.305,
+                    Key::H => 440.000,
+                    Key::U => 466.164,
+                    Key::J => 493.883,
+                    Key::K => 523.251,
+                    Key::O => 554.365,
+                    Key::L => 587.330,
+                    Key::P => 622.254,
+                    Key::Semicolon => 659.255,
+                    Key::Apostrophe => 698.456,
+                    _ => 0.0,
+                };
 
-				if freq > 0.0 {
-					generator.add_freq(freq, 1.0);
-				}
-			}));
+                if freq > 0.0 {
+                    generator.add_freq(freq, 1.0);
+                }
+            }));
 
-			interface.keyup(Box::new(move |key| {
-				debug!("Key up: {}", key);
-				let mut generator = match arc_clone_keyup.lock() {
-					Ok(generator) => {
-						generator
-					}
-					Err(err) => {
-						return;
-					}
-				};
+            interface.keyup(Box::new(move |key| {
+                debug!("Key up: {}", key);
+                let mut generator = match arc_clone_keyup.lock() {
+                    Ok(generator) => generator,
+                    Err(err) => {
+                        return;
+                    }
+                };
 
-				let freq: f32 = match key {
-					Key::A => 261.626,
-					Key::W => 277.183,
-					Key::S => 293.665,
-					Key::E => 311.127,
-					Key::D => 329.628,
-					Key::F => 349.228,
-					Key::T => 369.994,
-					Key::G => 391.995,
-					Key::Y => 415.305,
-					Key::H => 440.000,
-					Key::U => 466.164,
-					Key::J => 493.883,
-					Key::K => 523.251,
-					Key::O => 554.365,
-					Key::L => 587.330,
-					Key::P => 622.254,
-					Key::Semicolon => 659.255,
-					Key::Apostrophe => 698.456,
-					_ => 0.0,
-				};
+                let freq: f32 = match key {
+                    Key::A => 261.626,
+                    Key::W => 277.183,
+                    Key::S => 293.665,
+                    Key::E => 311.127,
+                    Key::D => 329.628,
+                    Key::F => 349.228,
+                    Key::T => 369.994,
+                    Key::G => 391.995,
+                    Key::Y => 415.305,
+                    Key::H => 440.000,
+                    Key::U => 466.164,
+                    Key::J => 493.883,
+                    Key::K => 523.251,
+                    Key::O => 554.365,
+                    Key::L => 587.330,
+                    Key::P => 622.254,
+                    Key::Semicolon => 659.255,
+                    Key::Apostrophe => 698.456,
+                    _ => 0.0,
+                };
 
-				if freq > 0.0 {
-					generator.remove_freq(freq);
-				}
-			}));
+                if freq > 0.0 {
+                    generator.remove_freq(freq);
+                }
+            }));
 
-			match audio::STRIPS.write() {
-				Ok(mut strips) => {
-					strips.push(new_strip);
-				}
-				Err(e) => {
-					debug!("Error locking STRIPS: {}", e);
-				}
-			}
-		}
-	}
-	let mut hid_devices: Vec<String> = Vec::new();
-	for interface in &interfaces {
-		hid_devices.push(format!("{}", interface));
-	}
+            match audio::STRIPS.write() {
+                Ok(mut strips) => {
+                    strips.push(new_strip);
+                }
+                Err(e) => {
+                    debug!("Error locking STRIPS: {}", e);
+                }
+            }
+        }
+    }
+    let mut hid_devices: Vec<String> = Vec::new();
+    for interface in &interfaces {
+        hid_devices.push(format!("{}", interface));
+    }
     ConsoleMessage {
         kind: MessageKind::Console,
         message: hid_devices,
@@ -935,7 +941,7 @@ fn main() {
             let console_window = app.get_window("console").unwrap();
             let tv_window = app.get_window("tv").unwrap();
 
-			let _ = run(&console_window);
+            let _ = run(&console_window);
 
             match CONSOLE_WINDOW.lock() {
                 Ok(mut console_window_mutex) => {
@@ -955,14 +961,20 @@ fn main() {
                 }
             }
 
+            match APP.lock() {
+                Ok(mut global_app) => {
+                    *global_app = Some(app.app_handle());
+                }
+                Err(err) => {
+                    error!("Error locking APP: {}", err);
+                }
+            };
+
             Ok(())
         })
         .plugin(
             tauri_plugin_log::Builder::default()
-                .targets([
-					LogTarget::Stdout, 
-					LogTarget::Webview
-					])
+                .targets([LogTarget::Stdout, LogTarget::Webview])
                 .level(LevelFilter::Debug)
                 .build(),
         )
@@ -974,12 +986,12 @@ fn main() {
             config_save,
             config_load,
             audio::list_hosts,
-			audio::list_output_devices,
-			audio::list_input_devices,
-			audio::set_output_device,
-			audio::list_output_streams,
-			audio::set_input_device,
-			audio::list_input_streams,
+            audio::list_output_devices,
+            audio::list_input_devices,
+            audio::set_output_device,
+            audio::list_output_streams,
+            audio::set_input_device,
+            audio::list_input_streams,
             host_select,
             output_select,
             output_stream_set,
@@ -988,7 +1000,7 @@ fn main() {
             midi::midi_list,
             midi_start,
             midi_stop,
-			interface::list_interfaces_name,
+            interface::list_interfaces_name,
             hid_list
         ])
         .run(tauri::generate_context!())
@@ -1002,8 +1014,8 @@ fn main() {
 /// ### Arguments
 ///
 /// * `config: &mut config::Config` - The config
-fn on_config_update(config: &mut config::Config) {
-	debug!("Config updated");
+fn on_config_update(config: &mut config::ConfigOld) {
+    debug!("Config updated");
     let host_name = match config.get_str_or("audio.host", || "default".to_owned()) {
         Ok(host_name) => host_name,
         Err(e) => {
