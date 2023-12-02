@@ -8,6 +8,8 @@ import store from "./store";
 
 attachConsole();
 
+// this is a tesley wesley
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<Provider store={store}>
 		<Console />
