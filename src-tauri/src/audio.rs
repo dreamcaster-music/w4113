@@ -330,6 +330,24 @@ pub fn set_output_device(name: String) -> Result<(), String> {
 
     *mutex = Some(device);
 
+	let mut config = match crate::CONFIG.write() {
+		Ok(config) => config,
+		Err(e) => {
+			debug!("Error locking CONFIG: {}", e);
+			return Err(format!("Error locking CONFIG: {}", e));
+		}
+	};
+	
+	match config.set("audio.output.device", name.as_str()) {
+		Ok(_) => {},
+		Err(e) => {
+			debug!("Error setting audio.output_device: {}", e);
+			return Err(format!("Error setting audio.output_device: {}", e));
+		}
+	}
+
+	debug!("{}", config.json().to_string());
+
     Ok(())
 }
 

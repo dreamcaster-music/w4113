@@ -3,13 +3,15 @@ import "../../globals.css";
 import { debug } from "tauri-plugin-log-api";
 import Frame from "../components/Frame";
 import { event, invoke } from "@tauri-apps/api";
+import { useSelector } from "react-redux";
+import { configJSON, getConfigOr, setConfig, onChange } from "../../console";
 
 function Settings(props: { visible: boolean }) {
 	const [hostOption, setHostOption] = useState([]);
 	const [host, setHost] = useState("default");
 
 	const [outputDeviceOption, setOutputDeviceOption] = useState([]);
-	const [outputDevice, setOutputDevice] = useState("default");
+	const [outputDevice, setOutputDevice] = useState(getConfigOr("audio.output.device", "default"));
 
 	const [inputDeviceOption, setInputDeviceOption] = useState([]);
 	const [inputDevice, setInputDevice] = useState("default");
@@ -84,7 +86,7 @@ function Settings(props: { visible: boolean }) {
 				<div className="option">
 					Output Device:
 					<select className="output-device-select" onChange={(event) => {
-						setOutputDevice(event.target.value);
+						setConfig("audio.output.device", event.target.value);
 					}}>
 						{outputDeviceOption.map((device: any) => {
 							return <option>{device}</option>;
@@ -125,6 +127,10 @@ function Settings(props: { visible: boolean }) {
 					Output Buffer: <input type="number" defaultValue="1024" className="output-buffer-input" />
 					Input Buffer: <input type="number" defaultValue="1024" className="input-buffer-input" />
 				</div>
+
+				<button onClick={() => {
+					debug("Config: " + JSON.stringify(configJSON));
+				}}>Print Config</button>
 			</Frame >
 		</>
 	);

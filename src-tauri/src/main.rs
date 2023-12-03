@@ -14,20 +14,19 @@ use lazy_static::lazy_static;
 use log::{debug, error, LevelFilter};
 use std::{
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 use tauri::{api::path::BaseDirectory, AppHandle, LogicalPosition, Manager};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
-use crate::interface::Key;
+use crate::{config::Config, interface::Key};
 
 static CONFIG_FILE: &str = "public/config.json";
 static CONFIG_ROOT: &str = "public/config/";
 
 // The current configuration
 lazy_static! {
-    static ref APP: Mutex<Option<AppHandle>> = Mutex::new(None);
-    static ref CONFIG: Mutex<config::ConfigOld> = Mutex::new(config::ConfigOld::empty());
+    static ref CONFIG: Arc<RwLock<Config>> = Arc::new(RwLock::new(Config::empty()));
     static ref CONSOLE_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
     static ref TV_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
 }
@@ -88,29 +87,30 @@ struct ConsoleMessage {
 /// ### Returns
 ///
 /// * `String` - The result of the command, formatted as a string
-
-async fn run(window: &tauri::Window) -> String {
-    let result = match init(window) {
+#[tauri::command]
+async fn run(window: tauri::Window) -> String {
+    let result = match init(&window) {
         Ok(()) => "Initialization ran successfully".to_owned(),
         Err(e) => format!("Error in initialization: {}", e),
     };
+	debug!("{}", result);
 
     // make sure CONFIG_ROOT exists; do nothing if it already exists
     std::fs::create_dir_all(CONFIG_ROOT).unwrap_or_default();
 
-    let config = config::ConfigOld::load_from_file(CONFIG_FILE);
+    let config = config::Config::load(CONFIG_FILE);
     let config_path = match config {
         Ok(mut config) => {
             debug!("Loaded config from {}", CONFIG_FILE);
-            match config.get_str_or("config", || "default.json".to_owned()) {
+            match config.get_or("config", || "default.json".to_owned()) {
                 Ok(config_path) => {
                     let path = CONFIG_ROOT.to_owned() + &config_path;
-                    let _ = config.save_to_file(CONFIG_FILE);
+                    let _ = config.save();
                     path
                 }
                 Err(e) => {
                     debug!("Error loading config: {}", e);
-                    let _ = config.save_to_file(CONFIG_FILE);
+                    let _ = config.save();
                     CONFIG_ROOT.to_owned() + "default.json"
                 }
             }
@@ -121,7 +121,7 @@ async fn run(window: &tauri::Window) -> String {
         }
     };
 
-    let config = config::ConfigOld::load_from_file(&config_path);
+    let config = config::Config::load((&config_path));
     let mut config = match config {
         Ok(config) => {
             debug!("Loaded config from {}", config_path);
@@ -129,15 +129,17 @@ async fn run(window: &tauri::Window) -> String {
         }
         Err(e) => {
             debug!("Error loading config: {}", e);
-            config::ConfigOld::empty()
+            config::Config::empty()
         }
     };
 
-    let _ = config.save_to_file(config_path.as_str());
-    config.on_update(on_config_update);
+	config.when_changed("audio.output.device", |key, value| {
+				debug!("AUDIO.OUTPUT.DEVICE changed to {}", value);
+			});
+			config::Config::listen(CONFIG.clone());
 
     // Set CONFIG to the loaded config
-    match CONFIG.lock() {
+    match CONFIG.write() {
         Ok(mut config_mutex) => {
             *config_mutex = config;
         }
@@ -230,19 +232,14 @@ fn init(window: &tauri::Window) -> Result<(), String> {
 /// * `ConsoleMessage` - The result of the command
 #[tauri::command]
 async fn config_show() -> ConsoleMessage {
-    let config = CONFIG.lock();
-    let config = match config {
-        Ok(config) => config,
+    let mut json = "null".to_string();
+    match CONFIG.read() {
+        Ok(config) => json = config.json().to_string(),
         Err(e) => {
             debug!("Error locking CONFIG: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking CONFIG: {}", e)],
-            };
         }
-    };
+    }
 
-    let json = config.json().to_string();
     ConsoleMessage {
         kind: MessageKind::Console,
         message: json.lines().map(|s| s.to_owned()).collect(),
@@ -269,8 +266,7 @@ async fn config_save(filename: String) -> ConsoleMessage {
     let filename = format!("{}{}", CONFIG_ROOT, filename);
     let filename = &filename;
 
-    let config = CONFIG.lock();
-    let mut config = match config {
+    let mut config = match CONFIG.write() {
         Ok(config) => config,
         Err(e) => {
             debug!("Error locking CONFIG: {}", e);
@@ -280,7 +276,8 @@ async fn config_save(filename: String) -> ConsoleMessage {
             };
         }
     };
-    let _result = config.save_to_file(filename);
+
+    let _result = config.save();
     let json = config.json().to_string();
     ConsoleMessage {
         kind: MessageKind::Console,
@@ -308,7 +305,7 @@ async fn config_load(filename: String) -> ConsoleMessage {
     let filename = format!("{}{}", CONFIG_ROOT, filename);
     let filename = &filename;
 
-    let config = config::ConfigOld::load_from_file(filename);
+    let config = config::Config::load(filename);
     let config = match config {
         Ok(config) => {
             debug!("Loaded config from {}", filename);
@@ -316,26 +313,13 @@ async fn config_load(filename: String) -> ConsoleMessage {
         }
         Err(e) => {
             debug!("Error loading config: {}", e);
-            config::ConfigOld::empty()
+            config::Config::empty()
         }
     };
 
-    let config_partial_clone = config.partial_clone();
-
-    // Set CONFIG to the loaded config
-    match CONFIG.lock() {
-        Ok(mut config_mutex) => {
-            *config_mutex = config;
-        }
-        Err(e) => {
-            debug!("Error locking CONFIG: {}", e);
-        }
-    }
-
-    let json = config_partial_clone.json().to_string();
     ConsoleMessage {
         kind: MessageKind::Console,
-        message: json.lines().map(|s| s.to_owned()).collect(),
+        message: vec!["Loaded config".to_string()],
     }
 }
 
@@ -369,7 +353,18 @@ async fn host_select(_window: tauri::Window, host: String) -> ConsoleMessage {
         }
     }
 
-    let _ = set_global_config_value("audio.host", host_name, true);
+    let mut config = match CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking CONFIG: {}", e)],
+            };
+        }
+    };
+
+    let _ = config.set("audio.host", host_name);
 
     return ConsoleMessage {
         kind: MessageKind::Console,
@@ -417,11 +412,18 @@ async fn output_select(_window: tauri::Window, output: String) -> ConsoleMessage
                         }
                     };
 
-                    let _ = set_global_config_value(
-                        "audio.output.device",
-                        actual_device_name.as_str(),
-                        true,
-                    );
+                    let mut config = match CONFIG.write() {
+                        Ok(config) => config,
+                        Err(e) => {
+                            debug!("Error locking CONFIG: {}", e);
+                            return ConsoleMessage {
+                                kind: MessageKind::Error,
+                                message: vec![format!("Error locking CONFIG: {}", e)],
+                            };
+                        }
+                    };
+
+                    let _ = config.set("audio.output.device", actual_device_name.as_str());
                     ConsoleMessage {
                         kind: MessageKind::Console,
                         message: vec![format!("Selected output device {}", actual_device_name)],
@@ -505,22 +507,21 @@ async fn output_stream_set(
     let sample_result = result.1;
     let buffer_size_result = result.2;
 
-    let _ = set_global_config_value(
-        "audio.output.channels",
-        channel_result.to_string().as_str(),
-        false,
-    );
-    let _ = set_global_config_value(
-        "audio.output.samples",
-        sample_result.to_string().as_str(),
-        false,
-    );
-    let _ = set_global_config_value(
-        "audio.output.buffer_size",
-        buffer_size_result.as_str(),
-        false,
-    );
-    let _ = global_config_force_update();
+    let inner = CONFIG.write();
+    let mut inner = match inner {
+        Ok(mut config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking CONFIG: {}", e)],
+            };
+        }
+    };
+
+    let _ = inner.set("audio.output.channels", channel_result.to_string().as_str());
+    let _ = inner.set("audio.output.samples", sample_result.to_string().as_str());
+    let _ = inner.set("audio.output.buffer_size", buffer_size_result.as_str());
 
     // set OUTPUT_CONFIG to config
     match audio::OUTPUT_CONFIG.lock() {
@@ -585,11 +586,18 @@ async fn input_select(_window: tauri::Window, input: String) -> ConsoleMessage {
                         }
                     };
 
-                    let _ = set_global_config_value(
-                        "audio.input.device",
-                        actual_device_name.as_str(),
-                        false,
-                    );
+                    let mut config = match CONFIG.write() {
+                        Ok(config) => config,
+                        Err(e) => {
+                            debug!("Error locking CONFIG: {}", e);
+                            return ConsoleMessage {
+                                kind: MessageKind::Error,
+                                message: vec![format!("Error locking CONFIG: {}", e)],
+                            };
+                        }
+                    };
+
+                    let _ = config.set("audio.input.device", actual_device_name.as_str());
                     ConsoleMessage {
                         kind: MessageKind::Console,
                         message: vec![format!("Selected input device {}", actual_device_name)],
@@ -673,22 +681,21 @@ async fn input_stream_set(
     let sample_result = result.1;
     let buffer_size_result = result.2;
 
-    let _ = set_global_config_value(
-        "audio.input.channels",
-        channel_result.to_string().as_str(),
-        false,
-    );
-    let _ = set_global_config_value(
-        "audio.input.samples",
-        sample_result.to_string().as_str(),
-        false,
-    );
-    let _ = set_global_config_value(
-        "audio.input.buffer_size",
-        buffer_size_result.as_str(),
-        false,
-    );
-    let _ = global_config_force_update();
+    let inner = CONFIG.write();
+    let mut inner = match inner {
+        Ok(mut config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return ConsoleMessage {
+                kind: MessageKind::Error,
+                message: vec![format!("Error locking CONFIG: {}", e)],
+            };
+        }
+    };
+
+    let _ = inner.set("audio.input.channels", channel_result.to_string().as_str());
+    let _ = inner.set("audio.input.samples", sample_result.to_string().as_str());
+    let _ = inner.set("audio.input.buffer_size", buffer_size_result.as_str());
 
     // set INPUT_CONFIG to config
     match audio::INPUT_CONFIG.lock() {
@@ -713,68 +720,20 @@ async fn input_stream_set(
     }
 }
 
-/// ## `set_global_config_value(key: &str, value: &str) -> Result<(), String>`
-///
-/// Sets a value in the global config.
-///
-/// ### Arguments
-///
-/// * `key: &str` - The key to set
-/// * `value: &str` - The value to set
-///
-/// ### Returns
-///
-/// * `Ok(())` - The result of the command
-/// * `Err(String)` - The result of the command
-fn set_global_config_value(key: &str, value: &str, update: bool) -> Result<(), String> {
-    let config = CONFIG.lock();
-    let mut config = match config {
-        Ok(config) => config,
-        Err(e) => {
-            error!("Error locking CONFIG: {}", e);
-            return Err(format!("Error locking CONFIG: {}", e));
-        }
-    };
-
-    if update {
-        config.set_str(key, value);
-    } else {
-        config.set_str_no_update(key, value);
-    }
-
-    Ok(())
-}
-
-fn global_config_force_update() {
-    let config = CONFIG.lock();
-    let mut config = match config {
-        Ok(config) => config,
-        Err(e) => {
-            debug!("Error locking CONFIG: {}", e);
-            return;
-        }
-    };
-
-    config.force_update();
-}
-
 #[tauri::command]
 async fn exit() -> ConsoleMessage {
-    // only exit if the config is saved
-    let config = CONFIG.lock();
-    let config = match config {
-        Ok(config) => config,
+    match CONFIG.read() {
+        Ok(config) => {
+            if !config.saved() {
+                return ConsoleMessage {
+                    kind: MessageKind::Console,
+                    message: vec![format!("Unsaved changes. Save before exiting?")],
+                };
+            }
+        }
         Err(e) => {
             debug!("Error locking CONFIG: {}", e);
-            return ConsoleMessage {
-                kind: MessageKind::Error,
-                message: vec![format!("Error locking CONFIG: {}", e)],
-            };
         }
-    };
-
-    if config.state() == &config::State::Saved {
-        std::process::exit(0);
     }
 
     // otherwise, prompt the user to save
@@ -941,7 +900,7 @@ fn main() {
             let console_window = app.get_window("console").unwrap();
             let tv_window = app.get_window("tv").unwrap();
 
-            let _ = run(&console_window);
+            let _ = run(console_window.clone());
 
             match CONSOLE_WINDOW.lock() {
                 Ok(mut console_window_mutex) => {
@@ -961,14 +920,7 @@ fn main() {
                 }
             }
 
-            match APP.lock() {
-                Ok(mut global_app) => {
-                    *global_app = Some(app.app_handle());
-                }
-                Err(err) => {
-                    error!("Error locking APP: {}", err);
-                }
-            };
+            config::set_app(app.app_handle());
 
             Ok(())
         })
@@ -979,6 +931,7 @@ fn main() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
+			run,
             exit,
             confirm_exit,
             //run,
@@ -1007,172 +960,172 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-/// ## `on_config_update(config: &mut config::Config)`
-///
-/// Called when the config is updated.
-///
-/// ### Arguments
-///
-/// * `config: &mut config::Config` - The config
-fn on_config_update(config: &mut config::ConfigOld) {
-    debug!("Config updated");
-    let host_name = match config.get_str_or("audio.host", || "default".to_owned()) {
-        Ok(host_name) => host_name,
-        Err(e) => {
-            debug!("Error getting audio.host: {}", e);
-            "default".to_owned()
-        }
-    };
-
-    let host = audio::get_host(&host_name);
-
-    let input_name = match config.get_str_or("audio.input.device", || "default".to_owned()) {
-        Ok(input_name) => input_name,
-        Err(e) => {
-            debug!("Error getting audio.input: {}", e);
-            "default".to_owned()
-        }
-    };
-
-    let output_name = match config.get_str_or("audio.output.device", || "default".to_owned()) {
-        Ok(output_name) => output_name,
-        Err(e) => {
-            debug!("Error getting audio.output: {}", e);
-            "default".to_owned()
-        }
-    };
-
-    let input_channels = match config.get_num_or("audio.input.channels", || 2.0) {
-        Ok(input_channels) => input_channels,
-        Err(e) => {
-            debug!("Error getting audio.input.channels: {}", e);
-            1.0
-        }
-    };
-
-    let input_samples = match config.get_num_or("audio.input.samples", || 44100.0) {
-        Ok(input_samples) => input_samples,
-        Err(e) => {
-            debug!("Error getting audio.input.samples: {}", e);
-            44100.0
-        }
-    };
-
-    let input_buffer_size = match config.get_num_or("audio.input.buffer_size", || 1024.0) {
-        Ok(input_buffer_size) => input_buffer_size,
-        Err(e) => {
-            debug!("Error getting audio.input.buffer_size: {}", e);
-            1024.0
-        }
-    };
-
-    let output_channels = match config.get_num_or("audio.output.channels", || 2.0) {
-        Ok(output_channels) => output_channels,
-        Err(e) => {
-            debug!("Error getting audio.output.channels: {}", e);
-            1.0
-        }
-    };
-
-    let output_samples = match config.get_num_or("audio.output.samples", || 44100.0) {
-        Ok(output_samples) => output_samples,
-        Err(e) => {
-            debug!("Error getting audio.output.samples: {}", e);
-            44100.0
-        }
-    };
-
-    let output_buffer_size = match config.get_num_or("audio.output.buffer_size", || 1024.0) {
-        Ok(output_buffer_size) => output_buffer_size,
-        Err(e) => {
-            debug!("Error getting audio.output.buffer_size: {}", e);
-            1024.0
-        }
-    };
-
-    let input_device = audio::get_input_device(&input_name, &host);
-    let output_device = audio::get_output_device(&output_name, &host);
-
-    match audio::INPUT_DEVICE.try_lock() {
-        Ok(mut input_device_mutex) => {
-            *input_device_mutex = input_device;
-        }
-        Err(e) => {
-            debug!("Error locking INPUT_DEVICE: {}", e);
-        }
-    }
-
-    match audio::OUTPUT_DEVICE.try_lock() {
-        Ok(mut output_device_mutex) => {
-            *output_device_mutex = output_device;
-        }
-        Err(e) => {
-            debug!("Error locking OUTPUT_DEVICE: {}", e);
-        }
-    }
-    let input_device = audio::INPUT_DEVICE.try_lock();
-    match input_device {
-        Ok(input_device) => {
-            if input_device.is_some() {
-                let input_config;
-                input_config = audio::get_input_config(
-                    &input_device.as_ref().unwrap(),
-                    Preference::Exact(input_channels as u32, audio::PreferenceAlt::Higher),
-                    Preference::Exact(input_samples as u32, audio::PreferenceAlt::Higher),
-                    Preference::Exact(input_buffer_size as u32, audio::PreferenceAlt::Higher),
-                );
-
-                match audio::INPUT_CONFIG.try_lock() {
-                    Ok(mut input_config_mutex) => {
-                        *input_config_mutex = input_config;
-                    }
-                    Err(e) => {
-                        debug!("Error locking INPUT_CONFIG: {}", e);
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            debug!("Error locking INPUT_DEVICE: {}", e);
-            return;
-        }
-    };
-
-    let output_device = audio::OUTPUT_DEVICE.try_lock();
-    match output_device {
-        Ok(output_device) => {
-            if output_device.is_some() {
-                let output_config;
-                output_config = audio::get_output_config(
-                    &output_device.as_ref().unwrap(),
-                    Preference::Exact(output_channels as u32, audio::PreferenceAlt::Higher),
-                    Preference::Exact(output_samples as u32, audio::PreferenceAlt::Higher),
-                    Preference::Exact(output_buffer_size as u32, audio::PreferenceAlt::Higher),
-                );
-
-                match audio::OUTPUT_CONFIG.try_lock() {
-                    Ok(mut output_config_mutex) => {
-                        *output_config_mutex = output_config;
-                    }
-                    Err(e) => {
-                        debug!("Error locking OUTPUT_CONFIG: {}", e);
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            debug!("Error locking OUTPUT_DEVICE: {}", e);
-            return;
-        }
-    };
-
-    let result = audio::reload();
-    match result {
-        Ok(()) => {
-            debug!("Audio thread ran successfully");
-        }
-        Err(e) => {
-            debug!("Error in audio thread: {}", e);
-        }
-    };
-}
+// /// ## `on_config_update(config: &mut config::Config)`
+// ///
+// /// Called when the config is updated.
+// ///
+// /// ### Arguments
+// ///
+// /// * `config: &mut config::Config` - The config
+// fn on_config_update(config: &mut config::Config) {
+//     debug!("Config updated");
+//     let host_name = match config.get_str_or("audio.host", || "default".to_owned()) {
+//         Ok(host_name) => host_name,
+//         Err(e) => {
+//             debug!("Error getting audio.host: {}", e);
+//             "default".to_owned()
+//         }
+//     };
+//
+//     let host = audio::get_host(&host_name);
+//
+//     let input_name = match config.get_str_or("audio.input.device", || "default".to_owned()) {
+//         Ok(input_name) => input_name,
+//         Err(e) => {
+//             debug!("Error getting audio.input: {}", e);
+//             "default".to_owned()
+//         }
+//     };
+//
+//     let output_name = match config.get_str_or("audio.output.device", || "default".to_owned()) {
+//         Ok(output_name) => output_name,
+//         Err(e) => {
+//             debug!("Error getting audio.output: {}", e);
+//             "default".to_owned()
+//         }
+//     };
+//
+//     let input_channels = match config.get_num_or("audio.input.channels", || 2.0) {
+//         Ok(input_channels) => input_channels,
+//         Err(e) => {
+//             debug!("Error getting audio.input.channels: {}", e);
+//             1.0
+//         }
+//     };
+//
+//     let input_samples = match config.get_num_or("audio.input.samples", || 44100.0) {
+//         Ok(input_samples) => input_samples,
+//         Err(e) => {
+//             debug!("Error getting audio.input.samples: {}", e);
+//             44100.0
+//         }
+//     };
+//
+//     let input_buffer_size = match config.get_num_or("audio.input.buffer_size", || 1024.0) {
+//         Ok(input_buffer_size) => input_buffer_size,
+//         Err(e) => {
+//             debug!("Error getting audio.input.buffer_size: {}", e);
+//             1024.0
+//         }
+//     };
+//
+//     let output_channels = match config.get_num_or("audio.output.channels", || 2.0) {
+//         Ok(output_channels) => output_channels,
+//         Err(e) => {
+//             debug!("Error getting audio.output.channels: {}", e);
+//             1.0
+//         }
+//     };
+//
+//     let output_samples = match config.get_num_or("audio.output.samples", || 44100.0) {
+//         Ok(output_samples) => output_samples,
+//         Err(e) => {
+//             debug!("Error getting audio.output.samples: {}", e);
+//             44100.0
+//         }
+//     };
+//
+//     let output_buffer_size = match config.get_num_or("audio.output.buffer_size", || 1024.0) {
+//         Ok(output_buffer_size) => output_buffer_size,
+//         Err(e) => {
+//             debug!("Error getting audio.output.buffer_size: {}", e);
+//             1024.0
+//         }
+//     };
+//
+//     let input_device = audio::get_input_device(&input_name, &host);
+//     let output_device = audio::get_output_device(&output_name, &host);
+//
+//     match audio::INPUT_DEVICE.try_lock() {
+//         Ok(mut input_device_mutex) => {
+//             *input_device_mutex = input_device;
+//         }
+//         Err(e) => {
+//             debug!("Error locking INPUT_DEVICE: {}", e);
+//         }
+//     }
+//
+//     match audio::OUTPUT_DEVICE.try_lock() {
+//         Ok(mut output_device_mutex) => {
+//             *output_device_mutex = output_device;
+//         }
+//         Err(e) => {
+//             debug!("Error locking OUTPUT_DEVICE: {}", e);
+//         }
+//     }
+//     let input_device = audio::INPUT_DEVICE.try_lock();
+//     match input_device {
+//         Ok(input_device) => {
+//             if input_device.is_some() {
+//                 let input_config;
+//                 input_config = audio::get_input_config(
+//                     &input_device.as_ref().unwrap(),
+//                     Preference::Exact(input_channels as u32, audio::PreferenceAlt::Higher),
+//                     Preference::Exact(input_samples as u32, audio::PreferenceAlt::Higher),
+//                     Preference::Exact(input_buffer_size as u32, audio::PreferenceAlt::Higher),
+//                 );
+//
+//                 match audio::INPUT_CONFIG.try_lock() {
+//                     Ok(mut input_config_mutex) => {
+//                         *input_config_mutex = input_config;
+//                     }
+//                     Err(e) => {
+//                         debug!("Error locking INPUT_CONFIG: {}", e);
+//                     }
+//                 }
+//             }
+//         }
+//         Err(e) => {
+//             debug!("Error locking INPUT_DEVICE: {}", e);
+//             return;
+//         }
+//     };
+//
+//     let output_device = audio::OUTPUT_DEVICE.try_lock();
+//     match output_device {
+//         Ok(output_device) => {
+//             if output_device.is_some() {
+//                 let output_config;
+//                 output_config = audio::get_output_config(
+//                     &output_device.as_ref().unwrap(),
+//                     Preference::Exact(output_channels as u32, audio::PreferenceAlt::Higher),
+//                     Preference::Exact(output_samples as u32, audio::PreferenceAlt::Higher),
+//                     Preference::Exact(output_buffer_size as u32, audio::PreferenceAlt::Higher),
+//                 );
+//
+//                 match audio::OUTPUT_CONFIG.try_lock() {
+//                     Ok(mut output_config_mutex) => {
+//                         *output_config_mutex = output_config;
+//                     }
+//                     Err(e) => {
+//                         debug!("Error locking OUTPUT_CONFIG: {}", e);
+//                     }
+//                 }
+//             }
+//         }
+//         Err(e) => {
+//             debug!("Error locking OUTPUT_DEVICE: {}", e);
+//             return;
+//         }
+//     };
+//
+//     let result = audio::reload();
+//     match result {
+//         Ok(()) => {
+//             debug!("Audio thread ran successfully");
+//         }
+//         Err(e) => {
+//             debug!("Error in audio thread: {}", e);
+//         }
+//     };
+// }
