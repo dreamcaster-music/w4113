@@ -111,7 +111,6 @@ impl Setting {
     ///
     /// * `&self` - The setting.
     fn changed(&self) {
-		debug!("Rust: Setting changed: {} = {}", self.key, self.value);
         match &self.on_change {
             Some(function) => {
                 function.as_ref()(&self.key, &self.value);
@@ -233,7 +232,6 @@ impl Config {
 
             let app = APP.lock().unwrap().as_ref().unwrap().clone();
             let config = config.clone();
-			debug ! ("Rust: Listening for config changes");
             app.listen_global("react-state-update", move |event| {
                 let mut config = match config.write() {
                     Ok(config) => config,
@@ -272,32 +270,7 @@ impl Config {
                     }
                 };
 
-                {
-                    let json = config.translate_mut(key.as_str());
-                    match json {
-                        Ok(json) => {
-                            *json = serde_json::Value::String(value.clone());
-                        }
-                        Err(err) => {
-                            error!("{}", err);
-                        }
-                    }
-                }
-
-                match config.settings.get_mut(&key) {
-                    Some(setting) => {
-                        setting.set_value(value.to_string());
-                        setting.changed();
-                    }
-                    None => {
-                        let setting = Setting {
-                            key: key.clone(),
-                            value: value.clone(),
-                            on_change: None,
-                        };
-                        config.settings.insert(key.clone(), setting);
-                    }
-                }
+                let _ = config.set(&key, &value);
             });
         });
     }
@@ -407,8 +380,8 @@ impl Config {
             let setting = self.settings.get_mut(key);
             match setting {
                 Some(setting) => {
-                    setting.set_value(value.to_string());
-                    setting.changed();
+					setting.set_value(value.to_string());
+                    //setting.changed();
                 }
                 None => {
                     let setting = Setting {

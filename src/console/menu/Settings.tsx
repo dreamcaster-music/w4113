@@ -129,8 +129,8 @@ function Settings(props: { visible: boolean }) {
 				</div>
 
 				<button onClick={() => {
-					debug("Config: " + JSON.stringify(configJSON));
-				}}>Print Config</button>
+					setConfig("audio.output.device", "default");
+				}}>set output</button>
 			</Frame >
 		</>
 	);

@@ -17,9 +17,6 @@ async function stateEventLoop() {
 		let payload = event.payload as Update;
 		let key = payload.key;
 		let value = payload.value;
-
-		// set the value in the store
-		debug(`Updating ${key} to ${value}`);
 		configJSON[key] = value;
 	});
 }
