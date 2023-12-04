@@ -8,13 +8,13 @@ import { configJSON, getConfigOr, setConfig, onChange } from "../../console";
 
 function Settings(props: { visible: boolean }) {
 	const [hostOption, setHostOption] = useState([]);
-	const [host, setHost] = useState("default");
+	const [host, setHost] = useState(getConfigOr("audio.host", "default"));
 
 	const [outputDeviceOption, setOutputDeviceOption] = useState([]);
 	const [outputDevice, setOutputDevice] = useState(getConfigOr("audio.output.device", "default"));
 
 	const [inputDeviceOption, setInputDeviceOption] = useState([]);
-	const [inputDevice, setInputDevice] = useState("default");
+	const [inputDevice, setInputDevice] = useState(getConfigOr("audio.input.device", "default"));
 
 	const [outputStreamOption, setOutputStreamOption] = useState([]);
 	const [outputStream, setOutputStream] = useState("default");

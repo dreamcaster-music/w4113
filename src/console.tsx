@@ -17,6 +17,7 @@ async function stateEventLoop() {
 		let payload = event.payload as Update;
 		let key = payload.key;
 		let value = payload.value;
+
 		configJSON[key] = value;
 	});
 }
