@@ -2,154 +2,7 @@
 //!
 //! This module is used for anything related to configuration and in the filesystem.
 
-use std::ops::{Deref, DerefMut};
-use std::sync::{Mutex, RwLockReadGuard, RwLockWriteGuard};
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
-
-lazy_static::lazy_static! {
-    static ref APP: Mutex<Option<AppHandle>> = Mutex::new(None);
-}
-
-use log::{error, debug};
-use tauri::{AppHandle, Manager};
-
-/// Used to serialize/deserialize updates the config and make it easier to communicate with the frontend.
-/// 
-/// ### Fields
-/// 
-/// * `key` - The key of the setting.
-/// * `value` - The value of the setting.
-#[derive(ts_rs::TS, Clone, serde::Serialize, serde::Deserialize)]
-#[ts(export, export_to = "../src/bindings/ConfigUpdate.ts")]
-struct Update {
-	key: String,
-	value: String,
-}
-
-/// Sets the Tauri app handle where events will be sent to the frontend.
-/// 
-/// ### Arguments
-/// 
-/// * `app: AppHandle` - The Tauri app handle.
-pub fn set_app(app: AppHandle) {
-    let mut app_mutex = APP.lock().unwrap();
-    *app_mutex = Some(app);
-}
-
-/// An individual setting within a config.
-///
-/// ### Fields
-///
-/// * `key` - The key of the setting.
-/// * `value` - The value of the setting.
-/// * `on_change` - The function to call when the setting is changed.
-///
-/// ### Methods
-///
-/// * `key(&self) -> &String` - Returns the key of the setting.
-/// * `value(&self) -> &String` - Returns the value of the setting.
-/// * `set_value(&mut self, value: String)` - Sets the value of the setting.
-/// * `changed(&self)` - Calls the on_change function.
-/// * `when_changed(&mut self, function: impl Fn(&String, &String) + Send + Sync + 'static)` - Sets the on_change function.
-struct Setting {
-    key: String,
-    value: String,
-    on_change: Option<Box<dyn Fn(&str, &str) + Send + Sync + 'static>>,
-}
-
-impl Setting {
-    /// Returns the key of the setting.
-    ///
-    /// ### Arguments
-    ///
-    /// * `&self` - The setting.
-    ///
-    /// ### Returns
-    ///
-    /// * `&String` - The key of the setting.
-    fn key(&self) -> &String {
-        &self.key
-    }
-
-    /// Returns the value of the setting.
-    ///
-    /// ### Arguments
-    ///
-    /// * `&self` - The setting.
-    ///
-    /// ### Returns
-    ///
-    /// * `&String` - The value of the setting.
-    fn value(&self) -> &String {
-        &self.value
-    }
-
-    /// Sets the value of the setting.
-    ///
-    /// ### Arguments
-    ///
-    /// * `&mut self` - The setting.
-    /// * `value: String` - The value to set.
-    fn set_value(&mut self, value: String) {
-        if value != self.value {
-            self.value = value;
-            match &self.on_change {
-                Some(function) => {
-                    function.as_ref()(&self.key, &self.value);
-                }
-                None => {}
-            }
-        }
-    }
-
-    /// Calls the on_change function.
-    ///
-    /// ### Arguments
-    ///
-    /// * `&self` - The setting.
-    fn changed(&self) {
-        match &self.on_change {
-            Some(function) => {
-                function.as_ref()(&self.key, &self.value);
-            }
-            None => {}
-        }
-        match APP.lock() {
-            Ok(app) => match app.as_ref() {
-                Some(app) => {
-                    let payload = Update {
-						key: self.key.clone(),
-						value: self.value.clone(),
-					};
-                    let emit = app.emit_all("rust-state-update", payload);
-                    match emit {
-                        Ok(_) => {}
-                        Err(err) => {
-                            error!("{}", err);
-                        }
-                    }
-                }
-                None => {}
-            },
-            Err(err) => {
-                error!("{}", err);
-            }
-        }
-    }
-
-    /// Sets the on_change function for the setting.
-    ///
-    /// ### Arguments
-    ///
-    /// * `&mut self` - The setting.
-    /// * `function: impl Fn(&String, &String) + Send + Sync + 'static` - The function to call when the setting is changed.
-    fn when_changed(&mut self, function: impl Fn(&str, &str) + Send + Sync + 'static) {
-        self.on_change = Some(Box::new(function));
-    }
-}
+use log::error;
 
 /// The config struct.
 ///
@@ -172,7 +25,6 @@ impl Setting {
 pub struct Config {
     path: String,
     saved: bool,
-    settings: HashMap<String, Setting>,
     json: serde_json::Value,
 }
 
@@ -203,76 +55,8 @@ impl Config {
         Config {
             path: "".to_string(),
             saved: true,
-            settings: HashMap::new(),
             json: serde_json::Value::Null,
         }
-    }
-
-    ///	Starts a thread that listens for changes to the config.
-    ///
-    /// ### Arguments
-    ///
-    /// * `config: Arc<RwLock<Config>>` - The config.
-    pub fn listen(config: Arc<RwLock<Config>>) {
-        let _thread = std::thread::spawn(move || {
-            loop {
-                match APP.lock() {
-                    Ok(app) => match app.as_ref() {
-                        Some(app) => {
-                            break;
-                        }
-                        None => {}
-                    },
-                    Err(err) => {
-                        error!("{}", err);
-                    }
-                }
-                std::thread::sleep(std::time::Duration::from_millis(1000));
-            }
-
-            let app = APP.lock().unwrap().as_ref().unwrap().clone();
-            let config = config.clone();
-            app.listen_global("react-state-update", move |event| {
-                let mut config = match config.write() {
-                    Ok(config) => config,
-                    Err(err) => {
-                        error!("{}", err);
-                        return;
-                    }
-                };
-
-                let payload = match event.payload() {
-                    Some(payload) => payload,
-                    None => {
-                        return;
-                    }
-                };
-
-                let json = match serde_json::from_str::<serde_json::Value>(payload) {
-                    Ok(json) => json,
-                    Err(err) => {
-                        error!("{}", err);
-                        return;
-                    }
-                };
-
-                let key = match json["key"].as_str() {
-                    Some(key) => key.to_string(),
-                    None => {
-                        return;
-                    }
-                };
-
-                let value = match json["value"].as_str() {
-                    Some(value) => value.to_string(),
-                    None => {
-                        return;
-                    }
-                };
-
-                let _ = config.set(&key, &value);
-            });
-        });
     }
 
     /// Loads the config.
@@ -291,7 +75,6 @@ impl Config {
             Ok(json) => Ok(Config {
                 path: path.to_string(),
                 saved: true,
-                settings: HashMap::new(),
                 json: json,
             }),
             Err(err) => {
@@ -376,24 +159,6 @@ impl Config {
     ///
     /// * `Result<(), String>` - Whether or not the value was set.
     pub fn set(&mut self, key: &str, value: &str) -> Result<(), String> {
-        {
-            let setting = self.settings.get_mut(key);
-            match setting {
-                Some(setting) => {
-					setting.set_value(value.to_string());
-                    //setting.changed();
-                }
-                None => {
-                    let setting = Setting {
-                        key: key.to_string(),
-                        value: value.to_string(),
-                        on_change: None,
-                    };
-                    self.settings.insert(key.to_string(), setting);
-                }
-            }
-        }
-
         let json = self.translate_mut(key);
 
         match json {
@@ -456,35 +221,6 @@ impl Config {
         };
 
         return Ok(string_value);
-    }
-
-    /// Sets the on_change function for a setting.
-    ///
-    /// ### Arguments
-    ///
-    /// * `&mut self` - The config.
-    /// * `key: String` - The key of the setting.
-    /// * `function: impl Fn(&String, &String) + Send + Sync + 'static` - The function to call when the setting is changed.
-    pub fn when_changed(
-        &mut self,
-        key: &str,
-        function: impl Fn(&str, &str) + Send + Sync + 'static,
-    ) {
-        let setting = self.settings.get_mut(key);
-        match setting {
-            Some(setting) => {
-                setting.when_changed(function);
-            }
-            None => {
-                let mut setting = Setting {
-                    key: key.to_string(),
-                    value: "".to_string(),
-                    on_change: None,
-                };
-                setting.when_changed(function);
-                self.settings.insert(key.to_string(), setting);
-            }
-        }
     }
 
     /// Returns whether or not the config has been saved.

@@ -89,93 +89,7 @@ struct ConsoleMessage {
 /// * `String` - The result of the command, formatted as a string
 #[tauri::command]
 async fn run(window: tauri::Window) -> String {
-    let result = match init(&window) {
-        Ok(()) => "Initialization ran successfully".to_owned(),
-        Err(e) => format!("Error in initialization: {}", e),
-    };
-	debug!("{}", result);
-
-    // make sure CONFIG_ROOT exists; do nothing if it already exists
-    std::fs::create_dir_all(CONFIG_ROOT).unwrap_or_default();
-
-    let config = config::Config::load(CONFIG_FILE);
-    let config_path = match config {
-        Ok(mut config) => {
-            debug!("Loaded config from {}", CONFIG_FILE);
-            match config.get_or("config", || "default.json".to_owned()) {
-                Ok(config_path) => {
-                    let path = CONFIG_ROOT.to_owned() + &config_path;
-                    let _ = config.save();
-                    path
-                }
-                Err(e) => {
-                    debug!("Error loading config: {}", e);
-                    let _ = config.save();
-                    CONFIG_ROOT.to_owned() + "default.json"
-                }
-            }
-        }
-        Err(e) => {
-            debug!("Error loading config: {}", e);
-            CONFIG_ROOT.to_owned() + "default.json"
-        }
-    };
-
-    let config = config::Config::load((&config_path));
-    let mut config = match config {
-        Ok(config) => {
-            debug!("Loaded config from {}", config_path);
-            config
-        }
-        Err(e) => {
-            debug!("Error loading config: {}", e);
-            config::Config::empty()
-        }
-    };
-
-	config.when_changed("audio.output.device", |key, value| {
-				debug!("AUDIO.OUTPUT.DEVICE changed to {}", value);
-			});
-			config::Config::listen(CONFIG.clone());
-
-    // Set CONFIG to the loaded config
-    match CONFIG.write() {
-        Ok(mut config_mutex) => {
-            *config_mutex = config;
-        }
-        Err(e) => {
-            debug!("Error locking CONFIG: {}", e);
-        }
-    }
-
-    // run audio thread
-    let thread_result = audio::audio_thread();
-    match thread_result {
-        Ok(()) => {
-            debug!("Audio thread ran successfully");
-        }
-        Err(e) => {
-            debug!("Error in audio thread: {}", e);
-        }
-    };
-
-    debug!("{}", result);
-    result
-}
-
-/// ## `init(_window: tauri::Window) -> Result<(), String>`
-///
-/// Initializes the program.
-///
-/// ### Arguments
-///
-/// * `_window: tauri::Window` - The window
-///
-/// ### Returns
-///
-/// * `Result<(), String>` - The result of the command
-fn init(window: &tauri::Window) -> Result<(), String> {
-    debug!("Initializing Tauri");
+	debug!("Initializing Tauri");
 
     let strips = audio::STRIPS.try_write();
 
@@ -220,7 +134,67 @@ fn init(window: &tauri::Window) -> Result<(), String> {
             debug!("Error locking STRIPS: {}", e);
         }
     }
-    Ok(())
+
+    // make sure CONFIG_ROOT exists; do nothing if it already exists
+    std::fs::create_dir_all(CONFIG_ROOT).unwrap_or_default();
+
+    let config = config::Config::load(CONFIG_FILE);
+    let config_path = match config {
+        Ok(mut config) => {
+            debug!("Loaded config from {}", CONFIG_FILE);
+            match config.get_or("config", || "default.json".to_owned()) {
+                Ok(config_path) => {
+                    let path = CONFIG_ROOT.to_owned() + &config_path;
+                    let _ = config.save();
+                    path
+                }
+                Err(e) => {
+                    debug!("Error loading config: {}", e);
+                    let _ = config.save();
+                    CONFIG_ROOT.to_owned() + "default.json"
+                }
+            }
+        }
+        Err(e) => {
+            debug!("Error loading config: {}", e);
+            CONFIG_ROOT.to_owned() + "default.json"
+        }
+    };
+
+    let config = config::Config::load((&config_path));
+    let mut config = match config {
+        Ok(config) => {
+            debug!("Loaded config from {}", config_path);
+            config
+        }
+        Err(e) => {
+            debug!("Error loading config: {}", e);
+            config::Config::empty()
+        }
+    };
+
+    // Set CONFIG to the loaded config
+    match CONFIG.write() {
+        Ok(mut config_mutex) => {
+            *config_mutex = config;
+        }
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+        }
+    }
+
+    // run audio thread
+    let thread_result = audio::audio_thread();
+    match thread_result {
+        Ok(()) => {
+            debug!("Audio thread ran successfully");
+        }
+        Err(e) => {
+            debug!("Error in audio thread: {}", e);
+        }
+    };
+
+    "Done".to_string()
 }
 
 /// ## `config_show() -> ConsoleMessage`
@@ -263,8 +237,6 @@ async fn config_save(filename: String) -> ConsoleMessage {
         Some(filename) => format!("{}.json", filename),
         None => format!("{}.json", filename),
     };
-    let filename = format!("{}{}", CONFIG_ROOT, filename);
-    let filename = &filename;
 
     let mut config = match CONFIG.write() {
         Ok(config) => config,
@@ -889,6 +861,20 @@ async fn hid_list(_window: tauri::Window) -> ConsoleMessage {
     }
 }
 
+#[tauri::command]
+fn config_json() -> serde_json::Value {
+	let config = CONFIG.read();
+	let config = match config {
+		Ok(config) => config,
+		Err(e) => {
+			debug!("Error locking CONFIG: {}", e);
+			return serde_json::Value::Null;
+		}
+	};
+
+	config.json().clone()
+}
+
 /// ## `main()`
 ///
 /// The main function.
@@ -899,8 +885,6 @@ fn main() {
             // set CONSOLE_WINDOW and TV_WINDOW
             let console_window = app.get_window("console").unwrap();
             let tv_window = app.get_window("tv").unwrap();
-
-            let _ = run(console_window.clone());
 
             match CONSOLE_WINDOW.lock() {
                 Ok(mut console_window_mutex) => {
@@ -920,8 +904,6 @@ fn main() {
                 }
             }
 
-            config::set_app(app.app_handle());
-
             Ok(())
         })
         .plugin(
@@ -938,17 +920,16 @@ fn main() {
             config_show,
             config_save,
             config_load,
+			config_json,
+			audio::set_host,
             audio::list_hosts,
             audio::list_output_devices,
-            audio::list_input_devices,
-            audio::set_output_device,
-            audio::list_output_streams,
+			audio::set_output_device,
+			audio::list_output_streams,
+			audio::list_input_devices,
             audio::set_input_device,
             audio::list_input_streams,
-            host_select,
-            output_select,
             output_stream_set,
-            input_select,
             input_stream_set,
             midi::midi_list,
             midi_start,

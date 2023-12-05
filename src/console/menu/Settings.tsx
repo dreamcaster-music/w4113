@@ -3,24 +3,25 @@ import "../../globals.css";
 import { debug } from "tauri-plugin-log-api";
 import Frame from "../components/Frame";
 import { event, invoke } from "@tauri-apps/api";
-import { useSelector } from "react-redux";
-import { configJSON, getConfigOr, setConfig, onChange } from "../../console";
 
 function Settings(props: { visible: boolean }) {
+	const [configJson, setConfigJson] = useState({});
+	const [showConfig, setShowConfig] = useState(false);
+
 	const [hostOption, setHostOption] = useState([]);
-	const [host, setHost] = useState(getConfigOr("audio.host", "default"));
+	const [host, setHost] = useState("");
 
 	const [outputDeviceOption, setOutputDeviceOption] = useState([]);
-	const [outputDevice, setOutputDevice] = useState(getConfigOr("audio.output.device", "default"));
+	const [outputDevice, setOutputDevice] = useState("");
 
 	const [inputDeviceOption, setInputDeviceOption] = useState([]);
-	const [inputDevice, setInputDevice] = useState(getConfigOr("audio.input.device", "default"));
+	const [inputDevice, setInputDevice] = useState("");
 
 	const [outputStreamOption, setOutputStreamOption] = useState([]);
-	const [outputStream, setOutputStream] = useState("default");
+	const [outputStream, setOutputStream] = useState("");
 
 	const [inputStreamOption, setInputStreamOption] = useState([]);
-	const [inputStream, setInputStream] = useState("default");
+	const [inputStream, setInputStream] = useState("");
 
 	// Called when the component is first mounted
 	useEffect(() => {
@@ -31,7 +32,8 @@ function Settings(props: { visible: boolean }) {
 
 	// Called when the host changes
 	useEffect(() => {
-		invoke("host_select", { host: host }).then((response: any) => {
+		debug("Setting host to " + host);
+		invoke("set_host", { name: host }).then((response: any) => {
 			debug(response);
 			invoke("list_output_devices").then((devices: any) => {
 				setOutputDeviceOption(devices);
@@ -43,6 +45,7 @@ function Settings(props: { visible: boolean }) {
 	}, [host]);
 
 	useEffect(() => {
+		debug("Setting output device to " + outputDevice);
 		invoke("set_output_device", { name: outputDevice }).then((response: any) => {
 			debug(response);
 			invoke("list_output_streams").then((streams: any) => {
@@ -52,6 +55,7 @@ function Settings(props: { visible: boolean }) {
 	}, [outputDevice]);
 
 	useEffect(() => {
+		debug("Setting input device to " + inputDevice);
 		invoke("set_input_device", { name: inputDevice }).then((response: any) => {
 			debug(response);
 			invoke("list_input_streams").then((streams: any) => {
@@ -66,7 +70,6 @@ function Settings(props: { visible: boolean }) {
 				{css}
 			</style>
 			<Frame x={100} y={50} className="noselect" width={"700px"} height={"auto"} title={"Audio Settings"} visible={props.visible} refreshCallback={() => {
-				debug("refreshing audio settings");
 				invoke("list_hosts").then((hosts: any) => {
 					setHostOption(hosts);
 				});
@@ -80,17 +83,19 @@ function Settings(props: { visible: boolean }) {
 						{hostOption.map((host: any) => {
 							return <option>{host}</option>;
 						})}
+						<option>default</option>
 					</select>
 				</div>
 
 				<div className="option">
 					Output Device:
 					<select className="output-device-select" onChange={(event) => {
-						setConfig("audio.output.device", event.target.value);
+						setOutputDevice(event.target.value);
 					}}>
 						{outputDeviceOption.map((device: any) => {
 							return <option>{device}</option>;
 						})}
+						<option>default</option>
 					</select>
 				</div>
 
@@ -102,6 +107,7 @@ function Settings(props: { visible: boolean }) {
 						{inputDeviceOption.map((device: any) => {
 							return <option>{device}</option>;
 						})}
+						<option>default</option>
 					</select>
 				</div>
 
@@ -111,6 +117,7 @@ function Settings(props: { visible: boolean }) {
 						{outputStreamOption.map((stream: any) => {
 							return <option>{stream}</option>;
 						})}
+						<option>default</option>
 					</select>
 				</div>
 
@@ -120,6 +127,7 @@ function Settings(props: { visible: boolean }) {
 						{inputStreamOption.map((stream: any) => {
 							return <option>{stream}</option>;
 						})}
+						<option>default</option>
 					</select>
 				</div>
 
@@ -128,9 +136,19 @@ function Settings(props: { visible: boolean }) {
 					Input Buffer: <input type="number" defaultValue="1024" className="input-buffer-input" />
 				</div>
 
-				<button onClick={() => {
-					setConfig("audio.output.device", "default");
-				}}>set output</button>
+				<button className="config-button" onClick={() => {
+					invoke("config_json").then((json: any) => {
+						setConfigJson(json);
+					});
+					setShowConfig(!showConfig);
+				}}>Config</button>
+			</Frame >
+			<Frame x={100} y={50} className="noselect" width={"700px"} height={"auto"} title={"Config"} visible={showConfig} refreshCallback={() => {
+				invoke("config_json").then((json: any) => {
+					setConfigJson(json);
+				});
+			}}>
+				{JSON.stringify(configJson)}
 			</Frame >
 		</>
 	);
@@ -169,6 +187,23 @@ input[type="number"] {
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
 	-webkit-appearance: none;
+}
+
+.config-button {
+	margin: 20px;
+	display: flex;
+	flex-direction: row;
+
+	white-space: nowrap;
+
+	font: 900 18px var(--font-mono);
+	color: var(--accent);
+
+	height: 20px;
+	max-height: 20px;
+
+	border: 1px solid var(--accent);
+	background-color: var(--background);
 }
 
 `;
