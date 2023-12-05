@@ -19,9 +19,11 @@ function Settings(props: { visible: boolean }) {
 
 	const [outputStreamOption, setOutputStreamOption] = useState([]);
 	const [outputStream, setOutputStream] = useState("");
+	const [outputBuffer, setOutputBuffer] = useState(1024);
 
 	const [inputStreamOption, setInputStreamOption] = useState([]);
 	const [inputStream, setInputStream] = useState("");
+	const [inputBuffer, setInputBuffer] = useState(1024);
 
 	// Called when the component is first mounted
 	useEffect(() => {
@@ -63,6 +65,34 @@ function Settings(props: { visible: boolean }) {
 			});
 		});
 	}, [inputDevice]);
+
+	useEffect(() => {
+		debug("Setting output stream to " + outputStream);
+		invoke("set_output_stream", { stream: outputStream }).then((response: any) => {
+			debug(response);
+		});
+	}, [outputStream]);
+
+	useEffect(() => {
+		debug("Setting input stream to " + inputStream);
+		invoke("set_input_stream", { stream: inputStream }).then((response: any) => {
+			debug(response);
+		});
+	}, [inputStream]);
+
+	useEffect(() => {
+		debug("Setting output buffer to " + outputBuffer);
+		invoke("set_output_buffer_size", { size: outputBuffer }).then((response: any) => {
+			debug(response);
+		});
+	}, [outputBuffer]);
+
+	useEffect(() => {
+		debug("Setting input buffer to " + inputBuffer);
+		invoke("set_input_buffer_size", { size: inputBuffer }).then((response: any) => {
+			debug(response);
+		});
+	}, [inputBuffer]);
 
 	return (
 		<>
@@ -113,7 +143,9 @@ function Settings(props: { visible: boolean }) {
 
 				<div className="option">
 					Output Stream:
-					<select className="output-stream-select">
+					<select className="output-stream-select" onChange={(event) => {
+						setOutputStream(event.target.value);
+					}}>
 						{outputStreamOption.map((stream: any) => {
 							return <option>{stream}</option>;
 						})}
@@ -123,7 +155,9 @@ function Settings(props: { visible: boolean }) {
 
 				<div className="option">
 					Input Stream:
-					<select className="input-stream-select">
+					<select className="input-stream-select" onChange={(event) => {
+						setInputStream(event.target.value);
+					}}>
 						{inputStreamOption.map((stream: any) => {
 							return <option>{stream}</option>;
 						})}
@@ -132,8 +166,13 @@ function Settings(props: { visible: boolean }) {
 				</div>
 
 				<div className="option">
-					Output Buffer: <input type="number" defaultValue="1024" className="output-buffer-input" />
-					Input Buffer: <input type="number" defaultValue="1024" className="input-buffer-input" />
+					Output Buffer: <input type="number" defaultValue={outputBuffer} className="output-buffer-input" onChange={(event) => {
+						setOutputBuffer(parseInt(event.target.value));
+					}} />
+
+					Input Buffer: <input type="number" defaultValue={inputBuffer} className="input-buffer-input" onChange={(event) => {
+						setInputBuffer(parseInt(event.target.value));
+					}} />
 				</div>
 
 				<button className="config-button" onClick={() => {

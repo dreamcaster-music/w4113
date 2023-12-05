@@ -1103,6 +1103,9 @@ pub fn list_input_streams() -> Vec<String> {
 #[tauri::command]
 pub fn set_output_stream(stream: String) -> Result<(), String> {
 	let split = stream.split(' ').filter(|e|e.len()>0).collect::<Vec<_>>();
+	if split.len() < 3 {
+		return Err(format!("Invalid stream format: {}", stream));
+	}
 	let channels = split[0].parse::<u32>().unwrap();
 	let sample_rate = split[1].parse::<u32>().unwrap();
 	let buffer_size = split[2].split('-').collect::<Vec<_>>();
@@ -1146,6 +1149,7 @@ pub fn set_output_stream(stream: String) -> Result<(), String> {
 	config.set("audio.output.stream.sample_rate", sample_rate.to_string().as_str())?;
 	config.set("audio.output.stream.buffer_size", buffer_size_max.to_string().as_str())?;
 
+	debug!("Set output stream to {}", stream);
 	Ok(())
 }
 
@@ -1159,7 +1163,7 @@ pub fn set_output_stream(stream: String) -> Result<(), String> {
 /// 
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
-pub fn set_output_buffer_size(buffer_size: u32) -> Result<(), String> {
+pub fn set_output_buffer_size(size: u32) -> Result<(), String> {
 	let mut config = match OUTPUT_CONFIG.lock() {
 		Ok(config) => config,
 		Err(e) => {
@@ -1176,7 +1180,7 @@ pub fn set_output_buffer_size(buffer_size: u32) -> Result<(), String> {
 		}
 	};
 
-	config.buffer_size = BufferSize::Fixed(buffer_size);
+	config.buffer_size = BufferSize::Fixed(size);
 
 	let mut config = match crate::CONFIG.write() {
 		Ok(config) => config,
@@ -1186,8 +1190,9 @@ pub fn set_output_buffer_size(buffer_size: u32) -> Result<(), String> {
 		}
 	};
 
-	config.set("audio.output.stream.buffer_size", buffer_size.to_string().as_str())?;
+	config.set("audio.output.stream.buffer_size", size.to_string().as_str())?;
 
+	debug!("Set output buffer size to {}", size);
 	Ok(())
 }
 
@@ -1203,6 +1208,9 @@ pub fn set_output_buffer_size(buffer_size: u32) -> Result<(), String> {
 #[tauri::command]
 pub fn set_input_stream(stream: String) -> Result<(), String> {
 	let split = stream.split(' ').filter(|e|e.len()>0).collect::<Vec<_>>();
+	if split.len() < 3 {
+		return Err(format!("Invalid stream format: {}", stream));
+	}
 	let channels = split[0].parse::<u32>().unwrap();
 	let sample_rate = split[1].parse::<u32>().unwrap();
 	let buffer_size = split[2].split('-').collect::<Vec<_>>();
@@ -1246,6 +1254,7 @@ pub fn set_input_stream(stream: String) -> Result<(), String> {
 	config.set("audio.input.stream.sample_rate", sample_rate.to_string().as_str())?;
 	config.set("audio.input.stream.buffer_size", buffer_size_max.to_string().as_str())?;
 
+	debug!("Set input stream to {}", stream);
 	Ok(())
 }
 
@@ -1259,7 +1268,7 @@ pub fn set_input_stream(stream: String) -> Result<(), String> {
 /// 
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
-pub fn set_input_buffer_size(buffer_size: u32) -> Result<(), String> {
+pub fn set_input_buffer_size(size: u32) -> Result<(), String> {
 	let mut config = match INPUT_CONFIG.lock() {
 		Ok(config) => config,
 		Err(e) => {
@@ -1276,7 +1285,7 @@ pub fn set_input_buffer_size(buffer_size: u32) -> Result<(), String> {
 		}
 	};
 
-	config.buffer_size = BufferSize::Fixed(buffer_size);
+	config.buffer_size = BufferSize::Fixed(size);
 
 	let mut config = match crate::CONFIG.write() {
 		Ok(config) => config,
@@ -1286,8 +1295,9 @@ pub fn set_input_buffer_size(buffer_size: u32) -> Result<(), String> {
 		}
 	};
 
-	config.set("audio.input.stream.buffer_size", buffer_size.to_string().as_str())?;
+	config.set("audio.input.stream.buffer_size", size.to_string().as_str())?;
 
+	debug!("Set input buffer size to {}", size);
 	Ok(())
 }
 
