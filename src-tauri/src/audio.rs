@@ -4,7 +4,10 @@
 
 #![allow(dead_code)]
 
-use std::{sync::{Arc, Mutex, RwLock}, ops::Add};
+use std::{
+    ops::Add,
+    sync::{Arc, Mutex, RwLock},
+};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -12,9 +15,9 @@ use cpal::{
 };
 use lazy_static::lazy_static;
 use log::debug;
-use tauri::{Manager};
+use tauri::Manager;
 
-use crate::{tv::{BasicVisualizer, VisualizerTrait}, Counter};
+use crate::tv::{BasicVisualizer, VisualizerTrait};
 
 lazy_static! {
     pub static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
@@ -243,71 +246,71 @@ pub fn list_hosts() -> Vec<String> {
 }
 
 /// Sets the host.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `name: String` - The name of the host to set
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_host(name: String) -> Result<(), String> {
-	let host = get_host(&name);
-	let mut mutex = match HOST.lock() {
-		Ok(host) => host,
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return Err(format!("Error locking HOST: {}", e));
-		}
-	};
+    let host = get_host(&name);
+    let mut mutex = match HOST.lock() {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return Err(format!("Error locking HOST: {}", e));
+        }
+    };
 
-	*mutex = Some(host);
+    *mutex = Some(host);
 
-	let mut config = match crate::CONFIG.write() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return Err(format!("Error locking CONFIG: {}", e));
-		}
-	};
-	
-	match config.set("audio.host", name.as_str()) {
-		Ok(_) => {},
-		Err(e) => {
-			debug!("Error setting audio.host: {}", e);
-			return Err(format!("Error setting audio.host: {}", e));
-		}
-	}
+    let mut config = match crate::CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
 
-	Ok(())
+    match config.set("audio.host", name.as_str()) {
+        Ok(_) => {}
+        Err(e) => {
+            debug!("Error setting audio.host: {}", e);
+            return Err(format!("Error setting audio.host: {}", e));
+        }
+    }
+
+    Ok(())
 }
 
 /// Returns the name of the host.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `String` - The name of the host
 pub fn host() -> String {
-	let host = match HOST.lock() {
-		Ok(host) => host,
-		Err(e) => {
-			debug!("Error locking HOST: {}", e);
-			return "Error".to_string()
-		}
-	};
+    let host = match HOST.lock() {
+        Ok(host) => host,
+        Err(e) => {
+            debug!("Error locking HOST: {}", e);
+            return "Error".to_string();
+        }
+    };
 
-	let host = match host.as_ref() {
-		Some(host) => host,
-		None => {
-			debug!("HOST is None");
-			return "None".to_string();
-		}
-	};
+    let host = match host.as_ref() {
+        Some(host) => host,
+        None => {
+            debug!("HOST is None");
+            return "None".to_string();
+        }
+    };
 
-	let host_name = host.id().name().to_owned();
+    let host_name = host.id().name().to_owned();
 
-	host_name
+    host_name
 }
 
 /// ## `list_output_devices(host: &Host) -> Vec<String>`
@@ -363,25 +366,16 @@ pub fn list_output_devices() -> Vec<String> {
 }
 
 /// Sets the output device.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `name: String` - The name of the output device to set
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_output_device(name: String) -> Result<(), String> {
-	{
-		let app = crate::APP_HANDLE.lock().unwrap();
-		let app = app.as_ref().unwrap();
-		let counter: tauri::State<Counter> = app.state();
-		let mut counter = counter.0.lock().unwrap();
-		*counter += 1;
-	}
-
-
     let host = match HOST.lock() {
         Ok(host) => host,
         Err(e) => {
@@ -417,50 +411,50 @@ pub fn set_output_device(name: String) -> Result<(), String> {
 
     *mutex = Some(device);
 
-	let mut config = match crate::CONFIG.write() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return Err(format!("Error locking CONFIG: {}", e));
-		}
-	};
-	
-	match config.set("audio.output.device", name.as_str()) {
-		Ok(_) => {},
-		Err(e) => {
-			debug!("Error setting audio.output_device: {}", e);
-			return Err(format!("Error setting audio.output_device: {}", e));
-		}
-	}
+    let mut config = match crate::CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
+
+    match config.set("audio.output.device", name.as_str()) {
+        Ok(_) => {}
+        Err(e) => {
+            debug!("Error setting audio.output_device: {}", e);
+            return Err(format!("Error setting audio.output_device: {}", e));
+        }
+    }
 
     Ok(())
 }
 
 /// Returns the name of the output device.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `String` - The name of the output device
 pub fn output_device() -> String {
-	let device = match OUTPUT_DEVICE.lock() {
-		Ok(device) => device,
-		Err(e) => {
-			debug!("Error locking OUTPUT_DEVICE: {}", e);
-			return "Error".to_string()
-		}
-	};
+    let device = match OUTPUT_DEVICE.lock() {
+        Ok(device) => device,
+        Err(e) => {
+            debug!("Error locking OUTPUT_DEVICE: {}", e);
+            return "Error".to_string();
+        }
+    };
 
-	let device = match device.as_ref() {
-		Some(device) => device,
-		None => {
-			debug!("OUTPUT_DEVICE is None");
-			return "None".to_string();
-		}
-	};
+    let device = match device.as_ref() {
+        Some(device) => device,
+        None => {
+            debug!("OUTPUT_DEVICE is None");
+            return "None".to_string();
+        }
+    };
 
-	let device_name = device.name().unwrap();
+    let device_name = device.name().unwrap();
 
-	device_name
+    device_name
 }
 
 /// ## `list_input_devices(host: &Host) -> Vec<String>`
@@ -516,13 +510,13 @@ pub fn list_input_devices() -> Vec<String> {
 }
 
 /// Sets the input device.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `name: String` - The name of the input device to set
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_input_device(name: String) -> Result<(), String> {
@@ -561,50 +555,50 @@ pub fn set_input_device(name: String) -> Result<(), String> {
 
     *mutex = Some(device);
 
-	let mut config = match crate::CONFIG.write() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return Err(format!("Error locking CONFIG: {}", e));
-		}
-	};
-	
-	match config.set("audio.input.device", name.as_str()) {
-		Ok(_) => {},
-		Err(e) => {
-			debug!("Error setting audio.input.device: {}", e);
-			return Err(format!("Error setting audio.input.device: {}", e));
-		}
-	}
+    let mut config = match crate::CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
+
+    match config.set("audio.input.device", name.as_str()) {
+        Ok(_) => {}
+        Err(e) => {
+            debug!("Error setting audio.input.device: {}", e);
+            return Err(format!("Error setting audio.input.device: {}", e));
+        }
+    }
 
     Ok(())
 }
 
 /// Returns the name of the input device.
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `String` - The name of the input device
 pub fn input_device() -> String {
-	let device = match INPUT_DEVICE.lock() {
-		Ok(device) => device,
-		Err(e) => {
-			debug!("Error locking INPUT_DEVICE: {}", e);
-			return "Error".to_string()
-		}
-	};
+    let device = match INPUT_DEVICE.lock() {
+        Ok(device) => device,
+        Err(e) => {
+            debug!("Error locking INPUT_DEVICE: {}", e);
+            return "Error".to_string();
+        }
+    };
 
-	let device = match device.as_ref() {
-		Some(device) => device,
-		None => {
-			debug!("INPUT_DEVICE is None");
-			return "None".to_string();
-		}
-	};
+    let device = match device.as_ref() {
+        Some(device) => device,
+        None => {
+            debug!("INPUT_DEVICE is None");
+            return "None".to_string();
+        }
+    };
 
-	let device_name = device.name().unwrap();
+    let device_name = device.name().unwrap();
 
-	device_name
+    device_name
 }
 
 /*
@@ -1102,213 +1096,244 @@ pub fn list_input_streams() -> Vec<String> {
 }
 
 /// Sets the output stream.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `stream: String` - The stream to set, in the format "channels sample_rate buffer_size_min-buffer_size_max"
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_output_stream(stream: String) -> Result<(), String> {
-	let split = stream.split(' ').filter(|e|e.len()>0).collect::<Vec<_>>();
-	if split.len() < 3 {
-		return Err(format!("Invalid stream format: {}", stream));
-	}
-	let channels = split[0].parse::<u32>().unwrap();
-	let sample_rate = split[1].parse::<u32>().unwrap();
-	let buffer_size = split[2].split('-').collect::<Vec<_>>();
-	let buffer_size_min = buffer_size[0].parse::<u32>().unwrap();
-	let buffer_size_max = buffer_size[1].parse::<u32>().unwrap();
+    let split = stream
+        .split(' ')
+        .filter(|e| e.len() > 0)
+        .collect::<Vec<_>>();
+    if split.len() < 3 {
+        return Err(format!("Invalid stream format: {}", stream));
+    }
+    let channels = split[0].parse::<u32>().unwrap();
+    let sample_rate = split[1].parse::<u32>().unwrap();
+    let buffer_size = split[2].split('-').collect::<Vec<_>>();
+    let buffer_size_min = buffer_size[0].parse::<u32>().unwrap();
+    let buffer_size_max = buffer_size[1].parse::<u32>().unwrap();
 
-	let device = match OUTPUT_DEVICE.lock() {
-		Ok(device) => device,
-		Err(e) => {
-			debug!("Error locking OUTPUT_DEVICE: {}", e);
-			return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
-		}
-	};
+    let device = match OUTPUT_DEVICE.lock() {
+        Ok(device) => device,
+        Err(e) => {
+            debug!("Error locking OUTPUT_DEVICE: {}", e);
+            return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
+        }
+    };
 
-	let stream_config = get_output_config(device.as_ref().unwrap(), Preference::Exact(channels, PreferenceAlt::Higher), Preference::Exact(sample_rate, PreferenceAlt::Higher), Preference::Exact(buffer_size_max, PreferenceAlt::Higher));
-	match stream_config {
-		Some(stream_config) => {
-			let mut config = match OUTPUT_CONFIG.lock() {
-				Ok(config) => config,
-				Err(e) => {
-					debug!("Error locking OUTPUT_CONFIG: {}", e);
-					return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
-				}
-			};
-			*config = Some(stream_config);
-		},
-		None => {
-			return Err(format!("Could not find output stream {}", stream));
-		}
-	}
+    let stream_config = get_output_config(
+        device.as_ref().unwrap(),
+        Preference::Exact(channels, PreferenceAlt::Higher),
+        Preference::Exact(sample_rate, PreferenceAlt::Higher),
+        Preference::Exact(buffer_size_max, PreferenceAlt::Higher),
+    );
+    match stream_config {
+        Some(stream_config) => {
+            let mut config = match OUTPUT_CONFIG.lock() {
+                Ok(config) => config,
+                Err(e) => {
+                    debug!("Error locking OUTPUT_CONFIG: {}", e);
+                    return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
+                }
+            };
+            *config = Some(stream_config);
+        }
+        None => {
+            return Err(format!("Could not find output stream {}", stream));
+        }
+    }
 
-	let mut config = match crate::CONFIG.write() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return Err(format!("Error locking CONFIG: {}", e));
-		}
-	};
+    let mut config = match crate::CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
 
-	config.set("audio.output.stream.channels", channels.to_string().as_str())?;
-	config.set("audio.output.stream.sample_rate", sample_rate.to_string().as_str())?;
-	config.set("audio.output.stream.buffer_size", buffer_size_max.to_string().as_str())?;
+    config.set(
+        "audio.output.stream.channels",
+        channels.to_string().as_str(),
+    )?;
+    config.set(
+        "audio.output.stream.sample_rate",
+        sample_rate.to_string().as_str(),
+    )?;
+    config.set(
+        "audio.output.stream.buffer_size",
+        buffer_size_max.to_string().as_str(),
+    )?;
 
-	debug!("Set output stream to {}", stream);
-	Ok(())
+    debug!("Set output stream to {}", stream);
+    Ok(())
 }
 
 /// Sets the output buffer size for the stream.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `buffer_size: u32` - The buffer size to set
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_output_buffer_size(size: u32) -> Result<(), String> {
-	let mut config = match OUTPUT_CONFIG.lock() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking OUTPUT_CONFIG: {}", e);
-			return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
-		}
-	};
+    let mut config = match OUTPUT_CONFIG.lock() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking OUTPUT_CONFIG: {}", e);
+            return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
+        }
+    };
 
-	let mut config = match config.as_mut() {
-		Some(config) => config,
-		None => {
-			debug!("OUTPUT_CONFIG is None");
-			return Err("OUTPUT_CONFIG is None".to_owned());
-		}
-	};
+    let mut config = match config.as_mut() {
+        Some(config) => config,
+        None => {
+            debug!("OUTPUT_CONFIG is None");
+            return Err("OUTPUT_CONFIG is None".to_owned());
+        }
+    };
 
-	config.buffer_size = BufferSize::Fixed(size);
+    config.buffer_size = BufferSize::Fixed(size);
 
-	let mut config = match crate::CONFIG.write() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return Err(format!("Error locking CONFIG: {}", e));
-		}
-	};
+    let mut config = match crate::CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
 
-	config.set("audio.output.stream.buffer_size", size.to_string().as_str())?;
+    config.set("audio.output.stream.buffer_size", size.to_string().as_str())?;
 
-	debug!("Set output buffer size to {}", size);
-	Ok(())
+    debug!("Set output buffer size to {}", size);
+    Ok(())
 }
 
 /// Sets the input stream.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `stream: String` - The stream to set, in the format "channels sample_rate buffer_size_min-buffer_size_max"
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_input_stream(stream: String) -> Result<(), String> {
-	let split = stream.split(' ').filter(|e|e.len()>0).collect::<Vec<_>>();
-	if split.len() < 3 {
-		return Err(format!("Invalid stream format: {}", stream));
-	}
-	let channels = split[0].parse::<u32>().unwrap();
-	let sample_rate = split[1].parse::<u32>().unwrap();
-	let buffer_size = split[2].split('-').collect::<Vec<_>>();
-	let buffer_size_min = buffer_size[0].parse::<u32>().unwrap();
-	let buffer_size_max = buffer_size[1].parse::<u32>().unwrap();
+    let split = stream
+        .split(' ')
+        .filter(|e| e.len() > 0)
+        .collect::<Vec<_>>();
+    if split.len() < 3 {
+        return Err(format!("Invalid stream format: {}", stream));
+    }
+    let channels = split[0].parse::<u32>().unwrap();
+    let sample_rate = split[1].parse::<u32>().unwrap();
+    let buffer_size = split[2].split('-').collect::<Vec<_>>();
+    let buffer_size_min = buffer_size[0].parse::<u32>().unwrap();
+    let buffer_size_max = buffer_size[1].parse::<u32>().unwrap();
 
-	let device = match INPUT_DEVICE.lock() {
-		Ok(device) => device,
-		Err(e) => {
-			debug!("Error locking INPUT_DEVICE: {}", e);
-			return Err(format!("Error locking INPUT_DEVICE: {}", e));
-		}
-	};
+    let device = match INPUT_DEVICE.lock() {
+        Ok(device) => device,
+        Err(e) => {
+            debug!("Error locking INPUT_DEVICE: {}", e);
+            return Err(format!("Error locking INPUT_DEVICE: {}", e));
+        }
+    };
 
-	let stream_config = get_input_config(device.as_ref().unwrap(), Preference::Exact(channels, PreferenceAlt::Higher), Preference::Exact(sample_rate, PreferenceAlt::Higher), Preference::Exact(buffer_size_max, PreferenceAlt::Higher));
-	match stream_config {
-		Some(stream_config) => {
-			let mut config = match INPUT_CONFIG.lock() {
-				Ok(config) => config,
-				Err(e) => {
-					debug!("Error locking INPUT_CONFIG: {}", e);
-					return Err(format!("Error locking INPUT_CONFIG: {}", e));
-				}
-			};
-			*config = Some(stream_config);
-		},
-		None => {
-			return Err(format!("Could not find input stream {}", stream));
-		}
-	}
+    let stream_config = get_input_config(
+        device.as_ref().unwrap(),
+        Preference::Exact(channels, PreferenceAlt::Higher),
+        Preference::Exact(sample_rate, PreferenceAlt::Higher),
+        Preference::Exact(buffer_size_max, PreferenceAlt::Higher),
+    );
+    match stream_config {
+        Some(stream_config) => {
+            let mut config = match INPUT_CONFIG.lock() {
+                Ok(config) => config,
+                Err(e) => {
+                    debug!("Error locking INPUT_CONFIG: {}", e);
+                    return Err(format!("Error locking INPUT_CONFIG: {}", e));
+                }
+            };
+            *config = Some(stream_config);
+        }
+        None => {
+            return Err(format!("Could not find input stream {}", stream));
+        }
+    }
 
-	let mut config = match crate::CONFIG.write() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return Err(format!("Error locking CONFIG: {}", e));
-		}
-	};
+    let mut config = match crate::CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
 
-	config.set("audio.input.stream.channels", channels.to_string().as_str())?;
-	config.set("audio.input.stream.sample_rate", sample_rate.to_string().as_str())?;
-	config.set("audio.input.stream.buffer_size", buffer_size_max.to_string().as_str())?;
+    config.set("audio.input.stream.channels", channels.to_string().as_str())?;
+    config.set(
+        "audio.input.stream.sample_rate",
+        sample_rate.to_string().as_str(),
+    )?;
+    config.set(
+        "audio.input.stream.buffer_size",
+        buffer_size_max.to_string().as_str(),
+    )?;
 
-	debug!("Set input stream to {}", stream);
-	Ok(())
+    debug!("Set input stream to {}", stream);
+    Ok(())
 }
 
 /// Sets the input buffer size for the stream.
-/// 
+///
 /// ### Arguments
-/// 
+///
 /// * `buffer_size: u32` - The buffer size to set
-/// 
+///
 /// ### Returns
-/// 
+///
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_input_buffer_size(size: u32) -> Result<(), String> {
-	let mut config = match INPUT_CONFIG.lock() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking INPUT_CONFIG: {}", e);
-			return Err(format!("Error locking INPUT_CONFIG: {}", e));
-		}
-	};
+    let mut config = match INPUT_CONFIG.lock() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking INPUT_CONFIG: {}", e);
+            return Err(format!("Error locking INPUT_CONFIG: {}", e));
+        }
+    };
 
-	let mut config = match config.as_mut() {
-		Some(config) => config,
-		None => {
-			debug!("INPUT_CONFIG is None");
-			return Err("INPUT_CONFIG is None".to_owned());
-		}
-	};
+    let mut config = match config.as_mut() {
+        Some(config) => config,
+        None => {
+            debug!("INPUT_CONFIG is None");
+            return Err("INPUT_CONFIG is None".to_owned());
+        }
+    };
 
-	config.buffer_size = BufferSize::Fixed(size);
+    config.buffer_size = BufferSize::Fixed(size);
 
-	let mut config = match crate::CONFIG.write() {
-		Ok(config) => config,
-		Err(e) => {
-			debug!("Error locking CONFIG: {}", e);
-			return Err(format!("Error locking CONFIG: {}", e));
-		}
-	};
+    let mut config = match crate::CONFIG.write() {
+        Ok(config) => config,
+        Err(e) => {
+            debug!("Error locking CONFIG: {}", e);
+            return Err(format!("Error locking CONFIG: {}", e));
+        }
+    };
 
-	config.set("audio.input.stream.buffer_size", size.to_string().as_str())?;
+    config.set("audio.input.stream.buffer_size", size.to_string().as_str())?;
 
-	debug!("Set input buffer size to {}", size);
-	Ok(())
+    debug!("Set input buffer size to {}", size);
+    Ok(())
 }
 
 /// ## `reload() -> Result<(), String>`

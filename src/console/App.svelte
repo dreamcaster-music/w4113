@@ -11,6 +11,8 @@
 	let midiVisible = false;
 
 	import "../globals.css";
+	import { debug } from "tauri-plugin-log-api";
+	import { invoke } from "@tauri-apps/api";
 </script>
 
 <main class="container" data-tauri-drag-region>
@@ -18,26 +20,32 @@
 	{#if keyboardVisible}<KeyboardSettings />{/if}
 	{#if midiVisible}<MidiSettings />{/if}
 
-	<div
-		class="dock"
-		style="width: {dockWidth}px;"
-	>
+	<div class="dock" style="width: {dockWidth}px;">
 		<button
 			class="dock-icon none"
 			on:click={() => {
 				audioVisible = !audioVisible;
 			}}
-			style="width: {dockIconSize}px; height: {dockIconSize}px; margin-left: {dockWidth / 2 - dockIconSize / 2}px; margin-right: {dockWidth / 2 - dockIconSize / 2}px;"
-
+			style="width: {dockIconSize}px; height: {dockIconSize}px; margin-left: {dockWidth /
+				2 -
+				dockIconSize / 2}px; margin-right: {dockWidth / 2 -
+				dockIconSize / 2}px;"
 		>
-			<img src="settings.svg" alt="Audio Settings" style="width: {dockIconSize}px; height: {dockIconSize}px;" />
+			<img
+				src="settings.svg"
+				alt="Audio Settings"
+				style="width: {dockIconSize}px; height: {dockIconSize}px;"
+			/>
 		</button>
 		<button
 			class="dock-text-icon none"
 			on:click={() => {
 				keyboardVisible = !keyboardVisible;
 			}}
-			style="width: {dockIconSize}px; height: {dockIconSize}px; margin-left: {dockWidth / 2 - dockIconSize / 2}px; margin-right: {dockWidth / 2 - dockIconSize / 2}px;"
+			style="width: {dockIconSize}px; height: {dockIconSize}px; margin-left: {dockWidth /
+				2 -
+				dockIconSize / 2}px; margin-right: {dockWidth / 2 -
+				dockIconSize / 2}px;"
 		>
 			Key
 		</button>
@@ -46,7 +54,10 @@
 			on:click={() => {
 				midiVisible = !midiVisible;
 			}}
-			style="width: {dockIconSize}px; height: {dockIconSize}px; margin-left: {dockWidth / 2 - dockIconSize / 2}px; margin-right: {dockWidth / 2 - dockIconSize / 2}px;"
+			style="width: {dockIconSize}px; height: {dockIconSize}px; margin-left: {dockWidth /
+				2 -
+				dockIconSize / 2}px; margin-right: {dockWidth / 2 -
+				dockIconSize / 2}px;"
 		>
 			MIDI
 		</button>

@@ -101,6 +101,24 @@ impl Config {
         Ok(())
     }
 
+    /// Saves the config to a different path.
+    ///
+    /// ### Arguments
+    ///
+    /// * `&mut self` - The config.
+    /// * `path: &str` - The path to save the config to.
+    ///
+    /// ### Returns
+    ///
+    /// * `Result<(), String>` - Whether or not the config was saved.
+    pub fn save_to(&mut self, path: &str) -> Result<(), String> {
+        let file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
+        serde_json::to_writer_pretty(file, &self.json).map_err(|e| e.to_string())?;
+        self.saved = true;
+        self.path = path.to_string();
+        Ok(())
+    }
+
     /// Translates a string value to a json value.
     ///
     /// ### Arguments
