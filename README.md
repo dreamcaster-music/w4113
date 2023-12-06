@@ -1,7 +1,7 @@
-# w4113
+# Tauri + Svelte + Typescript
 
-Highly specific robot drummer/sampler/synthesizer/mixer/visualizer for Dreamcaster.
+This template should help get you started developing with Tauri, Svelte and TypeScript in Vite.
 
-### Current Features
-- None
-- Cool console 😎
+## Recommended IDE Setup
+
+[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
