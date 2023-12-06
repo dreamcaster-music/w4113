@@ -1,45 +1,66 @@
 {
-  "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
-  },
-  "package": {
-    "productName": "w4113",
-    "version": "0.0.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true
-      }
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.tauri.dev",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ]
-    },
-    "security": {
-      "csp": null
-    },
-    "windows": [
-      {
-        "fullscreen": false,
-        "resizable": true,
-        "title": "w4113",
-        "width": 800,
-        "height": 600
-      }
-    ]
-  }
+	"build": {
+		"beforeDevCommand": "npm run dev",
+		"beforeBuildCommand": "npm run build",
+		"devPath": "http://localhost:1420",
+		"distDir": "../dist"
+	},
+	"package": {
+		"productName": "w4113",
+		"version": "0.0.0"
+	},
+	"tauri": {
+		"allowlist": {
+			"all": false,
+			"path": {
+				"all": true
+			},
+			"shell": {
+				"all": false,
+				"open": true
+			},
+			"window": {
+				"startDragging": true
+			}
+		},
+		"bundle": {
+			"active": true,
+			"targets": "all",
+			"identifier": "live.dreamcaster.w4113",
+			"icon": [
+				"icons/32x32.png",
+				"icons/128x128.png",
+				"icons/128x128@2x.png",
+				"icons/icon.icns",
+				"icons/icon.ico"
+			]
+		},
+		"security": {
+			"csp": null
+		},
+		"windows": [
+			{
+				"label": "tv",
+				"fullscreen": false,
+				"resizable": true,
+				"titleBarStyle": "Overlay",
+				"title": "w4113-tv",
+				"width": 800,
+				"height": 600,
+				"visible": false,
+				"url": "tv.html"
+			},
+			{
+				"label": "console",
+				"fullscreen": false,
+				"resizable": true,
+				"titleBarStyle": "Overlay",
+				"title": "w4113-console",
+				"width": 800,
+				"height": 600,
+				"visible": true,
+				"url": "index.html"
+			}
+		]
+	}
 }

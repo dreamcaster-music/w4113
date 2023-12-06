@@ -1,0 +1,96 @@
+:root {
+	--dark: #000000;
+	--dark-alt: #222222;
+	--border: #444444;
+	--light: #ffffff;
+	--light-alt: #cccccc;
+	--accent: lime;
+	--accent-alt: green;
+	--mono: "Courier New", Courier, monospace;
+	--sans: "Lato", sans-serif;
+	--font-size: 1rem;
+}
+
+:root,
+body,
+html,
+.app,
+* {
+	/* disable text selection */
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	cursor: default;
+	overflow: hidden;
+}
+
+:root,
+body,
+html #app {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	background-color: var(--dark);
+}
+
+.none {
+	all: unset;
+}
+
+.bg-black {
+	background-color: var(--dark);
+}
+
+.panel {
+	position: absolute;
+	border: 1px solid var(--accent);
+}
+
+.mono {
+	font-family: var(--mono);
+	font-size: var(--font-size);
+	font-weight: 900;
+	color: var(--light);
+}
+
+select {
+	/* */
+	all: unset;
+	font-family: var(--font-mono);
+	font-size: 1rem;
+	font-weight: 900;
+	color: var(--accent);
+
+	padding: 2px;
+	border: 1px solid var(--accent);
+	/* display a little white arrow to the right of the dropdown button */
+	background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='5'><polygon points='0,0 10,0 5,5' style='fill:lime'/></svg>") no-repeat right var(--dark);
+	background-size: 10px 5px;
+	background-position-x: calc(100% - 5px);
+	background-position-y: center;
+}
+
+input {
+	all: unset;
+	font-family: var(--font-mono);
+	font-size: 1rem;
+	font-weight: 900;
+	color: var(--accent);
+
+	padding: 2px;
+	border: 1px solid var(--accent);
+	background-color: var(--background-color-secondary);
+}
+
+.noselect {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}

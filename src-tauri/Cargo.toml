@@ -13,9 +13,17 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = ["shell-open"] }
+tauri = { version = "1.5", features = [ "window-start-dragging", "path-all", "shell-open"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+cpal = "0.15.2"
+tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev", features = ["colored"] }
+log = "^0.4"
+ts-rs = "7.0.0"
+lazy_static = "1.4.0"
+midir = "0.9.1"
+rodio = "0.17.3"
+hidapi = { version = "2.4.1", features = ["macos-shared-device"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
