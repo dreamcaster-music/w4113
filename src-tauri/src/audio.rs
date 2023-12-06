@@ -4,7 +4,7 @@
 
 #![allow(dead_code)]
 
-use std::sync::{Arc, Mutex, RwLock};
+use std::{sync::{Arc, Mutex, RwLock}, ops::Add};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -12,8 +12,9 @@ use cpal::{
 };
 use lazy_static::lazy_static;
 use log::debug;
+use tauri::{Manager};
 
-use crate::tv::{BasicVisualizer, VisualizerTrait};
+use crate::{tv::{BasicVisualizer, VisualizerTrait}, Counter};
 
 lazy_static! {
     pub static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
@@ -372,6 +373,15 @@ pub fn list_output_devices() -> Vec<String> {
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn set_output_device(name: String) -> Result<(), String> {
+	{
+		let app = crate::APP_HANDLE.lock().unwrap();
+		let app = app.as_ref().unwrap();
+		let counter: tauri::State<Counter> = app.state();
+		let mut counter = counter.0.lock().unwrap();
+		*counter += 1;
+	}
+
+
     let host = match HOST.lock() {
         Ok(host) => host,
         Err(e) => {

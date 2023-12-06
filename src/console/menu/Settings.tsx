@@ -5,6 +5,8 @@ import Frame from "../components/Frame";
 import { event, invoke } from "@tauri-apps/api";
 
 function Settings(props: { visible: boolean }) {
+	const [counter, setCounter] = useState<number>(0);
+
 	const [configJson, setConfigJson] = useState({});
 	const [showConfig, setShowConfig] = useState(false);
 
@@ -180,8 +182,9 @@ function Settings(props: { visible: boolean }) {
 						setConfigJson(json);
 					});
 					setShowConfig(!showConfig);
-				}}>Config</button>
+				}}>Config { }</button>
 			</Frame >
+
 			<Frame x={100} y={50} className="noselect" width={"700px"} height={"auto"} title={"Config"} visible={showConfig} refreshCallback={() => {
 				invoke("config_json").then((json: any) => {
 					setConfigJson(json);

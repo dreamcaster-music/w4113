@@ -16,7 +16,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex, RwLock},
 };
-use tauri::{api::path::BaseDirectory, AppHandle, LogicalPosition, Manager};
+use tauri::{api::path::BaseDirectory, AppHandle, LogicalPosition, Manager, State};
 use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
 
 use crate::{config::Config, interface::Key};
@@ -26,10 +26,13 @@ static CONFIG_ROOT: &str = "public/config/";
 
 // The current configuration
 lazy_static! {
+	static ref APP_HANDLE: Mutex<Option<AppHandle>> = Mutex::new(None);
     static ref CONFIG: Arc<RwLock<Config>> = Arc::new(RwLock::new(Config::empty()));
     static ref CONSOLE_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
     static ref TV_WINDOW: Mutex<Option<tauri::Window>> = Mutex::new(None);
 }
+
+pub struct Counter(Mutex<i32>);
 
 /// ## MessageKind
 ///
@@ -904,8 +907,25 @@ fn main() {
                 }
             }
 
+			let test_state: State<Counter> = app.state();
+
+			// set APP_HANDLE
+			match APP_HANDLE.lock() {
+				Ok(mut app_handle_mutex) => {
+					*app_handle_mutex = Some(app.handle());
+				}
+				Err(e) => {
+					error!("Error locking APP_HANDLE: {}", e);
+				}
+			}
+
             Ok(())
         })
+		.manage(
+			Counter {
+				0: Mutex::new(0),
+			}
+		)
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::Stdout, LogTarget::Webview])
