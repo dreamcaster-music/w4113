@@ -1,6 +1,7 @@
 <script lang="ts">
-	import "../../globals.css";
+	import { fade } from "svelte/transition";
 	import { trace } from "tauri-plugin-log-api";
+	import "../../globals.css";
 
 	const handleSize = 12;
 
@@ -9,7 +10,7 @@
 	export let height: number | string = "";
 	export let left: number = 100;
 	export let top: number = 100;
-	export let visible: boolean = true;
+	export let visible: boolean = false;
 	let dragging: boolean = false;
 
 	function createUniqueId() {
@@ -56,6 +57,7 @@
 		class="frame mono bg-black"
 		style="width: {width}px; height: {height}px; left: {left}px; top: {top}px;"
 		id={createUniqueId()}
+		transition:fade={{ delay: 0, duration: 100 }}
 	>
 		<button class="title-bar none" on:mousedown={drag} on:dblclick={close}>
 			<button class="none" on:click={close}>

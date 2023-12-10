@@ -6,19 +6,17 @@
 	let dockWidth = 68;
 	let dockIconSize = 30;
 
-	let audioVisible = false;
-	let keyboardVisible = false;
-	let midiVisible = false;
+	let audioVisible: boolean = false;
+	let keyboardVisible: boolean = false;
+	let midiVisible: boolean = false;
 
 	import "../globals.css";
-	import { debug } from "tauri-plugin-log-api";
-	import { invoke } from "@tauri-apps/api";
 </script>
 
 <main class="container" data-tauri-drag-region>
-	{#if audioVisible}<AudioSettings />{/if}
-	{#if keyboardVisible}<KeyboardSettings />{/if}
-	{#if midiVisible}<MidiSettings />{/if}
+	<AudioSettings visible={audioVisible} />
+	<KeyboardSettings visible={keyboardVisible} />
+	<MidiSettings visible={midiVisible} />
 
 	<div class="dock" style="width: {dockWidth}px;">
 		<button

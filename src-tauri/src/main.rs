@@ -8,18 +8,13 @@ mod interface;
 mod midi;
 mod tv;
 
-use audio::{plugin::SineGenerator, Preference};
-use cpal::traits::DeviceTrait;
 use lazy_static::lazy_static;
 use log::{debug, error, LevelFilter};
-use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex, RwLock},
-};
-use tauri::{api::path::BaseDirectory, AppHandle, LogicalPosition, Manager, State};
-use tauri_plugin_log::{fern::colors::ColoredLevelConfig, LogTarget};
+use std::sync::{Mutex, RwLock};
+use tauri::{AppHandle, Manager};
+use tauri_plugin_log::LogTarget;
 
-use crate::{config::Config, interface::Key};
+use crate::config::Config;
 
 static CONFIG_FILE: &str = "public/config.json";
 static CONFIG_ROOT: &str = "public/config/";
@@ -33,7 +28,7 @@ lazy_static! {
 }
 
 #[tauri::command]
-fn run(window: tauri::Window) {
+fn run() {
     debug!("Svelte finished loading. Making windows visible.");
     match CONSOLE_WINDOW.lock() {
         Ok(mut console_window_mutex) => {

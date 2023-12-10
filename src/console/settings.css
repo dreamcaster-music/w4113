@@ -8,7 +8,6 @@
 	font: 900 18px var(--font-mono);
 	color: var(--accent);
 
-	height: 20px;
 	max-height: 20px;
 }
 
@@ -17,6 +16,7 @@
 }
 
 .option input {
+	color: white;
 	width: 100%;
 }
 

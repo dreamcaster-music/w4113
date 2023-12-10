@@ -1,13 +1,17 @@
-import "./styles.css";
-import App from "./console/App.svelte";
-import { attachConsole, debug } from "tauri-plugin-log-api";
 import { invoke } from "@tauri-apps/api";
+import { attachConsole } from "tauri-plugin-log-api";
+import App from "./console/App.svelte";
+import "./styles.css";
 
-const detach = await attachConsole();
+async function run() {
+	const detach = await attachConsole();
 
-invoke("run").then(() => {
+	invoke("run").then(() => {
 
-});
+	});
+}
+
+run();
 
 const app = new App({
 	// @ts-ignore
