@@ -16,7 +16,9 @@ use log::debug;
 
 use crate::tv::{BasicVisualizer, VisualizerTrait};
 
-mod plugin;
+use self::plugin::SampleGenerator;
+
+pub mod plugin;
 
 lazy_static! {
     pub static ref HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
@@ -28,6 +30,18 @@ lazy_static! {
     pub static ref RELOAD: RwLock<bool> = RwLock::new(false);
     pub static ref AUDIO_THREAD: Mutex<Option<std::thread::JoinHandle<Result<(), String>>>> =
         Mutex::new(None);
+}
+
+fn force_reload() {
+	let mut reload = match RELOAD.write() {
+		Ok(reload) => reload,
+		Err(e) => {
+			debug!("Error locking RELOAD: {}", e);
+			return;
+		}
+	};
+
+	*reload = true;
 }
 
 /// ## `get_host(host_name: &str) -> Host`
@@ -282,6 +296,8 @@ pub fn set_host(name: String) -> Result<(), String> {
         }
     }
 
+	force_reload();
+
     Ok(())
 }
 
@@ -426,6 +442,8 @@ pub fn set_output_device(name: String) -> Result<(), String> {
         }
     }
 
+	force_reload();
+
     Ok(())
 }
 
@@ -569,6 +587,8 @@ pub fn set_input_device(name: String) -> Result<(), String> {
             return Err(format!("Error setting audio.input.device: {}", e));
         }
     }
+
+	force_reload();
 
     Ok(())
 }
@@ -1168,6 +1188,7 @@ pub fn set_output_stream(stream: String) -> Result<(), String> {
         "audio.output.stream.buffer_size",
         buffer_size_max.to_string().as_str(),
     )?;
+	force_reload();
 
     debug!("Set output stream to {}", stream);
     Ok(())
@@ -1211,6 +1232,7 @@ pub fn set_output_buffer_size(size: u32) -> Result<(), String> {
     };
 
     config.set("audio.output.stream.buffer_size", size.to_string().as_str())?;
+	force_reload();
 
     debug!("Set output buffer size to {}", size);
     Ok(())
@@ -1287,6 +1309,7 @@ pub fn set_input_stream(stream: String) -> Result<(), String> {
         "audio.input.stream.buffer_size",
         buffer_size_max.to_string().as_str(),
     )?;
+	force_reload();
 
     debug!("Set input stream to {}", stream);
     Ok(())
@@ -1330,6 +1353,7 @@ pub fn set_input_buffer_size(size: u32) -> Result<(), String> {
     };
 
     config.set("audio.input.stream.buffer_size", size.to_string().as_str())?;
+	force_reload();
 
     debug!("Set input buffer size to {}", size);
     Ok(())
@@ -1363,10 +1387,14 @@ pub fn reload() -> Result<(), String> {
 /// ### Returns
 ///
 /// * `Result<(), String>` - An error message, or nothing if successful
+#[tauri::command]
 pub fn audio_thread() -> Result<(), String> {
+	// emit event to indicate that the audio thread is starting
+	crate::try_emit("updatethread", true);
+
     let thread = std::thread::spawn(move || {
         let config = {
-            match OUTPUT_CONFIG.try_lock() {
+            match OUTPUT_CONFIG.lock() {
                 Ok(config) => match config.as_ref() {
                     Some(config) => config.clone(),
                     None => {
@@ -1374,11 +1402,15 @@ pub fn audio_thread() -> Result<(), String> {
                         //return Err(format!("OUTPUT_CONFIG is None"));
 
                         // specify type of Err to avoid type mismatch
+
+						crate::try_emit("updatethread", false);
                         return Err("OUTPUT_CONFIG is None".to_owned());
                     }
                 },
                 Err(e) => {
                     debug!("Error locking OUTPUT_CONFIG: {}", e);
+
+					crate::try_emit("updatethread", false);
                     return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
                 }
             }
@@ -1387,11 +1419,12 @@ pub fn audio_thread() -> Result<(), String> {
         let output_stream_opt: Option<Result<cpal::Stream, cpal::BuildStreamError>>;
 
         {
-            let output_device = OUTPUT_DEVICE.try_lock();
+            let output_device = OUTPUT_DEVICE.lock();
             let output_device = match output_device {
                 Ok(output_device) => output_device,
                 Err(e) => {
                     debug!("Error locking OUTPUT_DEVICE: {}", e);
+					crate::try_emit("updatethread", false);
                     return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
                 }
             };
@@ -1400,6 +1433,7 @@ pub fn audio_thread() -> Result<(), String> {
                 Some(output_device) => output_device,
                 None => {
                     debug!("OUTPUT_DEVICE is None");
+					crate::try_emit("updatethread", false);
                     return Err("OUTPUT_DEVICE is None".to_owned());
                 }
             };
@@ -1415,6 +1449,7 @@ pub fn audio_thread() -> Result<(), String> {
                     Ok(strips) => strips,
                     Err(e) => {
                         debug!("Error locking STRIPS: {}", e);
+						crate::try_emit("updatethread", false);
                         return;
                     }
                 };
@@ -1501,6 +1536,7 @@ pub fn audio_thread() -> Result<(), String> {
         let output_stream = match output_stream_opt {
             Some(output_stream) => output_stream,
             None => {
+				crate::try_emit("updatethread", false);
                 return Err("Error building output stream".to_owned());
             }
         };
@@ -1508,16 +1544,34 @@ pub fn audio_thread() -> Result<(), String> {
         let output_stream = match output_stream {
             Ok(stream) => stream,
             Err(err) => {
+				crate::try_emit("updatethread", false);
                 return Err(format!("Error building output stream: {}", err));
             }
         };
 
         let _ = output_stream.play();
 
-        loop {
+		let mut reload = false;
+        while (!reload) {
             std::thread::sleep(std::time::Duration::from_millis(1000));
-            //debug!("Reloading audio thread...");
+
+            match RELOAD.try_write() {
+				Ok(mut r) => {
+					if *r {
+						reload = true;
+						*r = false;
+					}
+				}
+				Err(_err) => {}
+			}
         }
+		
+		let _ = output_stream.pause();
+
+		crate::try_emit("updatethread", false);
+		let new_thread = audio_thread();
+		debug!("Reloading audio thread... {:?}", new_thread);
+		Ok(())
     });
 
     match AUDIO_THREAD.lock() {
@@ -1526,10 +1580,10 @@ pub fn audio_thread() -> Result<(), String> {
         }
         Err(e) => {
             debug!("Error locking AUDIO_THREAD: {}", e);
+			crate::try_emit("updatethread", false);
             return Err(format!("Error locking AUDIO_THREAD: {}", e));
         }
-    }
-
+	}
     Ok(())
 }
 
@@ -1790,4 +1844,18 @@ impl Strip {
             Output::Bus(_bus) => Sample::Stereo(sample.left(), sample.right()),
         }
     }
+}
+
+#[tauri::command]
+pub fn play_sample(path: &str) {
+	match STRIPS.write() {
+		Ok(strips) => {
+			let mut strips = strips;
+			let mut strip = Strip::new(Input::Generator(Arc::new(Mutex::new(SampleGenerator::new(path)))), Output::Stereo(0,1));
+			strips.push(strip);
+		}
+		Err(e) => {
+			debug!("Error locking STRIPS: {}", e);
+		}
+	}
 }

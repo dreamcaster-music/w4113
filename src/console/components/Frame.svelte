@@ -3,7 +3,7 @@
 	import { trace } from "tauri-plugin-log-api";
 	import "../../globals.css";
 
-	const handleSize = 12;
+	const handleSize = 14;
 
 	export let title: string;
 	export let width: number | string = "";
@@ -107,17 +107,14 @@
 	}
 
 	.handle {
-		padding-top: 2px;
-		padding-right: 10px;
+		position: absolute;
+		right: 14px;
+		top: 14px;
 		margin: 0px;
 		opacity: 0.5;
 	}
 
 	.handle:hover {
 		opacity: 1;
-	}
-
-	.refresh {
-		margin-left: auto;
 	}
 </style>

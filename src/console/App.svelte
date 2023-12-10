@@ -9,16 +9,21 @@
 	let audioVisible: boolean = false;
 	let keyboardVisible: boolean = false;
 	let midiVisible: boolean = false;
+	let sampleVisible: boolean = false;
 
 	import "../globals.css";
+	import Sampler from "./Sampler.svelte";
+	import Tempo from "./Tempo.svelte";
 </script>
 
-<main class="container" data-tauri-drag-region>
+<main class="container w-full h-full" data-tauri-drag-region>
+	<Tempo />
 	<AudioSettings visible={audioVisible} />
 	<KeyboardSettings visible={keyboardVisible} />
 	<MidiSettings visible={midiVisible} />
+	<Sampler visible={sampleVisible} />
 
-	<div class="dock" style="width: {dockWidth}px;">
+	<div class="dock border-r border-accent" style="width: {dockWidth}px;">
 		<button
 			class="dock-icon none"
 			on:click={() => {
@@ -59,6 +64,18 @@
 		>
 			MIDI
 		</button>
+		<button
+			class="dock-text-icon none"
+			on:click={() => {
+				sampleVisible = !sampleVisible;
+			}}
+			style="width: {dockIconSize}px; height: {dockIconSize}px; margin-left: {dockWidth /
+				2 -
+				dockIconSize / 2}px; margin-right: {dockWidth / 2 -
+				dockIconSize / 2}px;"
+		>
+			RSS7
+		</button>
 	</div>
 </main>
 
@@ -71,8 +88,6 @@
 		height: 100%;
 		background-color: var(--dark);
 		overflow: hidden;
-
-		border-right: 1px solid var(--accent);
 	}
 
 	.dock-icon {

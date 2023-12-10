@@ -1,4 +1,5 @@
 use log::debug;
+use rodio::Source;
 
     use super::Sample;
     use super::State;
@@ -105,6 +106,37 @@ use log::debug;
             Sample::Stereo(sample, sample)
         }
     }
+
+	pub struct SampleGenerator {
+		stored_clock: u64,
+		stored_sample: f32,
+		decoder: rodio::Decoder<std::fs::File>,
+	}
+
+	impl SampleGenerator {
+		pub fn new(path: &str) -> Self {
+			let decoder = rodio::Decoder::new(std::fs::File::open(path).unwrap()).unwrap();
+			Self {
+				stored_clock: 0,
+				stored_sample: 0.0,
+				decoder,
+			}
+		}
+	}
+
+	impl Generator for SampleGenerator {
+		fn generate(&mut self, state: &State) -> Sample {
+			let mut sample = 0.0;
+			if self.stored_clock < state.sample_clock {
+				sample = self.decoder.next().unwrap_or(0) as f32 / 32768.0;
+				self.stored_clock = state.sample_clock;
+				self.stored_sample = sample;
+			} else {
+				sample = self.stored_sample;
+			}
+			Sample::Stereo(sample, sample)
+		}
+	}
 
     /// ## Effect
     ///
