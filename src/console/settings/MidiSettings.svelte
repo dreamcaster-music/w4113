@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Frame from "./components/Frame.svelte";
+	import Frame from "../components/Frame.svelte";
 
 	export let visible: boolean = false;
 </script>

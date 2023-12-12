@@ -471,12 +471,15 @@ fn hash(string: String) -> u32 {
 
 #[tauri::command]
 pub fn list_interfaces() -> Vec<String> {
-	let interfaces = get_interfaces();
-	let mut names: Vec<String> = Vec::new();
-	for interface in interfaces {
-		names.push(format!("({}) {}:{}", interface.id, interface.manufacturer, interface.product));
-	}
-	return names;
+    let interfaces = get_interfaces();
+    let mut names: Vec<String> = Vec::new();
+    for interface in interfaces {
+        names.push(format!(
+            "({}) {}:{}",
+            interface.id, interface.manufacturer, interface.product
+        ));
+    }
+    return names;
 }
 
 #[tauri::command]

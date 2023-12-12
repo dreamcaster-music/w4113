@@ -54,7 +54,7 @@
 
 {#if visible}
 	<div
-		class="frame mono bg-black"
+		class="frame mono bg-black z-10"
 		style="width: {width}px; height: {height}px; left: {left}px; top: {top}px;"
 		id={createUniqueId()}
 		transition:fade={{ delay: 0, duration: 100 }}

@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api";
-	import { debug } from "tauri-plugin-log-api";
-	import Frame from "./components/Frame.svelte";
+	import Frame from "../components/Frame.svelte";
 
 	export let visible: boolean = false;
 	let list: string[] = [];
 
 	invoke("list_interfaces").then((result) => {
-		debug("list_interfaces: " + result);
 		let id = 966156933;
 		list = result as string[];
 	});

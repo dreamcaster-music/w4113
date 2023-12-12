@@ -1,7 +1,7 @@
 <script lang="ts">
-	import AudioSettings from "./AudioSettings.svelte";
-	import KeyboardSettings from "./KeyboardSettings.svelte";
-	import MidiSettings from "./MidiSettings.svelte";
+	import AudioSettings from "./settings/AudioSettings.svelte";
+	import KeyboardSettings from "./settings/KeyboardSettings.svelte";
+	import MidiSettings from "./settings/MidiSettings.svelte";
 
 	let dockWidth = 68;
 	let dockIconSize = 30;
@@ -13,17 +13,16 @@
 
 	import "../globals.css";
 	import Sampler from "./Sampler.svelte";
-	import Tempo from "./Tempo.svelte";
+	import Rack from "./rack/Rack.svelte";
+	import Tempo from "./settings/Tempo.svelte";
 </script>
 
-<main class="container w-full h-full" data-tauri-drag-region>
-	<Tempo />
-	<AudioSettings visible={audioVisible} />
-	<KeyboardSettings visible={keyboardVisible} />
-	<MidiSettings visible={midiVisible} />
-	<Sampler visible={sampleVisible} />
-
-	<div class="dock border-r border-accent" style="width: {dockWidth}px;">
+<main class="w-full h-full absolute overflow-hidden">
+	<div
+		class="dock border-r border-accent overflow-hidden"
+		style="width: {dockWidth}px;"
+		data-tauri-drag-region
+	>
 		<button
 			class="dock-icon none"
 			on:click={() => {
@@ -77,9 +76,23 @@
 			RSS7
 		</button>
 	</div>
+	<div class="content absolute" data-tauri-drag-region>
+		<Tempo />
+		<AudioSettings visible={audioVisible} />
+		<KeyboardSettings visible={keyboardVisible} />
+		<MidiSettings visible={midiVisible} />
+		<Sampler visible={sampleVisible} />
+		<Rack />
+	</div>
 </main>
 
 <style>
+	.content {
+		left: 68px;
+		width: calc(100% - 68px);
+		height: 100%;
+	}
+
 	.dock {
 		top: 0;
 		left: 0;

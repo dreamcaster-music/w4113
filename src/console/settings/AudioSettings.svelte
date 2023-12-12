@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api";
 	import { listen } from "@tauri-apps/api/event";
-	import Frame from "./components/Frame.svelte";
+	import Frame from "../components/Frame.svelte";
 	import "./settings.css";
 
 	export let visible: boolean = false;

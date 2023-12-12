@@ -27,13 +27,16 @@
 	.border-1 {
 		border-width: 1px;
 	}
+
+	.border-accent-alt {
+		border-color: var(--accent-alt);
+	}
 }
 
 :root,
 body,
 html,
-.app,
-* {
+.app {
 	/* disable text selection */
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;

@@ -11,7 +11,7 @@ mod tv;
 use lazy_static::lazy_static;
 use log::{debug, error, LevelFilter};
 use serde::Serialize;
-use std::sync::{Mutex, RwLock, Arc};
+use std::sync::{Arc, Mutex, RwLock};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_log::LogTarget;
 
@@ -29,17 +29,36 @@ lazy_static! {
 }
 
 pub fn try_emit<S: Serialize + Clone>(event: &str, data: S) {
+    match APP_HANDLE.try_lock() {
+        Ok(mut app_handle_mutex) => {
+            if let Some(app_handle) = app_handle_mutex.as_mut() {
+                let _ = app_handle.emit_all(event, data);
+            }
+        }
+        Err(e) => {
+            error!("Error locking APP_HANDLE: {}", e);
+        }
+    }
+}
+
+pub fn emit_wait<S: Serialize + Clone>(event: &str, data: S) -> Result<(), String> {
 	match APP_HANDLE.lock() {
 		Ok(mut app_handle_mutex) => {
 			if let Some(app_handle) = app_handle_mutex.as_mut() {
-				let _ = app_handle
-					.emit_all(event, data);
+				let result = app_handle.emit_all(event, data);
+				match result {
+					Ok(()) => {}
+					Err(e) => {
+						return Err(format!("Error emitting {}: {}", event, e));
+					}
+				}
 			}
 		}
 		Err(e) => {
-			error!("Error locking APP_HANDLE: {}", e);
+			return Err(format!("Error locking APP_HANDLE: {}", e));
 		}
 	}
+	Ok(())
 }
 
 #[tauri::command]
@@ -70,22 +89,41 @@ fn run() {
         }
     }
 
-	match audio::STRIPS.write() {
-		Ok(mut strips) => {
+    match audio::STRIPS.write() {
+        Ok(mut strips) => {
+            let mut sine = audio::plugin::SineGenerator::new();
+            sine.add_freq(440.0, 1.0);
+            let input = audio::Input::Generator(Arc::new(Mutex::new(sine)));
+            let mut new_strip = audio::Strip::new(input, audio::Output::Stereo(0, 1));
+            //strips.push(new_strip);
+        }
 
-			let mut sine = audio::plugin::SineGenerator::new();
-			sine.add_freq(440.0, 1.0);
-			let input = audio::Input::Generator(Arc::new(Mutex::new(sine)));
-			let mut new_strip = audio::Strip::new(input, audio::Output::Stereo(0, 1));
-			//strips.push(new_strip);
+        Err(e) => {
+            error!("Error locking STRIPS: {}", e);
+        }
+    }
+
+    let _ = audio::audio_thread();
+	let _ = event_loop();
+}
+
+fn event_loop() -> Result<(), String> {
+	// run event loop to listen to messages from the frontend
+	let app = match APP_HANDLE.lock() {
+		Ok(mut app_handle_mutex) => {
+			if let Some(app_handle) = app_handle_mutex.as_mut() {
+				app_handle.clone()
+			} else {
+				return Err("APP_HANDLE is None".to_string());
+			}
 		}
-
 		Err(e) => {
-			error!("Error locking STRIPS: {}", e);
+			return Err(format!("Error locking APP_HANDLE: {}", e));
 		}
-	}
+	};
+	
 
-	let _ = audio::audio_thread();
+	Ok(())
 }
 
 /// ## `main()`
@@ -151,11 +189,11 @@ fn main() {
             audio::list_input_streams,
             audio::set_input_stream,
             audio::set_output_buffer_size,
-			audio::audio_thread,
-			audio::play_sample,
+            audio::audio_thread,
+            audio::play_sample,
             midi::midi_list,
-			interface::list_interfaces,
-			interface::list_interfaces_id,
+            interface::list_interfaces,
+            interface::list_interfaces_id,
             interface::list_interfaces_name,
         ])
         .run(tauri::generate_context!())

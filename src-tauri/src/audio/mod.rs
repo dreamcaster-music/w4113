@@ -4,8 +4,7 @@
 
 #![allow(dead_code)]
 
-use std::
-    sync::{Arc, Mutex, RwLock, RwLockWriteGuard, RwLockReadGuard, PoisonError};
+use std::sync::{Arc, Mutex, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -13,6 +12,7 @@ use cpal::{
 };
 use lazy_static::lazy_static;
 use log::debug;
+use ts_rs::TS;
 
 use crate::tv::{BasicVisualizer, VisualizerTrait};
 
@@ -33,15 +33,15 @@ lazy_static! {
 }
 
 fn force_reload() {
-	let mut reload = match RELOAD.write() {
-		Ok(reload) => reload,
-		Err(e) => {
-			debug!("Error locking RELOAD: {}", e);
-			return;
-		}
-	};
+    let mut reload = match RELOAD.write() {
+        Ok(reload) => reload,
+        Err(e) => {
+            debug!("Error locking RELOAD: {}", e);
+            return;
+        }
+    };
 
-	*reload = true;
+    *reload = true;
 }
 
 /// ## `get_host(host_name: &str) -> Host`
@@ -64,11 +64,9 @@ fn force_reload() {
 /// let host = audio::get_host("CoreAudio");
 /// ```
 pub fn get_host(host_name: &str) -> Host {
-    debug!("Getting host {}", host_name);
     let default_host = cpal::default_host();
 
     if host_name.to_lowercase() == "default" {
-        debug!("Returning default host {}.", default_host.id().name());
         return default_host;
     }
 
@@ -79,7 +77,6 @@ pub fn get_host(host_name: &str) -> Host {
             let host = cpal::host_from_id(host_id);
             match host {
                 Ok(host) => {
-                    debug!("Returned host {}", host_id_name);
                     return host;
                 }
                 Err(err) => {
@@ -93,7 +90,7 @@ pub fn get_host(host_name: &str) -> Host {
     }
 
     debug!(
-        "Could not find host {}. Returning default host {}.",
+        "Could not find host '{}'. Returning default host '{}'.",
         host_name,
         default_host.id().name()
     );
@@ -132,7 +129,6 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
     };
 
     if device_name.to_lowercase() == "default" {
-        debug!("Returning default output device {}", default_device_name);
         return default_device;
     }
 
@@ -142,7 +138,7 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
         Ok(devices) => devices,
         Err(_err) => {
             debug!(
-                "Error getting output devices. returning default output device {}.",
+                "Error getting output devices. returning default output device '{}'.",
                 default_device_name
             );
             return default_device;
@@ -153,7 +149,6 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
         match device.name() {
             Ok(name) => {
                 if name.to_lowercase() == device_name.to_lowercase() {
-                    debug!("Returning output device {}", name);
                     return Some(device);
                 }
             }
@@ -164,7 +159,7 @@ pub fn get_output_device(device_name: &str, host: &Host) -> Option<Device> {
     }
 
     debug!(
-        "Could not find output device {}. Returning default output device {}.",
+        "Could not find output device '{}'. Returning default output device '{}'.",
         device_name, default_device_name
     );
     default_device
@@ -202,7 +197,6 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
     };
 
     if device_name.to_lowercase() == "default" {
-        debug!("Returning default input device {}", default_device_name);
         return default_device;
     }
 
@@ -212,7 +206,7 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
         Ok(devices) => devices,
         Err(_err) => {
             debug!(
-                "Error getting input devices. returning default input device {}.",
+                "Error getting input devices. returning default input device '{}'.",
                 default_device_name
             );
             return default_device;
@@ -223,7 +217,6 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
         match device.name() {
             Ok(name) => {
                 if name.to_lowercase() == device_name.to_lowercase() {
-                    debug!("Returning input device {}", name);
                     return Some(device);
                 }
             }
@@ -234,7 +227,7 @@ pub fn get_input_device(device_name: &str, host: &Host) -> Option<Device> {
     }
 
     debug!(
-        "Could not find input device {}. Returning default input device {}.",
+        "Could not find input device '{}'. Returning default input device '{}'.",
         device_name, default_device_name
     );
     default_device
@@ -277,6 +270,7 @@ pub fn set_host(name: String) -> Result<(), String> {
             return Err(format!("Error locking HOST: {}", e));
         }
     };
+	let name = host.id().name().to_string();
 
     *mutex = Some(host);
 
@@ -296,7 +290,8 @@ pub fn set_host(name: String) -> Result<(), String> {
         }
     }
 
-	force_reload();
+	debug!("Set host to {}", name);
+    force_reload();
 
     Ok(())
 }
@@ -416,6 +411,14 @@ pub fn set_output_device(name: String) -> Result<(), String> {
         }
     };
 
+	let name = match device.name() {
+		Ok(name) => name,
+		Err(e) => {
+			debug!("Error getting input device name: {}", e);
+			"Error".to_string()
+		}
+	};
+
     let mut mutex = match OUTPUT_DEVICE.lock() {
         Ok(output_device) => output_device,
         Err(e) => {
@@ -442,7 +445,8 @@ pub fn set_output_device(name: String) -> Result<(), String> {
         }
     }
 
-	force_reload();
+	debug!("Set output device to {}", name);
+    force_reload();
 
     Ok(())
 }
@@ -562,6 +566,14 @@ pub fn set_input_device(name: String) -> Result<(), String> {
         }
     };
 
+	let name = match device.name() {
+		Ok(name) => name,
+		Err(e) => {
+			debug!("Error getting input device name: {}", e);
+			"Error".to_string()
+		}
+	};
+
     let mut mutex = match INPUT_DEVICE.lock() {
         Ok(input_device) => input_device,
         Err(e) => {
@@ -588,7 +600,8 @@ pub fn set_input_device(name: String) -> Result<(), String> {
         }
     }
 
-	force_reload();
+	debug!("Set input device to {}", name);
+    force_reload();
 
     Ok(())
 }
@@ -1188,7 +1201,7 @@ pub fn set_output_stream(stream: String) -> Result<(), String> {
         "audio.output.stream.buffer_size",
         buffer_size_max.to_string().as_str(),
     )?;
-	force_reload();
+    force_reload();
 
     debug!("Set output stream to {}", stream);
     Ok(())
@@ -1232,7 +1245,7 @@ pub fn set_output_buffer_size(size: u32) -> Result<(), String> {
     };
 
     config.set("audio.output.stream.buffer_size", size.to_string().as_str())?;
-	force_reload();
+    force_reload();
 
     debug!("Set output buffer size to {}", size);
     Ok(())
@@ -1309,7 +1322,7 @@ pub fn set_input_stream(stream: String) -> Result<(), String> {
         "audio.input.stream.buffer_size",
         buffer_size_max.to_string().as_str(),
     )?;
-	force_reload();
+    force_reload();
 
     debug!("Set input stream to {}", stream);
     Ok(())
@@ -1353,7 +1366,7 @@ pub fn set_input_buffer_size(size: u32) -> Result<(), String> {
     };
 
     config.set("audio.input.stream.buffer_size", size.to_string().as_str())?;
-	force_reload();
+    force_reload();
 
     debug!("Set input buffer size to {}", size);
     Ok(())
@@ -1389,8 +1402,8 @@ pub fn reload() -> Result<(), String> {
 /// * `Result<(), String>` - An error message, or nothing if successful
 #[tauri::command]
 pub fn audio_thread() -> Result<(), String> {
-	// emit event to indicate that the audio thread is starting
-	crate::try_emit("updatethread", true);
+    // emit event to indicate that the audio thread is starting
+    crate::try_emit("updatethread", true);
 
     let thread = std::thread::spawn(move || {
         let config = {
@@ -1403,14 +1416,14 @@ pub fn audio_thread() -> Result<(), String> {
 
                         // specify type of Err to avoid type mismatch
 
-						crate::try_emit("updatethread", false);
+                        crate::try_emit("updatethread", false);
                         return Err("OUTPUT_CONFIG is None".to_owned());
                     }
                 },
                 Err(e) => {
                     debug!("Error locking OUTPUT_CONFIG: {}", e);
 
-					crate::try_emit("updatethread", false);
+                    crate::try_emit("updatethread", false);
                     return Err(format!("Error locking OUTPUT_CONFIG: {}", e));
                 }
             }
@@ -1424,7 +1437,7 @@ pub fn audio_thread() -> Result<(), String> {
                 Ok(output_device) => output_device,
                 Err(e) => {
                     debug!("Error locking OUTPUT_DEVICE: {}", e);
-					crate::try_emit("updatethread", false);
+                    crate::try_emit("updatethread", false);
                     return Err(format!("Error locking OUTPUT_DEVICE: {}", e));
                 }
             };
@@ -1433,7 +1446,7 @@ pub fn audio_thread() -> Result<(), String> {
                 Some(output_device) => output_device,
                 None => {
                     debug!("OUTPUT_DEVICE is None");
-					crate::try_emit("updatethread", false);
+                    crate::try_emit("updatethread", false);
                     return Err("OUTPUT_DEVICE is None".to_owned());
                 }
             };
@@ -1449,7 +1462,7 @@ pub fn audio_thread() -> Result<(), String> {
                     Ok(strips) => strips,
                     Err(e) => {
                         debug!("Error locking STRIPS: {}", e);
-						crate::try_emit("updatethread", false);
+                        crate::try_emit("updatethread", false);
                         return;
                     }
                 };
@@ -1536,7 +1549,7 @@ pub fn audio_thread() -> Result<(), String> {
         let output_stream = match output_stream_opt {
             Some(output_stream) => output_stream,
             None => {
-				crate::try_emit("updatethread", false);
+                crate::try_emit("updatethread", false);
                 return Err("Error building output stream".to_owned());
             }
         };
@@ -1544,34 +1557,34 @@ pub fn audio_thread() -> Result<(), String> {
         let output_stream = match output_stream {
             Ok(stream) => stream,
             Err(err) => {
-				crate::try_emit("updatethread", false);
+                crate::try_emit("updatethread", false);
                 return Err(format!("Error building output stream: {}", err));
             }
         };
 
         let _ = output_stream.play();
 
-		let mut reload = false;
+        let mut reload = false;
         while (!reload) {
             std::thread::sleep(std::time::Duration::from_millis(1000));
 
             match RELOAD.try_write() {
-				Ok(mut r) => {
-					if *r {
-						reload = true;
-						*r = false;
-					}
-				}
-				Err(_err) => {}
-			}
+                Ok(mut r) => {
+                    if *r {
+                        reload = true;
+                        *r = false;
+                    }
+                }
+                Err(_err) => {}
+            }
         }
-		
-		let _ = output_stream.pause();
 
-		crate::try_emit("updatethread", false);
-		let new_thread = audio_thread();
-		debug!("Reloading audio thread... {:?}", new_thread);
-		Ok(())
+        let _ = output_stream.pause();
+
+        crate::try_emit("updatethread", false);
+        let new_thread = audio_thread();
+        debug!("Reloading audio thread... {:?}", new_thread);
+        Ok(())
     });
 
     match AUDIO_THREAD.lock() {
@@ -1580,10 +1593,10 @@ pub fn audio_thread() -> Result<(), String> {
         }
         Err(e) => {
             debug!("Error locking AUDIO_THREAD: {}", e);
-			crate::try_emit("updatethread", false);
+            crate::try_emit("updatethread", false);
             return Err(format!("Error locking AUDIO_THREAD: {}", e));
         }
-	}
+    }
     Ok(())
 }
 
@@ -1844,18 +1857,103 @@ impl Strip {
             Output::Bus(_bus) => Sample::Stereo(sample.left(), sample.right()),
         }
     }
+
+	pub fn to_js(&self) -> serde_json::Value {
+		let input = match self.input {
+			Input::Generator(ref generator) => {
+				match generator.as_ref().try_lock() {
+					Ok(generator) => {
+						generator.name().to_string()
+					}
+					Err(_) => {
+						"invalid (generator)".to_string()
+					}
+				}
+			}
+			Input::Bus(ref bus) => {
+				match bus.as_ref() {
+					Output::Mono(channel) => {
+						"invalid (mono)".to_string()
+					}
+					Output::Stereo(left_channel, right_channel) => {
+						"invalid (stereo)".to_string()
+					}
+					Output::Bus(_) => {
+						format!("bus")
+					}
+				}
+			}
+		};
+		let output = match self.output {
+			Output::Mono(channel) => {
+				format!("mono({})", channel)
+			}
+			Output::Stereo(left_channel, right_channel) => {
+				format!("stereo({}, {})", left_channel, right_channel)
+			}
+			Output::Bus(_) => {
+				format!("bus")
+			}
+		};
+
+		let mut chain = Vec::new();
+		for effect in self.chain.iter() {
+			chain.push(effect.name());
+		}
+
+		serde_json::json!({
+			"input": input,
+			"chain": chain,
+			"output": output,
+		})
+	}
 }
 
-#[tauri::command]
-pub fn play_sample(path: &str) {
-	match STRIPS.write() {
+pub fn map_strips() {
+	match STRIPS.read() {
 		Ok(strips) => {
-			let mut strips = strips;
-			let mut strip = Strip::new(Input::Generator(Arc::new(Mutex::new(SampleGenerator::new(path)))), Output::Stereo(0,1));
-			strips.push(strip);
+			crate::try_emit("rust-clearstrips", ());
+			for (index, strip) in strips.iter().enumerate() {
+				crate::try_emit("rust-updatestrip", strip.to_js());
+			}
 		}
 		Err(e) => {
 			debug!("Error locking STRIPS: {}", e);
 		}
 	}
+}
+
+pub fn remove_strip(index: usize) {
+	match STRIPS.write() {
+		Ok(mut strips) => {
+			crate::try_emit("rust-removestrip", index);
+			strips.remove(index);
+		}
+		Err(e) => {
+			debug!("Error locking STRIPS: {}", e);
+		}
+	}
+}
+
+pub fn add_strip(strip: Strip) -> Option<usize> {
+	match STRIPS.write() {
+		Ok(mut strips) => {
+			crate::try_emit("rust-updatestrip", strip.to_js());
+			strips.push(strip);
+			Some(strips.len() - 1)
+		}
+		Err(e) => {
+			debug!("Error locking STRIPS: {}", e);
+			return None;
+		}
+	}
+}
+
+#[tauri::command]
+pub fn play_sample(path: &str) {
+            let mut strip = Strip::new(
+                Input::Generator(Arc::new(Mutex::new(SampleGenerator::new(path)))),
+                Output::Stereo(0, 1),
+            );
+            add_strip(strip);
 }
