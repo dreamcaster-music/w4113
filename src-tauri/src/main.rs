@@ -42,23 +42,23 @@ pub fn try_emit<S: Serialize + Clone>(event: &str, data: S) {
 }
 
 pub fn emit_wait<S: Serialize + Clone>(event: &str, data: S) -> Result<(), String> {
-	match APP_HANDLE.lock() {
-		Ok(mut app_handle_mutex) => {
-			if let Some(app_handle) = app_handle_mutex.as_mut() {
-				let result = app_handle.emit_all(event, data);
-				match result {
-					Ok(()) => {}
-					Err(e) => {
-						return Err(format!("Error emitting {}: {}", event, e));
-					}
-				}
-			}
-		}
-		Err(e) => {
-			return Err(format!("Error locking APP_HANDLE: {}", e));
-		}
-	}
-	Ok(())
+    match APP_HANDLE.lock() {
+        Ok(mut app_handle_mutex) => {
+            if let Some(app_handle) = app_handle_mutex.as_mut() {
+                let result = app_handle.emit_all(event, data);
+                match result {
+                    Ok(()) => {}
+                    Err(e) => {
+                        return Err(format!("Error emitting {}: {}", event, e));
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            return Err(format!("Error locking APP_HANDLE: {}", e));
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -104,27 +104,26 @@ fn run() {
     }
 
     let _ = audio::audio_thread();
-	//let _ = event_loop();
-	let _ = audio::listen_frontend();
+    //let _ = event_loop();
+    let _ = audio::listen_frontend();
 }
 
 fn event_loop() -> Result<(), String> {
-	// run event loop to listen to messages from the frontend
-	let app = match APP_HANDLE.lock() {
-		Ok(mut app_handle_mutex) => {
-			if let Some(app_handle) = app_handle_mutex.as_mut() {
-				app_handle.clone()
-			} else {
-				return Err("APP_HANDLE is None".to_string());
-			}
-		}
-		Err(e) => {
-			return Err(format!("Error locking APP_HANDLE: {}", e));
-		}
-	};
-	
+    // run event loop to listen to messages from the frontend
+    let app = match APP_HANDLE.lock() {
+        Ok(mut app_handle_mutex) => {
+            if let Some(app_handle) = app_handle_mutex.as_mut() {
+                app_handle.clone()
+            } else {
+                return Err("APP_HANDLE is None".to_string());
+            }
+        }
+        Err(e) => {
+            return Err(format!("Error locking APP_HANDLE: {}", e));
+        }
+    };
 
-	Ok(())
+    Ok(())
 }
 
 /// ## `main()`

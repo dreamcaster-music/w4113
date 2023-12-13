@@ -15,9 +15,9 @@ use log::debug;
 use tauri::Manager;
 use ts_rs::TS;
 
-use crate::tv::{BasicVisualizer, VisualizerTrait};
+use crate::{tv::{BasicVisualizer, VisualizerTrait}, audio::plugin::Control};
 
-use self::plugin::{SampleGenerator, Command};
+use self::plugin::{Command, SampleGenerator};
 
 pub mod plugin;
 
@@ -271,7 +271,7 @@ pub fn set_host(name: String) -> Result<(), String> {
             return Err(format!("Error locking HOST: {}", e));
         }
     };
-	let name = host.id().name().to_string();
+    let name = host.id().name().to_string();
 
     *mutex = Some(host);
 
@@ -291,7 +291,7 @@ pub fn set_host(name: String) -> Result<(), String> {
         }
     }
 
-	debug!("Set host to {}", name);
+    debug!("Set host to {}", name);
     force_reload();
 
     Ok(())
@@ -412,13 +412,13 @@ pub fn set_output_device(name: String) -> Result<(), String> {
         }
     };
 
-	let name = match device.name() {
-		Ok(name) => name,
-		Err(e) => {
-			debug!("Error getting input device name: {}", e);
-			"Error".to_string()
-		}
-	};
+    let name = match device.name() {
+        Ok(name) => name,
+        Err(e) => {
+            debug!("Error getting input device name: {}", e);
+            "Error".to_string()
+        }
+    };
 
     let mut mutex = match OUTPUT_DEVICE.lock() {
         Ok(output_device) => output_device,
@@ -446,7 +446,7 @@ pub fn set_output_device(name: String) -> Result<(), String> {
         }
     }
 
-	debug!("Set output device to {}", name);
+    debug!("Set output device to {}", name);
     force_reload();
 
     Ok(())
@@ -567,13 +567,13 @@ pub fn set_input_device(name: String) -> Result<(), String> {
         }
     };
 
-	let name = match device.name() {
-		Ok(name) => name,
-		Err(e) => {
-			debug!("Error getting input device name: {}", e);
-			"Error".to_string()
-		}
-	};
+    let name = match device.name() {
+        Ok(name) => name,
+        Err(e) => {
+            debug!("Error getting input device name: {}", e);
+            "Error".to_string()
+        }
+    };
 
     let mut mutex = match INPUT_DEVICE.lock() {
         Ok(input_device) => input_device,
@@ -601,7 +601,7 @@ pub fn set_input_device(name: String) -> Result<(), String> {
         }
     }
 
-	debug!("Set input device to {}", name);
+    debug!("Set input device to {}", name);
     force_reload();
 
     Ok(())
@@ -1859,204 +1859,240 @@ impl Strip {
         }
     }
 
-	pub fn to_js(&self) -> serde_json::Value {
-		let input = match self.input {
-			Input::Generator(ref generator) => {
-				match generator.as_ref().try_lock() {
-					Ok(generator) => {
-						generator.name().to_string()
-					}
-					Err(_) => {
-						"invalid (generator)".to_string()
-					}
-				}
-			}
-			Input::Bus(ref bus) => {
-				match bus.as_ref() {
-					Output::Mono(channel) => {
-						"invalid (mono)".to_string()
-					}
-					Output::Stereo(left_channel, right_channel) => {
-						"invalid (stereo)".to_string()
-					}
-					Output::Bus(_) => {
-						format!("bus")
-					}
-				}
-			}
-		};
-		let output = match self.output {
-			Output::Mono(channel) => {
-				format!("mono({})", channel)
-			}
-			Output::Stereo(left_channel, right_channel) => {
-				format!("stereo({}, {})", left_channel, right_channel)
-			}
-			Output::Bus(_) => {
-				format!("bus")
-			}
-		};
+    pub fn to_js(&self) -> serde_json::Value {
+        let input = match self.input {
+            Input::Generator(ref generator) => match generator.as_ref().try_lock() {
+                Ok(generator) => generator.json(),
+                Err(_) => serde_json::json!({
+					"name": "invalid"
+				})
+            },
+            Input::Bus(ref bus) => match bus.as_ref() {
+                Output::Mono(channel) => serde_json::json!({
+					"name": "bus",
+				}),
+                Output::Stereo(left_channel, right_channel) => serde_json::json!({
+					"name": "bus",
+				}),
+                Output::Bus(_) => {
+                    serde_json::json!({
+						"name": "invalid"
+					})
+                }
+            },
+        };
+        let output = match self.output {
+            Output::Mono(channel) => {
+                format!("mono({})", channel)
+            }
+            Output::Stereo(left_channel, right_channel) => {
+                format!("stereo({}, {})", left_channel, right_channel)
+            }
+            Output::Bus(_) => {
+                format!("bus")
+            }
+        };
 
-		let mut chain = Vec::new();
-		for effect in self.chain.iter() {
-			chain.push(effect.name());
-		}
+        let mut chain = Vec::new();
+        for effect in self.chain.iter() {
+            chain.push(effect.json());
+        }
 
 		serde_json::json!({
 			"input": input,
 			"chain": chain,
-			"output": output,
+			"output": output
 		})
-	}
+    }
 }
 
 pub fn map_strips() {
-	match STRIPS.read() {
-		Ok(strips) => {
-			crate::try_emit("rust-clearstrips", ());
-			for (index, strip) in strips.iter().enumerate() {
-				crate::try_emit("rust-updatestrip", strip.to_js());
-			}
-		}
-		Err(e) => {
-			debug!("Error locking STRIPS: {}", e);
-		}
-	}
+    match STRIPS.read() {
+        Ok(strips) => {
+            crate::try_emit("rust-clearstrips", ());
+            for (index, strip) in strips.iter().enumerate() {
+                crate::try_emit("rust-updatestrip", strip.to_js());
+            }
+        }
+        Err(e) => {
+            debug!("Error locking STRIPS: {}", e);
+        }
+    }
 }
 
 pub fn remove_strip(index: usize) {
-	match STRIPS.write() {
-		Ok(mut strips) => {
-			crate::try_emit("rust-removestrip", index);
-			strips.remove(index);
-		}
-		Err(e) => {
-			debug!("Error locking STRIPS: {}", e);
-		}
-	}
+    match STRIPS.write() {
+        Ok(mut strips) => {
+            crate::try_emit("rust-removestrip", index);
+            strips.remove(index);
+        }
+        Err(e) => {
+            debug!("Error locking STRIPS: {}", e);
+        }
+    }
 }
 
 pub fn add_strip(strip: Strip) -> Option<usize> {
-	match STRIPS.write() {
-		Ok(mut strips) => {
-			crate::try_emit("rust-updatestrip", strip.to_js());
-			strips.push(strip);
-			Some(strips.len() - 1)
-		}
-		Err(e) => {
-			debug!("Error locking STRIPS: {}", e);
-			return None;
-		}
-	}
+    match STRIPS.write() {
+        Ok(mut strips) => {
+            crate::try_emit("rust-updatestrip", strip.to_js());
+            strips.push(strip);
+            Some(strips.len() - 1)
+        }
+        Err(e) => {
+            debug!("Error locking STRIPS: {}", e);
+            return None;
+        }
+    }
 }
 
 #[tauri::command]
 pub fn play_sample(path: &str) {
-	let mut played = false;
-	{
-	let mut strips = match STRIPS.write() {
-		Ok(strips) => strips,
-		Err(e) => {
-			debug!("Error locking STRIPS: {}", e);
-			return;
-		}
-	};
+    let mut played = false;
+    {
+        let mut strips = match STRIPS.write() {
+            Ok(strips) => strips,
+            Err(e) => {
+                debug!("Error locking STRIPS: {}", e);
+                return;
+            }
+        };
 
-	
-	for strip in strips.iter_mut() {
-		match strip {
-			Strip {
-				input: Input::Generator(ref generator),
-				..
-			} => {
-				match generator.as_ref().try_lock() {
-					Ok(mut generator) => {
-						let command_a = Command::Multiple(SampleGenerator::SET_SAMPLE, vec![Command::String(path.to_string())]);
-						let command_b = Command::Single(SampleGenerator::PLAY_SAMPLE);
-						let _ = generator.command(command_a);
-						let _ = generator.command(command_b);
-						played = true;
-					}
-					Err(_) => {}
-				}
-			}
-			_ => {}
-		}
-	}
-	}
-	if !played {
-		let sample_generator = SampleGenerator::new(path);
-		let strip = Strip::new(
-			Input::Generator(Arc::new(Mutex::new(sample_generator))),
-			Output::Stereo(0, 1),
-		);
-		let _ = add_strip(strip);
-		play_sample(path);
-	}
+        for strip in strips.iter_mut() {
+            match strip {
+                Strip {
+                    input: Input::Generator(ref generator),
+                    ..
+                } => match generator.as_ref().try_lock() {
+                    Ok(mut generator) => {
+                        let command_a = Command::Multiple(
+                            SampleGenerator::SET_SAMPLE,
+                            vec![Command::String(path.to_string())],
+                        );
+                        let command_b = Command::Single(SampleGenerator::PLAY_SAMPLE);
+                        let _ = generator.command(command_a);
+                        let _ = generator.command(command_b);
+                        played = true;
+                    }
+                    Err(_) => {}
+                },
+                _ => {}
+            }
+        }
+    }
+    if !played {
+        let sample_generator = SampleGenerator::new(path);
+        let mut strip = Strip::new(
+            Input::Generator(Arc::new(Mutex::new(sample_generator))),
+            Output::Stereo(0, 1),
+        );
+		let effect1 = plugin::BitCrusher::new(1);
+		let effect2 = plugin::Delay::new(5, 0.0);
+		strip.add_effect(Box::new(effect1));
+		strip.add_effect(Box::new(effect2));
+        let _ = add_strip(strip);
+        play_sample(path);
+    }
 }
 
 pub fn listen_frontend() -> Result<(), String> {
-	let app = {
-		match crate::APP_HANDLE.lock() {
-			Ok(app) => match app.as_ref() {
-				Some(app) => app.clone(),
-				None => {
-					debug!("APP_HANDLE is None");
-					return Err("APP_HANDLE is None".to_owned());
-				}
-			},
-			Err(e) => {
-				debug!("Error locking APP_HANDLE: {}", e);
-				return Err(format!("Error locking APP_HANDLE: {}", e));
-			}
-		}
-	};
+    let app = {
+        match crate::APP_HANDLE.lock() {
+            Ok(app) => match app.as_ref() {
+                Some(app) => app.clone(),
+                None => {
+                    debug!("APP_HANDLE is None");
+                    return Err("APP_HANDLE is None".to_owned());
+                }
+            },
+            Err(e) => {
+                debug!("Error locking APP_HANDLE: {}", e);
+                return Err(format!("Error locking APP_HANDLE: {}", e));
+            }
+        }
+    };
 
-	app.listen_global("svelte-updatestrip", | event | {
-		debug!("Received svelte-updatestrip event");
+    app.listen_global("svelte-updatestrip", |event| {
 
-		let payload: serde_json::Value = serde_json::from_str(event.payload().unwrap()).unwrap();
-		let index = payload["index"].as_u64().unwrap() as usize;
-		let kind = payload["kind"].as_str().unwrap();
-		match kind {
-			"output-mono" => {
-				let channel = payload["channel"].as_u64().unwrap() as u32;
-				match STRIPS.write() {
-					Ok(mut strips) => {
-						match strips.get_mut(index) {
-							Some(strip) => {
-								debug!("Setting output to mono {}", channel);
-								strip.output = Output::Mono(channel);
-							}
-							None => {}
-						}
-					}
+
+        let payload: serde_json::Value = serde_json::from_str(event.payload().unwrap()).unwrap();
+        let index = payload["index"].as_u64().unwrap() as usize;
+        let kind = payload["kind"].as_str().unwrap();
+        match kind {
+            "output-mono" => {
+                let channel = payload["channel"].as_u64().unwrap() as u32;
+                match STRIPS.write() {
+                    Ok(mut strips) => match strips.get_mut(index) {
+                        Some(strip) => {
+                            debug!("Setting output to mono {}", channel);
+                            strip.output = Output::Mono(channel);
+                        }
+                        None => {}
+                    },
+                    Err(e) => {
+                        debug!("Error locking STRIPS: {}", e);
+                    }
+                }
+            }
+            "output-stereo" => {
+                let left_channel = payload["left"].as_u64().unwrap() as u32;
+                let right_channel = payload["right"].as_u64().unwrap() as u32;
+                match STRIPS.write() {
+                    Ok(mut strips) => match strips.get_mut(index) {
+                        Some(strip) => {
+                            debug!(
+                                "Setting output to stereo {} {}",
+                                left_channel, right_channel
+                            );
+                            strip.output = Output::Stereo(left_channel, right_channel);
+                        }
+                        None => {}
+                    },
+                    Err(e) => {
+                        debug!("Error locking STRIPS: {}", e);
+                    }
+                }
+            }
+			"control" =>{
+				let kind = payload["control"].as_str().unwrap().to_string();
+				let strip = payload["strip"].as_u64().unwrap() as usize;
+				let index = payload["index"].as_u64().unwrap() as usize;
+				let name = payload["name"].as_str().unwrap().to_string();
+				let value = payload["value"].as_f64().unwrap() as f32;
+
+
+
+				let mut strips = match STRIPS.write() {
+					Ok(strips) => strips,
 					Err(e) => {
 						debug!("Error locking STRIPS: {}", e);
+						return;
 					}
-				}
-			}
-			"output-stereo" => {
-				let left_channel = payload["left"].as_u64().unwrap() as u32;
-				let right_channel = payload["right"].as_u64().unwrap() as u32;
-				match STRIPS.write() {
-					Ok(mut strips) => {
-						match strips.get_mut(index) {
-							Some(strip) => {
-								debug!("Setting output to stereo {} {}", left_channel, right_channel);
-								strip.output = Output::Stereo(left_channel, right_channel);
-							}
-							None => {}
-						}
-					}
-					Err(e) => {
-						debug!("Error locking STRIPS: {}", e);
-					}
-				}
-			}
-			_ => {}
-		}
-	});
+				};
 
-	Ok(())
+				// get the strip
+				let strip = match strips.get_mut(strip) {
+					Some(strip) => strip,
+					None => {
+						debug!("Strip {} does not exist", strip);
+						return;
+					}
+				};
+
+				// get the effect
+				let effect = match strip.chain.get_mut(index) {
+					Some(effect) => effect,
+					None => {
+						debug!("Effect {} does not exist", index);
+						return;
+					}
+				};
+
+				let _ = effect.set_control(Control::Dial("".to_string(), value, 0.0, 0.0));
+			}
+            _ => {}
+        }
+    });
+
+    Ok(())
 }

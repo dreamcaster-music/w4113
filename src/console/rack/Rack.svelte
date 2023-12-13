@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { listen } from "@tauri-apps/api/event";
+	import { debug } from "tauri-plugin-log-api";
 	import Strip from "./Strip.svelte";
 
 	let strips: any[] = [];
 
 	let updatestrip = listen("rust-updatestrip", (strip) => {
+		debug("Received strip update: " + JSON.stringify(strip.payload));
+
 		// @ts-ignore
 		let input = strip.payload.input;
 		// @ts-ignore
@@ -33,13 +36,8 @@
 <div
 	class="absolute w-full h-auto bottom-0 border-t-2 border-gray-500 flex col-auto"
 >
-	{#each strips as strip, index}
-		<Strip
-			{index}
-			input={strip.input}
-			chain={strip.chain}
-			output={strip.output}
-		/>
+	{#each strips as strip, strip_index}
+		<Strip {strip_index} {strip} />
 	{/each}
 
 	<!-- Add Strip -->
