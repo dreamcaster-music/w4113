@@ -104,7 +104,8 @@ fn run() {
     }
 
     let _ = audio::audio_thread();
-	let _ = event_loop();
+	//let _ = event_loop();
+	let _ = audio::listen_frontend();
 }
 
 fn event_loop() -> Result<(), String> {

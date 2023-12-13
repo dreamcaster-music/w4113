@@ -1,5 +1,19 @@
+use rodio::Source;
+use rodio::source::SamplesConverter;
+
 use super::Sample;
 use super::State;
+
+pub enum Command {
+	Single(u32),
+	Multiple(u32, Vec<Command>),
+	Float(f32),
+	String(String),
+}
+
+impl Command {
+	const EMPTY: u32 = 0;
+}
 
 /// ## Generator
 ///
@@ -16,6 +30,9 @@ use super::State;
 pub trait Generator: Send + Sync {
     fn generate(&mut self, state: &State) -> Sample;
 	fn name(&self) -> &'static str;
+	fn command(&mut self, command: Command) -> Result<(), String> {
+		Err(format!("Command not supported by {}", self.name()))
+	}
 }
 
 /// ## ClosureGenerator
@@ -114,6 +131,7 @@ impl Generator for SineGenerator {
 }
 
 pub struct SampleGenerator {
+	start: bool,
     stored_clock: u64,
     stored_sample: f32,
     decoder: rodio::Decoder<std::fs::File>,
@@ -123,15 +141,23 @@ impl SampleGenerator {
     pub fn new(path: &str) -> Self {
         let decoder = rodio::Decoder::new(std::fs::File::open(path).unwrap()).unwrap();
         Self {
+			start: false,
             stored_clock: 0,
             stored_sample: 0.0,
             decoder,
         }
     }
+
+	pub const PLAY_SAMPLE: u32 = 1;
+	pub const STOP_SAMPLE: u32 = 2;
+	pub const SET_SAMPLE: u32 = 3;
 }
 
 impl Generator for SampleGenerator {
     fn generate(&mut self, state: &State) -> Sample {
+		if !self.start {
+			return Sample::Stereo(0.0, 0.0);
+		}
         let sample;
         if self.stored_clock < state.sample_clock {
             sample = self.decoder.next().unwrap_or(0) as f32 / 32768.0;
@@ -145,6 +171,48 @@ impl Generator for SampleGenerator {
 
 	fn name(&self) -> &'static str {
 		"SampleGenerator"
+	}
+
+	fn command(&mut self, command: Command) -> Result<(), String> {
+		match command {
+			Command::Single(command) => {
+				match command {
+					SampleGenerator::PLAY_SAMPLE => {
+						self.start = true;
+					}
+					SampleGenerator::STOP_SAMPLE => {
+						self.start = false;
+					}
+					_ => {
+						return Err(format!("Command {} not supported by {}", command, self.name()));
+					}
+				}
+			}
+			Command::Multiple(command, commands) => {
+				match command {
+					SampleGenerator::SET_SAMPLE => {
+						if commands.len() != 1 {
+							return Err(format!("Command {} requires 1 argument", command));
+						}
+						match &commands[0] {
+							Command::String(path) => {
+								self.decoder = rodio::Decoder::new(std::fs::File::open(path).unwrap()).unwrap();
+							}
+							_ => {
+								return Err(format!("Command {} requires a string argument", command));
+							}
+						}
+					}
+					_ => {
+						return Err(format!("Command {} not supported by {}", command, self.name()));
+					}
+				}
+			}
+			_ => {
+				return Err(format!("Command not supported by {}", self.name()));
+			}
+		}
+		Ok(())
 	}
 }
 

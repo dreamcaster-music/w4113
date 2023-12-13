@@ -44,7 +44,7 @@
 				</button>
 			{/each}
 		</div>
-		<Output />
+		<Output {index} />
 	</div>
 </div>
 

@@ -14,4 +14,12 @@
 	>
 		reaved.mp3
 	</button>
+	<button
+		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+		on:click={() => {
+			invoke("play_sample", { path: "./public/pinkfloyd.mp3" });
+		}}
+	>
+		pinkfloyd.mp3
+	</button>
 </Frame>

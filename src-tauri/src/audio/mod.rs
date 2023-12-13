@@ -12,11 +12,12 @@ use cpal::{
 };
 use lazy_static::lazy_static;
 use log::debug;
+use tauri::Manager;
 use ts_rs::TS;
 
 use crate::tv::{BasicVisualizer, VisualizerTrait};
 
-use self::plugin::SampleGenerator;
+use self::plugin::{SampleGenerator, Command};
 
 pub mod plugin;
 
@@ -1951,9 +1952,111 @@ pub fn add_strip(strip: Strip) -> Option<usize> {
 
 #[tauri::command]
 pub fn play_sample(path: &str) {
-            let mut strip = Strip::new(
-                Input::Generator(Arc::new(Mutex::new(SampleGenerator::new(path)))),
-                Output::Stereo(0, 1),
-            );
-            add_strip(strip);
+	let mut played = false;
+	{
+	let mut strips = match STRIPS.write() {
+		Ok(strips) => strips,
+		Err(e) => {
+			debug!("Error locking STRIPS: {}", e);
+			return;
+		}
+	};
+
+	
+	for strip in strips.iter_mut() {
+		match strip {
+			Strip {
+				input: Input::Generator(ref generator),
+				..
+			} => {
+				match generator.as_ref().try_lock() {
+					Ok(mut generator) => {
+						let command_a = Command::Multiple(SampleGenerator::SET_SAMPLE, vec![Command::String(path.to_string())]);
+						let command_b = Command::Single(SampleGenerator::PLAY_SAMPLE);
+						let _ = generator.command(command_a);
+						let _ = generator.command(command_b);
+						played = true;
+					}
+					Err(_) => {}
+				}
+			}
+			_ => {}
+		}
+	}
+	}
+	if !played {
+		let sample_generator = SampleGenerator::new(path);
+		let strip = Strip::new(
+			Input::Generator(Arc::new(Mutex::new(sample_generator))),
+			Output::Stereo(0, 1),
+		);
+		let _ = add_strip(strip);
+		play_sample(path);
+	}
+}
+
+pub fn listen_frontend() -> Result<(), String> {
+	let app = {
+		match crate::APP_HANDLE.lock() {
+			Ok(app) => match app.as_ref() {
+				Some(app) => app.clone(),
+				None => {
+					debug!("APP_HANDLE is None");
+					return Err("APP_HANDLE is None".to_owned());
+				}
+			},
+			Err(e) => {
+				debug!("Error locking APP_HANDLE: {}", e);
+				return Err(format!("Error locking APP_HANDLE: {}", e));
+			}
+		}
+	};
+
+	app.listen_global("svelte-updatestrip", | event | {
+		debug!("Received svelte-updatestrip event");
+
+		let payload: serde_json::Value = serde_json::from_str(event.payload().unwrap()).unwrap();
+		let index = payload["index"].as_u64().unwrap() as usize;
+		let kind = payload["kind"].as_str().unwrap();
+		match kind {
+			"output-mono" => {
+				let channel = payload["channel"].as_u64().unwrap() as u32;
+				match STRIPS.write() {
+					Ok(mut strips) => {
+						match strips.get_mut(index) {
+							Some(strip) => {
+								debug!("Setting output to mono {}", channel);
+								strip.output = Output::Mono(channel);
+							}
+							None => {}
+						}
+					}
+					Err(e) => {
+						debug!("Error locking STRIPS: {}", e);
+					}
+				}
+			}
+			"output-stereo" => {
+				let left_channel = payload["left"].as_u64().unwrap() as u32;
+				let right_channel = payload["right"].as_u64().unwrap() as u32;
+				match STRIPS.write() {
+					Ok(mut strips) => {
+						match strips.get_mut(index) {
+							Some(strip) => {
+								debug!("Setting output to stereo {} {}", left_channel, right_channel);
+								strip.output = Output::Stereo(left_channel, right_channel);
+							}
+							None => {}
+						}
+					}
+					Err(e) => {
+						debug!("Error locking STRIPS: {}", e);
+					}
+				}
+			}
+			_ => {}
+		}
+	});
+
+	Ok(())
 }
