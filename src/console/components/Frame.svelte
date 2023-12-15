@@ -82,7 +82,7 @@
 
 <style>
 	.frame {
-		position: absolute;
+		position: fixed;
 		border: 1px solid var(--accent);
 	}
 

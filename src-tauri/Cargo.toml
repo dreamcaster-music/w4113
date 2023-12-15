@@ -24,6 +24,7 @@ lazy_static = "1.4.0"
 midir = "0.9.1"
 rodio = "0.17.3"
 hidapi = { version = "2.4.1", features = ["macos-shared-device"] }
+anyhow = "1.0.75"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

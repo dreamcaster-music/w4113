@@ -1,6 +1,10 @@
 <script lang="ts">
+	import { listen } from "@tauri-apps/api/event";
+	import { debug } from "tauri-plugin-log-api";
+	import ContextMenu from "../components/ContextMenu.svelte";
 	import Frame from "../components/Frame.svelte";
 	import Effect from "./Effect.svelte";
+	import Input from "./Input.svelte";
 	import Output from "./Output.svelte";
 
 	const width = 256;
@@ -9,7 +13,46 @@
 	export let strip: any;
 
 	let showInputControls = false;
+	let contextMenuLocation = { x: 0, y: 0 };
+	let contextMenu: string[] = [];
+
+	$: strip = strip;
+
+	let removeeffect = listen("rust-removeeffect", (payload) => {
+		// @ts-ignore
+		let index = payload.payload.index;
+
+		strip.chain[index] = null;
+		strip.chain = strip.chain;
+	});
+
+	let seteffect = listen("rust-seteffect", (payload) => {
+		// @ts-ignore
+		let pstrip = payload.payload.strip;
+
+		if (pstrip != strip_index) {
+			debug("strip mismatch");
+			return;
+		}
+
+		// @ts-ignore
+		let index = payload.payload.index;
+		// @ts-ignore
+		let effect = payload.payload.effect;
+
+		strip.chain[index] = effect;
+		strip.chain = strip.chain;
+	});
 </script>
+
+{#if contextMenu.length > 0}
+	<ContextMenu
+		bind:options={contextMenu}
+		x={contextMenuLocation.x}
+		y={contextMenuLocation.y}
+		callback={() => {}}
+	/>
+{/if}
 
 <div
 	class="h-full border-r-2 flex col-auto text-white font-mono"
@@ -28,26 +71,15 @@
 		/>
 	</div>
 	<div class="w-full h-full text-accent font-mono text-xs">
-		<button
-			class="w-10/12 h-6 border-1 border-accent m-2"
-			on:click={() => {
-				showInputControls = !showInputControls;
-			}}
-		>
-			{strip.input.name}
-		</button>
+		<Input index={strip_index} />
 		<div>
 			{#each Array(10) as _, index (index)}
-				{#if strip.chain[index]}
-					<Effect effect={strip.chain[index]} strip={strip_index} />
-				{/if}
-				{#if !strip.chain[index]}
-					<button
-						class="ml-2 mr-2 w-10/12 h-6 border-1 border-accent-alt"
-					>
-						empty
-					</button>
-				{/if}
+				<Effect
+					effect={strip.chain[index]}
+					{index}
+					strip={strip_index}
+					empty={strip.chain[index] == null}
+				/>
 			{/each}
 		</div>
 		<Output index={strip_index} />

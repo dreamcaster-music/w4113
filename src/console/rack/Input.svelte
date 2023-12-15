@@ -1,27 +1,32 @@
 <script lang="ts">
 	import { emit } from "@tauri-apps/api/event";
 
-	enum OutputType {
+	enum InputType {
 		"None",
 		"Mono",
 		"Stereo",
 		"Bus",
+		"Generator",
 	}
-
-	function typeFromString(type: string): OutputType {
+	InputType;
+	function typeFromString(type: string): InputType {
 		switch (type) {
 			case "Mono":
-				return OutputType.Mono;
+				return InputType.Mono;
 			case "Stereo":
-				return OutputType.Stereo;
+				return InputType.Stereo;
 			case "Bus":
-				return OutputType.Bus;
+				return InputType.Bus;
+			case "Generator":
+				return InputType.Generator;
 		}
-		return OutputType.None;
+		return InputType.None;
 	}
 
 	let typeAsString: string = "None";
-	export let type: OutputType = OutputType.None;
+	// name only applies to generators
+	export let name: string = "";
+	export let type: InputType = InputType.None;
 
 	// left is multi-purpose
 	// for mono inputs, it is the channel
@@ -37,25 +42,31 @@
 
 	$: {
 		switch (type) {
-			case OutputType.None:
-				break;
-			case OutputType.Mono:
+			case InputType.None:
 				payload = {
 					index,
-					kind: "output-mono",
+					kind: "input-mono",
 					channel: left,
 				};
 				emit("svelte-updatestrip", payload);
 				break;
-			case OutputType.Stereo:
+			case InputType.Mono:
+				break;
+			case InputType.Stereo:
 				payload = {
 					index,
-					kind: "output-stereo",
+					kind: "input-stereo",
 					left,
 					right,
 				};
 				emit("svelte-updatestrip", payload);
 				break;
+			case InputType.Generator:
+				payload = {
+					index,
+					kind: "input-generator",
+					channel: left,
+				};
 			default:
 				break;
 		}
@@ -69,9 +80,10 @@
 	>
 		<option>Mono</option>
 		<option>Stereo</option>
+		<option>Generator</option>
 		<option>Bus</option>
 	</select>
-	{#if type === OutputType.Bus}
+	{#if type === InputType.Bus}
 		<select
 			class="font-mono font-normal text-xs h-full border-1 border-accent"
 			bind:value={left}
@@ -81,7 +93,16 @@
 			{/each}
 		</select>
 	{/if}
-	{#if type === OutputType.Mono}
+	{#if type === InputType.Generator}
+		<select
+			class="font-mono font-normal text-xs h-full w-full border-1 border-accent"
+			bind:value={name}
+		>
+			<option>Sine</option>
+			<option>Sampler</option>
+		</select>
+	{/if}
+	{#if type === InputType.Mono}
 		<select
 			class="font-mono font-normal text-xs h-full border-1 border-accent"
 			bind:value={left}
@@ -91,7 +112,7 @@
 			{/each}
 		</select>
 	{/if}
-	{#if type === OutputType.Stereo}
+	{#if type === InputType.Stereo}
 		<select
 			class="font-mono font-normal text-xs h-full border-1 border-accent"
 			bind:value={left}
@@ -113,7 +134,7 @@
 
 <style>
 	.input-type {
-		min-width: 4rem;
+		min-width: 2rem;
 	}
 
 	select {

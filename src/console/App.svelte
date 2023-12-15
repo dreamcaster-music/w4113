@@ -17,6 +17,12 @@
 	import Tempo from "./settings/Tempo.svelte";
 </script>
 
+<svelte:window
+	on:contextmenu={(e) => {
+		e.preventDefault();
+	}}
+/>
+
 <main class="w-full h-full absolute overflow-hidden">
 	<div
 		class="dock border-r border-accent overflow-hidden"

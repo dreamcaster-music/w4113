@@ -33,6 +33,14 @@
 	}
 }
 
+* {
+	cursor: default;
+}
+
+*:hover {
+	cursor: default;
+}
+
 :root,
 body,
 html,

@@ -104,7 +104,6 @@ fn run() {
     }
 
     let _ = audio::audio_thread();
-    //let _ = event_loop();
     let _ = audio::listen_frontend();
 }
 
@@ -172,7 +171,7 @@ fn main() {
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::Stdout, LogTarget::Webview])
-                .level(LevelFilter::Debug)
+                .level(LevelFilter::Trace)
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
@@ -189,8 +188,8 @@ fn main() {
             audio::list_input_streams,
             audio::set_input_stream,
             audio::set_output_buffer_size,
-            audio::audio_thread,
             audio::play_sample,
+			audio::audio_thread,
             midi::midi_list,
             interface::list_interfaces,
             interface::list_interfaces_id,

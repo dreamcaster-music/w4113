@@ -3751,6 +3751,7 @@ dependencies = [
 name = "w4113"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "cpal",
  "hidapi",
  "lazy_static",
