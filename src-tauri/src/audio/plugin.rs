@@ -10,7 +10,7 @@ use super::Sample;
 use super::State;
 
 /// Describes a command that can be sent to an effect or generator
-/// 
+///
 /// ### Variants
 /// * `Single(u32)` - A command with a single argument
 /// * `Multiple(u32, Vec<Command>)` - A command with multiple arguments
@@ -30,7 +30,7 @@ impl Command {
 }
 
 /// Describes a control that can be sent to an effect or generator
-/// 
+///
 /// ### Variants
 /// * `Dial(String, f32, f32, f32)` - A dial control
 /// * `Slider(String, f32, f32, f32)` - A slider control
@@ -78,82 +78,78 @@ pub enum Control {
 }
 
 impl Serialize for Control {
-	fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-		match self {
-			Control::Dial(name, value, min, max) => {
-				serde_json::json!({
-					"kind": "dial",
-					"name": name,
-					"value": value,
-					"min": min,
-					"max": max
-				}).serialize(serializer)
-			}
-			Control::Slider(name, value, min, max) => {
-				serde_json::json!({
-					"kind": "slider",
-					"name": name,
-					"value": value,
-					"min": min,
-					"max": max
-				}).serialize(serializer)
-			}
-			Control::Toggle(name, value, n_states) => {
-				serde_json::json!({
-					"kind": "toggle",
-					"name": name,
-					"value": value,
-					"n_states": n_states
-				}).serialize(serializer)
-			}
-			Control::String(name, value) => {
-				serde_json::json!({
-					"kind": "string",
-					"name": name,
-					"value": value
-				}).serialize(serializer)
-			}
-		}
-	}
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Control::Dial(name, value, min, max) => serde_json::json!({
+                "kind": "dial",
+                "name": name,
+                "value": value,
+                "min": min,
+                "max": max
+            })
+            .serialize(serializer),
+            Control::Slider(name, value, min, max) => serde_json::json!({
+                "kind": "slider",
+                "name": name,
+                "value": value,
+                "min": min,
+                "max": max
+            })
+            .serialize(serializer),
+            Control::Toggle(name, value, n_states) => serde_json::json!({
+                "kind": "toggle",
+                "name": name,
+                "value": value,
+                "n_states": n_states
+            })
+            .serialize(serializer),
+            Control::String(name, value) => serde_json::json!({
+                "kind": "string",
+                "name": name,
+                "value": value
+            })
+            .serialize(serializer),
+        }
+    }
 }
 
 impl Control {
     const EMPTY: u32 = 0;
 
-	/// Creates a new dial control
-	/// 
-	/// ### Arguments
-	/// * `name: String` - The name of the control
-	/// * `min: f32` - The minimum value of the control
-	/// * `max: f32` - The maximum value of the control
+    /// Creates a new dial control
+    ///
+    /// ### Arguments
+    /// * `name: String` - The name of the control
+    /// * `min: f32` - The minimum value of the control
+    /// * `max: f32` - The maximum value of the control
     pub fn dial(name: String, min: f32, max: f32) -> Self {
         Self::Dial(name, min, min, max)
     }
 
-	/// Creates a new slider control
-	/// 
-	/// ### Arguments
-	/// * `name: String` - The name of the control
-	/// * `min: f32` - The minimum value of the control
-	/// * `max: f32` - The maximum value of the control
+    /// Creates a new slider control
+    ///
+    /// ### Arguments
+    /// * `name: String` - The name of the control
+    /// * `min: f32` - The minimum value of the control
+    /// * `max: f32` - The maximum value of the control
     pub fn slider(name: String, min: f32, max: f32) -> Self {
         Self::Slider(name, min, min, max)
     }
 
-	/// Creates a new toggle control
-	/// 
-	/// ### Arguments
-	/// * `name: String` - The name of the control
-	/// * `n_states: u32` - The number of states of the control
+    /// Creates a new toggle control
+    ///
+    /// ### Arguments
+    /// * `name: String` - The name of the control
+    /// * `n_states: u32` - The number of states of the control
     pub fn toggle(name: String, n_states: u32) -> Self {
         Self::Toggle(name, 0, n_states)
     }
 
-	/// Creates a new string control
-	/// 
-	/// ### Arguments
-	/// * `name: String` - The name of the control
-	/// * `value: String` - The value of the control
+    /// Creates a new string control
+    ///
+    /// ### Arguments
+    /// * `name: String` - The name of the control
+    /// * `value: String` - The value of the control
     pub fn string(name: String, value: String) -> Self {
         Self::String(name, value)
     }
@@ -171,55 +167,55 @@ impl Control {
 /// * `generate(&self, sample_clock: &f32, sample_rate: &f32) -> f32` - Generates a sample
 /// * `name(&self) -> &'static str` - Returns the name of the generator
 pub trait Generator: Send + Sync {
-	/// Generates a sample
-	/// 
-	/// ### Arguments
-	/// * `state: &State` - The current state of the audio engine
-	/// 
-	/// ### Returns
-	/// * `Sample` - The generated sample
+    /// Generates a sample
+    ///
+    /// ### Arguments
+    /// * `state: &State` - The current state of the audio engine
+    ///
+    /// ### Returns
+    /// * `Sample` - The generated sample
     fn generate(&mut self, state: &State) -> Sample;
 
-	/// Returns the name of the generator
-	/// 
-	/// ### Returns
-	/// * `&'static str` - The name of the generator
+    /// Returns the name of the generator
+    ///
+    /// ### Returns
+    /// * `&'static str` - The name of the generator
     fn name(&self) -> &'static str;
 
-	/// Sends a command to the generator
-	/// 
-	/// ### Arguments
-	/// * `command: Command` - The command to send
-	/// 
-	/// ### Returns
-	/// * `Result<(), String>` - The result of the command
+    /// Sends a command to the generator
+    ///
+    /// ### Arguments
+    /// * `command: Command` - The command to send
+    ///
+    /// ### Returns
+    /// * `Result<(), String>` - The result of the command
     fn command(&mut self, command: Command) -> Result<(), String> {
         Err(format!("Command not supported by {}", self.name()))
     }
 
-	/// Returns the controls of the generator
-	/// 
-	/// ### Returns
-	/// * `Result<Vec<Control>, String>` - The controls of the generator
+    /// Returns the controls of the generator
+    ///
+    /// ### Returns
+    /// * `Result<Vec<Control>, String>` - The controls of the generator
     fn controls(&self) -> Result<Vec<Control>, String> {
         Ok(Vec::new())
     }
 
-	/// Sets a control of the generator
-	/// 
-	/// ### Arguments
-	/// * `control: Control` - The control to set
-	/// 
-	/// ### Returns
-	/// * `Result<(), String>` - The result of setting the control
+    /// Sets a control of the generator
+    ///
+    /// ### Arguments
+    /// * `control: Control` - The control to set
+    ///
+    /// ### Returns
+    /// * `Result<(), String>` - The result of setting the control
     fn set_control(&mut self, control: Control) -> Result<(), String> {
         Err(format!("Control not supported by {}", self.name()))
     }
 
-	/// Returns the generator as JSON
-	/// 
-	/// ### Returns
-	/// * `serde_json::Value` - The generator as JSON
+    /// Returns the generator as JSON
+    ///
+    /// ### Returns
+    /// * `serde_json::Value` - The generator as JSON
     fn json(&self) -> serde_json::Value;
 }
 
@@ -268,7 +264,7 @@ impl Generator for ClosureGenerator {
 static FALLOFF: f32 = 0.01;
 
 /// A generator that plays a sine wave
-/// 
+///
 /// ### Fields
 /// * `freqs: Vec<(f32, f32)>` - The frequencies and amplitudes of the sine waves
 pub struct SineGenerator {
@@ -336,7 +332,7 @@ impl Generator for SineGenerator {
 }
 
 /// A generator that plays a sample
-/// 
+///
 /// ### Fields
 /// `start: bool` - Whether the sample should be played
 /// `stored_clock: u64` - The last sample clock that was played
@@ -433,10 +429,10 @@ impl Generator for SampleGenerator {
     }
 
     fn json(&self) -> serde_json::Value {
-		serde_json::json!({
-			"name": "SampleGenerator",
-			"controls": []
-		})
+        serde_json::json!({
+            "name": "SampleGenerator",
+            "controls": []
+        })
     }
 }
 
@@ -458,55 +454,54 @@ impl Generator for SampleGenerator {
 /// * `set_control(&mut self, control: Control) -> Result<(), String>` - Sets a control of the effect
 /// * `json(&self) -> serde_json::Value` - Returns the effect as JSON
 pub trait Effect: Send + Sync {
-
-	/// Processes a sample
-	/// 
-	/// ### Arguments
-	/// * `state: &State` - The current state of the audio engine
-	/// * `sample: &mut Sample` - The sample to process
+    /// Processes a sample
+    ///
+    /// ### Arguments
+    /// * `state: &State` - The current state of the audio engine
+    /// * `sample: &mut Sample` - The sample to process
     fn process(&mut self, state: &State, sample: &mut Sample);
 
-	/// Returns the name of the effect
-	/// 
-	/// ### Returns
-	/// * `&'static str` - The name of the effect
+    /// Returns the name of the effect
+    ///
+    /// ### Returns
+    /// * `&'static str` - The name of the effect
     fn name(&self) -> &'static str;
 
-	/// Sends a command to the effect
-	/// 
-	/// ### Arguments
-	/// * `command: Command` - The command to send
-	/// 
-	/// ### Returns
-	/// * `Result<(), String>` - The result of the command
+    /// Sends a command to the effect
+    ///
+    /// ### Arguments
+    /// * `command: Command` - The command to send
+    ///
+    /// ### Returns
+    /// * `Result<(), String>` - The result of the command
     fn command(&mut self, command: Command) -> Result<(), String> {
         Err(format!("Command not supported by {}", self.name()))
     }
 
-	/// Returns the controls of the effect
-	/// 
-	/// ### Returns
-	/// * `Result<Vec<Control>, String>` - The controls of the effect
+    /// Returns the controls of the effect
+    ///
+    /// ### Returns
+    /// * `Result<Vec<Control>, String>` - The controls of the effect
     fn controls(&self) -> Result<Vec<Control>, String> {
         Ok(Vec::new())
     }
 
-	/// Sets a control of the effect
-	/// 
-	/// ### Arguments
-	/// * `control: Control` - The control to set
-	/// 
-	/// ### Returns
-	/// * `Result<(), String>` - The result of setting the control
+    /// Sets a control of the effect
+    ///
+    /// ### Arguments
+    /// * `control: Control` - The control to set
+    ///
+    /// ### Returns
+    /// * `Result<(), String>` - The result of setting the control
     fn set_control(&mut self, control: Control) -> Result<(), String> {
         Err(format!("Control not supported by {}", self.name()))
     }
 
-	/// Returns the effect as JSON
-	/// 
-	/// ### Returns
-	/// * `serde_json::Value` - The effect as JSON
-	fn json(&self) -> serde_json::Value;
+    /// Returns the effect as JSON
+    ///
+    /// ### Returns
+    /// * `serde_json::Value` - The effect as JSON
+    fn json(&self) -> serde_json::Value;
 }
 
 /// ## Clip
@@ -555,32 +550,32 @@ impl Effect for Clip {
         "Clip"
     }
 
-	fn json(&self) -> serde_json::Value {
-		serde_json::json!({
-			"name": "Clip",
-			"controls": [
-				Control::dial("threshold".to_string(), 0.0, 1000.0)
-			]
-		})
-	}
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "name": "Clip",
+            "controls": [
+                Control::dial("threshold".to_string(), 0.0, 1000.0)
+            ]
+        })
+    }
 
-	fn controls(&self) -> Result<Vec<Control>, String> {
-		let threshold_control = Control::dial("threshold".to_string(), 0.0, 1.0);
-		Ok(vec![threshold_control])
-	}
+    fn controls(&self) -> Result<Vec<Control>, String> {
+        let threshold_control = Control::dial("threshold".to_string(), 0.0, 1.0);
+        Ok(vec![threshold_control])
+    }
 
-	fn set_control(&mut self, control: Control) -> Result<(), String> {
-		match control {
-			Control::Dial(_, threshold, _, _) => {
-				self.threshold = threshold / 1000.0;
-				trace!("[Clip] threshold set to {}", self.threshold);
-			}
-			_ => {
-				return Err(format!("Control not supported by {}", self.name()));
-			}
-		}
-		Ok(())
-	}
+    fn set_control(&mut self, control: Control) -> Result<(), String> {
+        match control {
+            Control::Dial(_, threshold, _, _) => {
+                self.threshold = threshold / 1000.0;
+                trace!("[Clip] threshold set to {}", self.threshold);
+            }
+            _ => {
+                return Err(format!("Control not supported by {}", self.name()));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// ## BitCrusher
@@ -629,7 +624,7 @@ impl Effect for BitCrusher {
         match control {
             Control::Dial(_, bits, _, _) => {
                 self.bits = bits as u32;
-				trace!("[BitCrusher] bits set to {}", self.bits);
+                trace!("[BitCrusher] bits set to {}", self.bits);
             }
             _ => {
                 return Err(format!("Control not supported by {}", self.name()));
@@ -638,14 +633,14 @@ impl Effect for BitCrusher {
         Ok(())
     }
 
-	fn json(&self) -> serde_json::Value {
-		serde_json::json!({
-			"name": "BitCrusher",
-			"controls": [
-				Control::slider("bits".to_string(), 1.0, 16.0)
-			]
-		})
-	}
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "name": "BitCrusher",
+            "controls": [
+                Control::slider("bits".to_string(), 1.0, 16.0)
+            ]
+        })
+    }
 }
 
 /// ## Delay
@@ -702,104 +697,100 @@ impl Effect for Delay {
         "Delay"
     }
 
-	fn controls(&self) -> Result<Vec<Control>, String> {
-		let length_control = Control::slider("length".to_string(), 1.0, 100.0);
-		let feedback_control = Control::slider("feedback".to_string(), 0.0, 1.0);
-		Ok(vec![length_control, feedback_control])
-	}
+    fn controls(&self) -> Result<Vec<Control>, String> {
+        let length_control = Control::slider("length".to_string(), 1.0, 100.0);
+        let feedback_control = Control::slider("feedback".to_string(), 0.0, 1.0);
+        Ok(vec![length_control, feedback_control])
+    }
 
-	fn set_control(&mut self, control: Control) -> Result<(), String> {
-		match control {
-			Control::Slider(name, value, _, _) => {
-				match name.as_str() {
-					"length" => {
-						self.resize(value as usize);
-						trace!("[Delay] length set to {}", self.length);
-					}
-					"feedback" => {
-						self.feedback = value / 100.0;
-						trace!("[Delay] feedback set to {}", self.feedback);
-					}
-					_ => {
-						return Err(format!("Control not supported by {}", self.name()));
-					}
-				}
-			}
-			_ => {
-				return Err(format!("Control not supported by {}", self.name()));
-			}
-		}
-		Ok(())
-	}
+    fn set_control(&mut self, control: Control) -> Result<(), String> {
+        match control {
+            Control::Slider(name, value, _, _) => match name.as_str() {
+                "length" => {
+                    self.resize(value as usize);
+                    trace!("[Delay] length set to {}", self.length);
+                }
+                "feedback" => {
+                    self.feedback = value / 100.0;
+                    trace!("[Delay] feedback set to {}", self.feedback);
+                }
+                _ => {
+                    return Err(format!("Control not supported by {}", self.name()));
+                }
+            },
+            _ => {
+                return Err(format!("Control not supported by {}", self.name()));
+            }
+        }
+        Ok(())
+    }
 
-	fn json(&self) -> serde_json::Value {
-		serde_json::json!({
-			"name": "Delay",
-			"controls": [
-				Control::slider("length".to_string(), 0.0, 96000.0),
-				Control::slider("feedback".to_string(), 0.0, 100.0)
-			]
-		})
-	}
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "name": "Delay",
+            "controls": [
+                Control::slider("length".to_string(), 0.0, 96000.0),
+                Control::slider("feedback".to_string(), 0.0, 100.0)
+            ]
+        })
+    }
 }
 
 /// Gain effect
-/// 
+///
 /// ### Fields
 /// * `gain: f32` - The gain of the effect
 pub struct Gain {
-	gain: f32,
+    gain: f32,
 }
 
 impl Gain {
-	pub fn new(gain: f32) -> Self {
-		Self {
-			gain,
-		}
-	}
+    pub fn new(gain: f32) -> Self {
+        Self { gain }
+    }
 }
 
 impl Effect for Gain {
-	fn process(&mut self, _state: &State, sample: &mut Sample) {
-		match sample {
-			Sample::Mono(sample) => {
-				*sample *= self.gain;
-			}
-			Sample::Stereo(left, right) => {
-				*left *= self.gain;
-				*right *= self.gain;
-			}
-		}
-	}
+    fn process(&mut self, _state: &State, sample: &mut Sample) {
+        match sample {
+            Sample::Mono(sample) => {
+                *sample *= self.gain;
+            }
+            Sample::Stereo(left, right) => {
+                *left *= self.gain;
+                *right *= self.gain;
+            }
+        }
+    }
 
-	fn name(&self) -> &'static str {
-		"Gain"
-	}
+    fn name(&self) -> &'static str {
+        "Gain"
+    }
 
-	fn controls(&self) -> Result<Vec<Control>, String> {
-		let gain_control = Control::slider("gain".to_string(), 0.0, 1.0);
-		Ok(vec![gain_control])
-	}
+    fn controls(&self) -> Result<Vec<Control>, String> {
+        let gain_control = Control::slider("gain".to_string(), 0.0, 1.0);
+        Ok(vec![gain_control])
+    }
 
-	fn set_control(&mut self, control: Control) -> Result<(), String> {
-		match control {
-			Control::Dial(_, gain, _, _) => {
-				self.gain = gain / 1000.0;
-				trace!("[Gain] gain set to {}", self.gain);
-			}
-			_ => {
-				return Err(format!("Control not supported by {}", self.name()));
-			}
-		}
-		Ok(())
-	}
+    fn set_control(&mut self, control: Control) -> Result<(), String> {
+        match control {
+            Control::Dial(_, gain, _, _) => {
+                self.gain = gain / 1000.0;
+                trace!("[Gain] gain set to {}", self.gain);
+            }
+            _ => {
+                return Err(format!("Control not supported by {}", self.name()));
+            }
+        }
+        Ok(())
+    }
 
-	fn json(&self) -> serde_json::Value {
-		serde_json::json!({
-			"name": "Gain",
-			"controls": [
-				Control::slider("gain".to_string(), 0.0, 5000.0)
-			]
-		})
-	}
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "name": "Gain",
+            "controls": [
+                Control::slider("gain".to_string(), 0.0, 5000.0)
+            ]
+        })
+    }
 }

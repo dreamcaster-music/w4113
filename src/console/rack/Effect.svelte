@@ -6,6 +6,8 @@
 	enum EffectOptions {
 		BitCrusher = "BitCrusher",
 		Delay = "Delay",
+		Gain = "Gain",
+		Clip = "Clip",
 		Remove = "Remove",
 	}
 
@@ -27,6 +29,12 @@
 				emit("svelte-seteffect", { option, strip, index });
 				break;
 			case EffectOptions.BitCrusher:
+				emit("svelte-seteffect", { option, strip, index });
+				break;
+			case EffectOptions.Gain:
+				emit("svelte-seteffect", { option, strip, index });
+				break;
+			case EffectOptions.Clip:
 				emit("svelte-seteffect", { option, strip, index });
 				break;
 			case EffectOptions.Remove:
@@ -56,7 +64,12 @@
 				contextMenu = {
 					y: event.clientY,
 					x: event.clientX,
-					options: [EffectOptions.BitCrusher, EffectOptions.Delay],
+					options: [
+						EffectOptions.BitCrusher,
+						EffectOptions.Delay,
+						EffectOptions.Gain,
+						EffectOptions.Clip,
+					],
 				};
 			}, 0);
 		}}
@@ -79,6 +92,8 @@
 					options: [
 						EffectOptions.BitCrusher,
 						EffectOptions.Delay,
+						EffectOptions.Gain,
+						EffectOptions.Clip,
 						EffectOptions.Remove,
 					],
 				};

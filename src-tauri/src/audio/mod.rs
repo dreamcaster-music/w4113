@@ -15,9 +15,12 @@ use log::{debug, error};
 use tauri::Manager;
 use ts_rs::TS;
 
-use crate::{tv::{BasicVisualizer, VisualizerTrait}, audio::plugin::Control};
+use crate::{
+    audio::plugin::Control,
+    tv::{BasicVisualizer, VisualizerTrait},
+};
 
-use self::plugin::{Command, SampleGenerator, Effect};
+use self::plugin::{Command, Effect, SampleGenerator};
 
 pub mod plugin;
 mod thread;
@@ -33,7 +36,7 @@ lazy_static! {
 
 #[tauri::command]
 pub fn audio_thread() -> Result<(), String> {
-	thread::run()
+    thread::run()
 }
 
 /// ## `get_host(host_name: &str) -> Host`
@@ -1548,7 +1551,7 @@ impl Strip {
     pub fn new(input: Input, output: Output) -> Self {
         Self {
             input,
-			// initialize the chain with 10 empty slots
+            // initialize the chain with 10 empty slots
             chain: vec![None, None, None, None, None, None, None, None, None, None],
             output,
         }
@@ -1561,10 +1564,10 @@ impl Strip {
     /// ### Arguments
     ///
     /// * `effect: Box<dyn Effect>` - The effect to add
-    pub fn set_effect(&mut self, index: usize, effect: Box<dyn plugin::Effect>) { 
-		if index >= self.chain.len() {
-			return;
-		}
+    pub fn set_effect(&mut self, index: usize, effect: Box<dyn plugin::Effect>) {
+        if index >= self.chain.len() {
+            return;
+        }
         self.chain[index] = Some(effect);
     }
 
@@ -1576,9 +1579,9 @@ impl Strip {
     ///
     /// * `index: usize` - The index to remove the effect from
     pub fn remove_effect(&mut self, index: usize) {
-		if index >= self.chain.len() {
-			return;
-		}
+        if index >= self.chain.len() {
+            return;
+        }
         self.chain[index] = None;
     }
 
@@ -1622,20 +1625,20 @@ impl Strip {
             Input::Generator(ref generator) => match generator.as_ref().try_lock() {
                 Ok(generator) => generator.json(),
                 Err(_) => serde_json::json!({
-					"name": "invalid"
-				})
+                    "name": "invalid"
+                }),
             },
             Input::Bus(ref bus) => match bus.as_ref() {
                 Output::Mono(channel) => serde_json::json!({
-					"name": "bus",
-				}),
+                    "name": "bus",
+                }),
                 Output::Stereo(left_channel, right_channel) => serde_json::json!({
-					"name": "bus",
-				}),
+                    "name": "bus",
+                }),
                 Output::Bus(_) => {
                     serde_json::json!({
-						"name": "invalid"
-					})
+                        "name": "invalid"
+                    })
                 }
             },
         };
@@ -1653,18 +1656,18 @@ impl Strip {
 
         let mut chain = Vec::new();
         for effect in self.chain.iter() {
-			let effect = match effect {
-				Some(effect) => effect,
-				None => continue
-			};
+            let effect = match effect {
+                Some(effect) => effect,
+                None => continue,
+            };
             chain.push(effect.json());
         }
 
-		serde_json::json!({
-			"input": input,
-			"chain": chain,
-			"output": output
-		})
+        serde_json::json!({
+            "input": input,
+            "chain": chain,
+            "output": output
+        })
     }
 }
 
@@ -1748,14 +1751,14 @@ pub fn play_sample(path: &str) {
             Input::Generator(Arc::new(Mutex::new(sample_generator))),
             Output::Stereo(0, 1),
         );
-		let effect1 = plugin::BitCrusher::new(1);
-		let effect2 = plugin::Delay::new(5, 0.0);
-		let effect3 = plugin::Gain::new(1.0);
-		let effect4 = plugin::Clip::new(1.0);
-		strip.set_effect(0, Box::new(effect1));
-		strip.set_effect(1, Box::new(effect2));
-		strip.set_effect(2, Box::new(effect3));
-		strip.set_effect(3, Box::new(effect4));
+        let effect1 = plugin::BitCrusher::new(1);
+        let effect2 = plugin::Delay::new(5, 0.0);
+        let effect3 = plugin::Gain::new(1.0);
+        let effect4 = plugin::Clip::new(1.0);
+        strip.set_effect(0, Box::new(effect1));
+        strip.set_effect(1, Box::new(effect2));
+        strip.set_effect(2, Box::new(effect3));
+        strip.set_effect(3, Box::new(effect4));
         let _ = add_strip(strip);
         play_sample(path);
     }
@@ -1778,266 +1781,265 @@ pub fn listen_frontend() -> Result<(), String> {
         }
     };
 
-    app.listen_global("svelte-updatestrip", | event | {
-		debug!("Update Strip: {:?}", svelte_updatestrip(event));
-	});
+    app.listen_global("svelte-updatestrip", |event| {
+        debug!("Update Strip: {:?}", svelte_updatestrip(event));
+    });
 
-	app.listen_global("svelte-removeeffect", | event | {
-		debug!("Remove Effect: {:?}", svelte_removeeffect(event));
-	});
+    app.listen_global("svelte-removeeffect", |event| {
+        debug!("Remove Effect: {:?}", svelte_removeeffect(event));
+    });
 
-	app.listen_global("svelte-removestrip", | event | {
-		debug!("Remove Strip: {:?}", svelte_removestrip(event));
-	});
+    app.listen_global("svelte-removestrip", |event| {
+        debug!("Remove Strip: {:?}", svelte_removestrip(event));
+    });
 
-	app.listen_global("svelte-seteffect", | event | {
-		debug!("Set Effect: {:?}", svelte_seteffect(event));
-	});
+    app.listen_global("svelte-seteffect", |event| {
+        debug!("Set Effect: {:?}", svelte_seteffect(event));
+    });
 
     Ok(())
 }
 
 fn svelte_seteffect(event: tauri::Event) -> Result<(), anyhow::Error> {
-	let payload = match event.payload() {
-		Some(payload) => payload,
-		None => {
-			let err = anyhow::Error::msg("Payload is None");
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    let payload = match event.payload() {
+        Some(payload) => payload,
+        None => {
+            let err = anyhow::Error::msg("Payload is None");
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	let payload: serde_json::Value = serde_json::from_str(payload)?;
-	let strip = payload["strip"].as_u64().unwrap() as usize;
-	let kind = payload["option"].as_str().unwrap().to_string();
-	let index = payload["index"].as_u64().unwrap() as usize;
-	let mut strips = match STRIPS.write() {
-		Ok(strips) => strips,
-		Err(e) => {
-			let err = anyhow::Error::msg(format!("Error locking STRIPS: {}", e));
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    let payload: serde_json::Value = serde_json::from_str(payload)?;
+    let strip = payload["strip"].as_u64().unwrap() as usize;
+    let kind = payload["option"].as_str().unwrap().to_string();
+    let index = payload["index"].as_u64().unwrap() as usize;
+    let mut strips = match STRIPS.write() {
+        Ok(strips) => strips,
+        Err(e) => {
+            let err = anyhow::Error::msg(format!("Error locking STRIPS: {}", e));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	// get the strip
-	let strip_obj = match strips.get_mut(strip) {
-		Some(strip) => strip,
-		None => {
-			let err = anyhow::Error::msg(format!("Strip {} does not exist", strip));
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    // get the strip
+    let strip_obj = match strips.get_mut(strip) {
+        Some(strip) => strip,
+        None => {
+            let err = anyhow::Error::msg(format!("Strip {} does not exist", strip));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	let effect_json;
-	let effect_obj = match kind.to_lowercase().as_str() {
-		"bitcrusher" => {
-			let effect = plugin::BitCrusher::new(1);
-			effect_json = effect.json();
-			Box::new(effect) as Box<dyn plugin::Effect>
-		}
-		"clip" => {
-			let effect = plugin::Clip::new(1.0);
-			effect_json = effect.json();
-			Box::new(effect) as Box<dyn plugin::Effect>
-		}
-		"delay" => {
-			let effect = plugin::Delay::new(5, 0.0);
-			effect_json = effect.json();
-			Box::new(effect) as Box<dyn plugin::Effect>
-		}
-		"gain" => {
-			let effect = plugin::Gain::new(1.0);
-			effect_json = effect.json();
-			Box::new(effect) as Box<dyn plugin::Effect>
-		}
-		_ => {
-			let err = anyhow::Error::msg(format!("Effect {} does not exist", kind));
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    let effect_json;
+    let effect_obj = match kind.to_lowercase().as_str() {
+        "bitcrusher" => {
+            let effect = plugin::BitCrusher::new(1);
+            effect_json = effect.json();
+            Box::new(effect) as Box<dyn plugin::Effect>
+        }
+        "clip" => {
+            let effect = plugin::Clip::new(1.0);
+            effect_json = effect.json();
+            Box::new(effect) as Box<dyn plugin::Effect>
+        }
+        "delay" => {
+            let effect = plugin::Delay::new(5, 0.0);
+            effect_json = effect.json();
+            Box::new(effect) as Box<dyn plugin::Effect>
+        }
+        "gain" => {
+            let effect = plugin::Gain::new(1.0);
+            effect_json = effect.json();
+            Box::new(effect) as Box<dyn plugin::Effect>
+        }
+        _ => {
+            let err = anyhow::Error::msg(format!("Effect {} does not exist", kind));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	strip_obj.set_effect(index, effect_obj);
+    strip_obj.set_effect(index, effect_obj);
 
-	let json = serde_json::json!({
-		"strip": strip,
-		"index": index,
-		"effect": effect_json
-	});
+    let json = serde_json::json!({
+        "strip": strip,
+        "index": index,
+        "effect": effect_json
+    });
 
-	// emit add effect to frontend
-	crate::try_emit("rust-seteffect", json);
+    // emit add effect to frontend
+    crate::try_emit("rust-seteffect", json);
 
-	Ok(())
+    Ok(())
 }
 
 fn svelte_removeeffect(event: tauri::Event) -> Result<(), anyhow::Error> {
-	let payload = match event.payload() {
-		Some(payload) => payload,
-		None => {
-			let err = anyhow::Error::msg("Payload is None");
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    let payload = match event.payload() {
+        Some(payload) => payload,
+        None => {
+            let err = anyhow::Error::msg("Payload is None");
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	let payload: serde_json::Value = serde_json::from_str(payload)?;
-	let strip = payload["strip"].as_u64().unwrap() as usize;
-	let effect = payload["index"].as_u64().unwrap() as usize;
-	let mut strips = match STRIPS.write() {
-		Ok(strips) => strips,
-		Err(e) => {
-			let err = anyhow::Error::msg(format!("Error locking STRIPS: {}", e));
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    let payload: serde_json::Value = serde_json::from_str(payload)?;
+    let strip = payload["strip"].as_u64().unwrap() as usize;
+    let effect = payload["index"].as_u64().unwrap() as usize;
+    let mut strips = match STRIPS.write() {
+        Ok(strips) => strips,
+        Err(e) => {
+            let err = anyhow::Error::msg(format!("Error locking STRIPS: {}", e));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	// get the strip
-	let strip_obj = match strips.get_mut(strip) {
-		Some(strip) => strip,
-		None => {
-			let err = anyhow::Error::msg(format!("Strip {} does not exist", strip));
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    // get the strip
+    let strip_obj = match strips.get_mut(strip) {
+        Some(strip) => strip,
+        None => {
+            let err = anyhow::Error::msg(format!("Strip {} does not exist", strip));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	strip_obj.remove_effect(effect);
+    strip_obj.remove_effect(effect);
 
-	let json = serde_json::json!({
-		"strip": strip,
-		"index": effect
-	});
+    let json = serde_json::json!({
+        "strip": strip,
+        "index": effect
+    });
 
-	// emit remove effect to frontend
-	crate::try_emit("rust-removeeffect", json);
-	Ok(())
+    // emit remove effect to frontend
+    crate::try_emit("rust-removeeffect", json);
+    Ok(())
 }
 
 fn svelte_removestrip(event: tauri::Event) -> Result<(), anyhow::Error> {
-	let payload = match event.payload() {
-		Some(payload) => payload,
-		None => {
-			let err = anyhow::Error::msg("Payload is None");
-			error!("{}", err);
-			return Err(err);
-		}
-	};
+    let payload = match event.payload() {
+        Some(payload) => payload,
+        None => {
+            let err = anyhow::Error::msg("Payload is None");
+            error!("{}", err);
+            return Err(err);
+        }
+    };
 
-	let payload: serde_json::Value = serde_json::from_str(payload)?;
-	let index = match payload["index"].as_u64() { 
-		Some(index) => index as usize,
-		None => {
-			let err = anyhow::Error::msg("Index is None");
-			error!("{}", err);
-			return Err(err);
-		}
-	};
-	remove_strip(index);
+    let payload: serde_json::Value = serde_json::from_str(payload)?;
+    let index = match payload["index"].as_u64() {
+        Some(index) => index as usize,
+        None => {
+            let err = anyhow::Error::msg("Index is None");
+            error!("{}", err);
+            return Err(err);
+        }
+    };
+    remove_strip(index);
 
-	// emit remove strip to frontend
-	crate::try_emit("rust-removestrip", index);
-	Ok(())
+    // emit remove strip to frontend
+    crate::try_emit("rust-removestrip", index);
+    Ok(())
 }
 
 fn svelte_updatestrip(event: tauri::Event) -> Result<(), String> {
-	let payload: serde_json::Value = serde_json::from_str(event.payload().unwrap()).unwrap();
-        let index = payload["index"].as_u64().unwrap() as usize;
-        let kind = payload["kind"].as_str().unwrap();
-        match kind {
-            "output-mono" => {
-                let channel = payload["channel"].as_u64().unwrap() as u32;
-                match STRIPS.write() {
-                    Ok(mut strips) => match strips.get_mut(index) {
-                        Some(strip) => {
-                            debug!("Setting output to mono {}", channel);
-                            strip.output = Output::Mono(channel);
-                        }
-                        None => {}
-                    },
-                    Err(e) => {
-                        debug!("Error locking STRIPS: {}", e);
+    let payload: serde_json::Value = serde_json::from_str(event.payload().unwrap()).unwrap();
+    let index = payload["index"].as_u64().unwrap() as usize;
+    let kind = payload["kind"].as_str().unwrap();
+    match kind {
+        "output-mono" => {
+            let channel = payload["channel"].as_u64().unwrap() as u32;
+            match STRIPS.write() {
+                Ok(mut strips) => match strips.get_mut(index) {
+                    Some(strip) => {
+                        debug!("Setting output to mono {}", channel);
+                        strip.output = Output::Mono(channel);
                     }
+                    None => {}
+                },
+                Err(e) => {
+                    debug!("Error locking STRIPS: {}", e);
                 }
             }
-            "output-stereo" => {
-                let left_channel = payload["left"].as_u64().unwrap() as u32;
-                let right_channel = payload["right"].as_u64().unwrap() as u32;
-                match STRIPS.write() {
-                    Ok(mut strips) => match strips.get_mut(index) {
-                        Some(strip) => {
-                            debug!(
-                                "Setting output to stereo {} {}",
-                                left_channel, right_channel
-                            );
-                            strip.output = Output::Stereo(left_channel, right_channel);
-                        }
-                        None => {}
-                    },
-                    Err(e) => {
-                        let err = format!("Error locking STRIPS: {}", e);
-						error!("{}", err);
-						return Err(err);
-                    }
-                }
-            }
-			"control" =>{
-				let kind = payload["control"].as_str().unwrap().to_string();
-				let strip = payload["strip"].as_u64().unwrap() as usize;
-				let index = payload["index"].as_u64().unwrap() as usize;
-				let name = payload["name"].as_str().unwrap().to_string();
-				let value = payload["value"].as_f64().unwrap() as f32;
-				//debug!("Kind: {}\nStrip: {}\nIndex: {}\nName: {}\nValue: {}", kind, strip, index, name, value);
-
-
-				let mut strips = match STRIPS.write() {
-					Ok(strips) => strips,
-					Err(e) => {
-						let err = format!("Error locking STRIPS: {}", e);
-						error!("{}", err);
-						return Err(err);
-					}
-				};
-
-				// get the strip
-				let strip = match strips.get_mut(strip) {
-					Some(strip) => strip,
-					None => {
-						let err = format!("Strip {} does not exist", strip);
-						error!("{}", err);
-						return Err(err);
-					}
-				};
-
-				// get the effect
-				let effect = match strip.chain.get_mut(index) {
-					Some(effect) => effect,
-					None => {
-						let err = format!("Effect {} does not exist", index);
-						error!("{}", err);
-						return Err(err);
-					}
-				};
-
-				let effect = match effect {
-					Some(effect) => effect,
-					None => {
-						let err = format!("Effect {} does not exist", index);
-						error!("{}", err);
-						return Err(err);
-					}
-				};
-
-				return effect.set_control(Control::Dial("".to_string(), value, 0.0, 0.0));
-			}
-            _ => {
-				let err = format!("Invalid kind: {}", kind);
-				error!("{}", err);
-				return Err(err);
-			}
         }
-		Ok(())
+        "output-stereo" => {
+            let left_channel = payload["left"].as_u64().unwrap() as u32;
+            let right_channel = payload["right"].as_u64().unwrap() as u32;
+            match STRIPS.write() {
+                Ok(mut strips) => match strips.get_mut(index) {
+                    Some(strip) => {
+                        debug!(
+                            "Setting output to stereo {} {}",
+                            left_channel, right_channel
+                        );
+                        strip.output = Output::Stereo(left_channel, right_channel);
+                    }
+                    None => {}
+                },
+                Err(e) => {
+                    let err = format!("Error locking STRIPS: {}", e);
+                    error!("{}", err);
+                    return Err(err);
+                }
+            }
+        }
+        "control" => {
+            let kind = payload["control"].as_str().unwrap().to_string();
+            let strip = payload["strip"].as_u64().unwrap() as usize;
+            let index = payload["index"].as_u64().unwrap() as usize;
+            let name = payload["name"].as_str().unwrap().to_string();
+            let value = payload["value"].as_f64().unwrap() as f32;
+            //debug!("Kind: {}\nStrip: {}\nIndex: {}\nName: {}\nValue: {}", kind, strip, index, name, value);
+
+            let mut strips = match STRIPS.write() {
+                Ok(strips) => strips,
+                Err(e) => {
+                    let err = format!("Error locking STRIPS: {}", e);
+                    error!("{}", err);
+                    return Err(err);
+                }
+            };
+
+            // get the strip
+            let strip = match strips.get_mut(strip) {
+                Some(strip) => strip,
+                None => {
+                    let err = format!("Strip {} does not exist", strip);
+                    error!("{}", err);
+                    return Err(err);
+                }
+            };
+
+            // get the effect
+            let effect = match strip.chain.get_mut(index) {
+                Some(effect) => effect,
+                None => {
+                    let err = format!("Effect {} does not exist", index);
+                    error!("{}", err);
+                    return Err(err);
+                }
+            };
+
+            let effect = match effect {
+                Some(effect) => effect,
+                None => {
+                    let err = format!("Effect {} does not exist", index);
+                    error!("{}", err);
+                    return Err(err);
+                }
+            };
+
+            return effect.set_control(Control::Dial("".to_string(), value, 0.0, 0.0));
+        }
+        _ => {
+            let err = format!("Invalid kind: {}", kind);
+            error!("{}", err);
+            return Err(err);
+        }
+    }
+    Ok(())
 }

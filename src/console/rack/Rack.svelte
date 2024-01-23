@@ -36,6 +36,7 @@
 <div
 	class="absolute w-full h-auto bottom-0 border-t-2 border-gray-500 flex col-auto"
 >
+	<!-- Strips -->
 	{#each strips as strip, strip_index}
 		<Strip {strip_index} {strip} />
 	{/each}
@@ -60,5 +61,24 @@
 
 	.w-8 {
 		min-width: 2rem;
+	}
+
+	input[type="range"] {
+		--value: 50%;
+		appearance: slider-vertical;
+		-webkit-appearance: slider-vertical;
+
+		margin: 0.5rem;
+		width: 10px;
+		height: 18.5rem;
+	}
+
+	input[type="range"]::-webkit-slider-runnable-track {
+		background-image: linear-gradient(
+			to bottom,
+			#222222 0%,
+			#000000 calc(100% - var(--value)),
+			green 100%
+		);
 	}
 </style>
