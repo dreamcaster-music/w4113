@@ -17,8 +17,8 @@ use tauri_plugin_log::LogTarget;
 
 use crate::config::Config;
 
-static CONFIG_FILE: &str = "public/config.json";
-static CONFIG_ROOT: &str = "public/config/";
+static CONFIG_FILE: &str = "assets/config.json";
+static CONFIG_ROOT: &str = "assets/config/";
 
 // The current configuration
 lazy_static! {

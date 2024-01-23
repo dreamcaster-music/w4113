@@ -9,7 +9,7 @@
 	<button
 		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
 		on:click={() => {
-			invoke("play_sample", { path: "./public/reaved.mp3" });
+			invoke("play_sample", { path: "./assets/reaved.mp3" });
 		}}
 	>
 		reaved.mp3
@@ -17,7 +17,7 @@
 	<button
 		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
 		on:click={() => {
-			invoke("play_sample", { path: "./public/pinkfloyd.mp3" });
+			invoke("play_sample", { path: "./assets/pinkfloyd.mp3" });
 		}}
 	>
 		pinkfloyd.mp3

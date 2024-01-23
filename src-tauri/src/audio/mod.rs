@@ -1782,19 +1782,37 @@ pub fn listen_frontend() -> Result<(), String> {
     };
 
     app.listen_global("svelte-updatestrip", |event| {
-        debug!("Update Strip: {:?}", svelte_updatestrip(event));
+        match svelte_updatestrip(event) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("{}", e);
+            }
+        }
     });
 
     app.listen_global("svelte-removeeffect", |event| {
-        debug!("Remove Effect: {:?}", svelte_removeeffect(event));
+        match svelte_removeeffect(event) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("{}", e);
+            }
+        }
     });
 
     app.listen_global("svelte-removestrip", |event| {
-        debug!("Remove Strip: {:?}", svelte_removestrip(event));
+        match svelte_removestrip(event) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("{}", e);
+            }
+        }
     });
 
-    app.listen_global("svelte-seteffect", |event| {
-        debug!("Set Effect: {:?}", svelte_seteffect(event));
+    app.listen_global("svelte-seteffect", |event| match svelte_seteffect(event) {
+        Ok(_) => {}
+        Err(e) => {
+            error!("{}", e);
+        }
     });
 
     Ok(())
