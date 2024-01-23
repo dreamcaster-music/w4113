@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, error};
 use tauri::Window;
 
 pub trait VisualizerTrait {
@@ -14,6 +14,7 @@ impl VisualizerTrait for BasicVisualizer {
     }
 
     fn render(&self, window: &Window, data: &Vec<f32>) -> Result<(), String> {
+        // error!("BasicVisualizer::render() called");
         let output = window.emit("loadbars", data);
         match output {
             Ok(_) => {}

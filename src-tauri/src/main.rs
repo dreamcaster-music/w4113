@@ -89,6 +89,31 @@ fn run() {
         }
     }
 
+    match TV_WINDOW.lock() {
+        Ok(mut tv_window_mutex) => {
+            if let Some(tv_window) = tv_window_mutex.as_mut() {
+                match tv_window.show() {
+                    Ok(()) => {
+                        debug!("Successfully showed tv window");
+                    }
+                    Err(e) => {
+                        debug!("Error showing tv window: {}", e);
+                    }
+                }
+                tv_window.on_window_event(|event| match event {
+                    tauri::WindowEvent::Destroyed => {
+                        debug!("TV window closed");
+                        std::process::exit(0);
+                    }
+                    _ => {}
+                });
+            }
+        }
+        Err(e) => {
+            debug!("Error locking TV_WINDOW: {}", e);
+        }
+    }
+
     match audio::STRIPS.write() {
         Ok(mut strips) => {
             let mut sine = audio::plugin::SineGenerator::new();

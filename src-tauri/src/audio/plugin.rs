@@ -754,11 +754,11 @@ impl Effect for Gain {
     fn process(&mut self, _state: &State, sample: &mut Sample) {
         match sample {
             Sample::Mono(sample) => {
-                *sample *= self.gain;
+                *sample *= self.gain + 1.0;
             }
             Sample::Stereo(left, right) => {
-                *left *= self.gain;
-                *right *= self.gain;
+                *left *= self.gain + 1.0;
+                *right *= self.gain + 1.0;
             }
         }
     }
@@ -789,7 +789,7 @@ impl Effect for Gain {
         serde_json::json!({
             "name": "Gain",
             "controls": [
-                Control::slider("gain".to_string(), 0.0, 5000.0)
+                Control::slider("gain".to_string(), 0.0, 10.0)
             ]
         })
     }
