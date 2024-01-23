@@ -5,6 +5,7 @@
 
 	const handleSize = 14;
 
+	let id = createUniqueId();
 	export let title: string;
 	export let width: number | string = "";
 	export let height: number | string = "";
@@ -50,13 +51,54 @@
 			top += event.movementY;
 		}
 	}
+
+	function bringToFront() {
+		// get all frames
+		let frames = document.getElementsByClassName("frame");
+		let count = frames.length;
+		let max = 10 + count;
+
+		// set all frames to z-index 10
+		for (let i = 0; i < count; i++) {
+			let currentZIndex = parseInt(
+				(frames[i] as HTMLElement).style.zIndex,
+			);
+			(frames[i] as HTMLElement).style.zIndex = currentZIndex - 1 + "";
+		}
+
+		// set this frame to
+		let frame = document.getElementById(id);
+
+		if (frame) {
+			(frame as HTMLElement).style.zIndex = max + "";
+		}
+	}
+
+	function getHighestFrame(): number {
+		// get all frames
+		let frames = document.getElementsByClassName("frame");
+		let count = frames.length;
+		let max = 0;
+
+		for (let i = 0; i < count; i++) {
+			let zIndex = parseInt((frames[i] as HTMLElement).style.zIndex);
+
+			if (zIndex > max) {
+				max = zIndex;
+			}
+		}
+
+		return max;
+	}
 </script>
 
 {#if visible}
-	<div
+	<button
 		class="frame mono bg-black z-10"
-		style="width: {width}px; height: {height}px; left: {left}px; top: {top}px;"
-		id={createUniqueId()}
+		style="width: {width}px; height: {height}px; left: {left}px; top: {top}px; z-index: {getHighestFrame() +
+			1};"
+		{id}
+		on:mousedown={bringToFront}
 		transition:fade={{ delay: 0, duration: 100 }}
 	>
 		<button class="title-bar none" on:mousedown={drag} on:dblclick={close}>
@@ -75,7 +117,7 @@
 		<div class="frame-body">
 			<slot />
 		</div>
-	</div>
+	</button>
 {/if}
 
 <svelte:window on:mouseup={onMouseUp} on:mousemove={onMouseMove} />

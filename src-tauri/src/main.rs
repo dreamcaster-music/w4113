@@ -171,7 +171,8 @@ fn main() {
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::Stdout, LogTarget::Webview])
-                .level(LevelFilter::Trace)
+                .level(LevelFilter::Debug)
+                .filter(|target| !target.target().contains("symphonia"))
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
@@ -189,7 +190,7 @@ fn main() {
             audio::set_input_stream,
             audio::set_output_buffer_size,
             audio::play_sample,
-			audio::audio_thread,
+            audio::audio_thread,
             midi::midi_list,
             interface::list_interfaces,
             interface::list_interfaces_id,
