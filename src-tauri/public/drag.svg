@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="64.103104mm"
+   height="64.103073mm"
+   viewBox="0 0 64.103104 64.103072"
+   version="1.1"
+   id="svg5"
+   inkscape:export-filename="drag.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   sodipodi:docname="drag.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     showguides="true"
+     inkscape:zoom="0.45349661"
+     inkscape:cx="127.89511"
+     inkscape:cy="154.35617"
+     inkscape:window-width="1309"
+     inkscape:window-height="456"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-78.395772,-89.722045)">
+    <path
+       id="rect3201"
+       style="opacity:1;fill:#ffffff;stroke:none;stroke-width:0;stroke-linecap:square;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       d="M 78.395772 89.722045 L 78.395772 105.80737 L 94.481095 105.80737 L 94.481095 89.722045 L 78.395772 89.722045 z M 102.40464 89.722045 L 102.40464 105.80737 L 118.48997 105.80737 L 118.48997 89.722045 L 102.40464 89.722045 z M 126.41351 89.722045 L 126.41351 105.80737 L 142.49884 105.80737 L 142.49884 89.722045 L 126.41351 89.722045 z M 78.395772 113.73092 L 78.395772 129.81624 L 94.481095 129.81624 L 94.481095 113.73092 L 78.395772 113.73092 z M 102.40464 113.73092 L 102.40464 129.81624 L 118.48997 129.81624 L 118.48997 113.73092 L 102.40464 113.73092 z M 126.41351 113.73092 L 126.41351 129.81624 L 142.49884 129.81624 L 142.49884 113.73092 L 126.41351 113.73092 z M 78.395772 137.73979 L 78.395772 153.82511 L 94.481095 153.82511 L 94.481095 137.73979 L 78.395772 137.73979 z M 102.40464 137.73979 L 102.40464 153.82511 L 118.48997 153.82511 L 118.48997 137.73979 L 102.40464 137.73979 z M 126.41351 137.73979 L 126.41351 153.82511 L 142.49884 153.82511 L 142.49884 137.73979 L 126.41351 137.73979 z " />
+  </g>
+</svg>

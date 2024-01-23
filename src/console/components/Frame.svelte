@@ -129,7 +129,7 @@
 	}
 
 	.frame-body {
-		overflow: scroll;
+		overflow: hidden;
 	}
 
 	.title-bar {
