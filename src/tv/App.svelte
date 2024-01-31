@@ -8,7 +8,10 @@
 		data = payload.payload;
 	});
 
-	function style(value: number, i: number) {
+	function style(value: number, i: number, length: number) {
+		// Get screen width
+		let width = window.innerWidth;
+
 		let output = `height: ${Math.abs(value * 300)}px;`;
 
 		// color spectrum based on i
@@ -24,7 +27,8 @@
 			output += "top: 50%;";
 		}
 
-		output += `left: ${i * 2}px;`;
+		let multiplier = width / length;
+		output += `left: ${i * 2 * multiplier}px;`;
 
 		return output;
 	}
@@ -34,7 +38,7 @@
 	{#each data as bar, i}
 		<div
 			class="absolute bottom-0 left-0 w-1 bg-white"
-			style={style(bar, i)}
+			style={style(bar, i, data.length)}
 		></div>
 	{/each}
 </div>

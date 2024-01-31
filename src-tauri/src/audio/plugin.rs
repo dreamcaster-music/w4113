@@ -68,6 +68,16 @@ pub enum Control {
     /// * `n_states: u32` - The number of states of the control
     Toggle(String, u32, u32),
 
+    /// A number select control
+    ///
+    /// ### Fields
+    ///
+    /// * `name: String` - The name of the control
+    /// * `value: u32` - The value of the control
+    /// * `min: u32` - The minimum value of the control
+    /// * `max: u32` - The maximum value of the control
+    NumberSelect(String, u32, u32, u32),
+
     /// A string control
     ///
     /// ### Fields
@@ -101,6 +111,14 @@ impl Serialize for Control {
                 "name": name,
                 "value": value,
                 "n_states": n_states
+            })
+            .serialize(serializer),
+            Control::NumberSelect(name, value, min, max) => serde_json::json!({
+                "kind": "number_select",
+                "name": name,
+                "value": value,
+                "min": min,
+                "max": max
             })
             .serialize(serializer),
             Control::String(name, value) => serde_json::json!({
@@ -143,6 +161,17 @@ impl Control {
     /// * `n_states: u32` - The number of states of the control
     pub fn toggle(name: String, n_states: u32) -> Self {
         Self::Toggle(name, 0, n_states)
+    }
+
+    /// Creates a new number select control
+    ///
+    /// ### Arguments
+    /// * `name: String` - The name of the control
+    /// * `min: u32` - The minimum value of the control
+    /// * `max: u32` - The maximum value of the control
+    /// * `value: u32` - The value of the control
+    pub fn number_select(name: String, min: u32, max: u32, value: u32) -> Self {
+        Self::NumberSelect(name, value, min, max)
     }
 
     /// Creates a new string control
@@ -434,6 +463,12 @@ impl Generator for SampleGenerator {
             "controls": []
         })
     }
+}
+
+struct DrumGenerator {
+    bpm: f32,
+    beat: u32,
+    measure: u32,
 }
 
 /// ## Effect
@@ -730,7 +765,7 @@ impl Effect for Delay {
             "name": "Delay",
             "controls": [
                 Control::slider("length".to_string(), 0.0, 96000.0),
-                Control::slider("feedback".to_string(), 0.0, 100.0)
+                Control::slider("feedback".to_string(), 0.0, 100.0),
             ]
         })
     }
@@ -790,6 +825,131 @@ impl Effect for Gain {
             "name": "Gain",
             "controls": [
                 Control::slider("gain".to_string(), 0.0, 10.0)
+            ]
+        })
+    }
+}
+
+pub struct MonoBus {
+    bus: u32,
+}
+
+impl MonoBus {
+    pub fn new(bus: u32) -> Self {
+        Self { bus }
+    }
+}
+
+impl Effect for MonoBus {
+    fn process(&mut self, state: &State, sample: &mut Sample) {
+        /*match sample {
+            Sample::Mono(sample) => {
+                *sample = state.buses[self.bus].mono();
+            }
+            Sample::Stereo(left, right) => {
+                *left = state.buses[self.bus].left();
+                *right = state.buses[self.bus].right();
+            }
+        }*/
+    }
+
+    fn controls(&self) -> Result<Vec<Control>, String> {
+        let bus_control = Control::number_select("bus".to_string(), 0, 32, self.bus as u32);
+        Ok(vec![bus_control])
+    }
+
+    fn set_control(&mut self, control: Control) -> Result<(), String> {
+        match control {
+            Control::NumberSelect(_, bus, _, _) => {
+                self.bus = bus as u32;
+                trace!("[Mono Bus] bus set to {}", self.bus);
+            }
+            _ => {
+                return Err(format!("Control not supported by {}", self.name()));
+            }
+        }
+        Ok(())
+    }
+
+    fn name(&self) -> &'static str {
+        "Mono Bus"
+    }
+
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "name": "Mono Bus",
+            "controls": [
+                Control::number_select("bus".to_string(), 0, 32, self.bus as u32)
+            ]
+        })
+    }
+}
+
+pub struct StereoBus {
+    left: u32,
+    right: u32,
+}
+
+impl StereoBus {
+    pub fn new(left: u32, right: u32) -> Self {
+        Self {
+            left: left,
+            right: right,
+        }
+    }
+}
+
+impl Effect for StereoBus {
+    fn process(&mut self, state: &State, sample: &mut Sample) {
+        /*match sample {
+            Sample::Mono(sample) => {
+                *sample = state.buses[self.left].mono() + state.buses[self.right].mono();
+            }
+            Sample::Stereo(left, right) => {
+                *left = state.buses[self.left].left() + state.buses[self.right].left();
+                *right = state.buses[self.left].right() + state.buses[self.right].right();
+            }
+        }*/
+    }
+
+    fn controls(&self) -> Result<Vec<Control>, String> {
+        let left_control = Control::number_select("left".to_string(), 0, 32, self.left as u32);
+        let right_control = Control::number_select("right".to_string(), 0, 32, self.right as u32);
+        Ok(vec![left_control, right_control])
+    }
+
+    fn set_control(&mut self, control: Control) -> Result<(), String> {
+        match control {
+            Control::NumberSelect(name, bus, _, _) => match name.as_str() {
+                "left" => {
+                    self.left = bus as u32;
+                    trace!("[Stereo Bus] left set to {}", self.left);
+                }
+                "right" => {
+                    self.right = bus as u32;
+                    trace!("[Stereo Bus] right set to {}", self.right);
+                }
+                _ => {
+                    return Err(format!("Control not supported by {}", self.name()));
+                }
+            },
+            _ => {
+                return Err(format!("Control not supported by {}", self.name()));
+            }
+        }
+        Ok(())
+    }
+
+    fn name(&self) -> &'static str {
+        "Stereo Bus"
+    }
+
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "name": "Stereo Bus",
+            "controls": [
+                Control::number_select("left".to_string(), 0, 32, self.left as u32),
+                Control::number_select("right".to_string(), 0, 32, self.right as u32)
             ]
         })
     }
