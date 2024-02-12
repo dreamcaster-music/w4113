@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api";
+	import { open } from "@tauri-apps/api/dialog";
+	import { error } from "tauri-plugin-log-api";
 	import Frame from "./components/Frame.svelte";
 
 	export let visible: boolean = false;
+	let customSample: string[] = [];
 </script>
 
 <Frame title="Reaver Super Sampler 7" width={700} {visible}>
@@ -53,5 +56,23 @@
 		}}
 	>
 		5fznfr.wav
+	</button>
+
+	<button
+		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+		on:click={() => {
+			error("I have been clicked");
+			open({
+				multiple: true,
+				filters: [
+					{
+						name: "Audio Files",
+						extensions: ["mp3", "wav"],
+					},
+				],
+			}).then((result) => {});
+		}}
+	>
+		+ Custom Sample
 	</button>
 </Frame>
