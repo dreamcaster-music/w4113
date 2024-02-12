@@ -2,6 +2,7 @@
 	import { emit } from "@tauri-apps/api/event";
 	import ContextMenu from "../components/ContextMenu.svelte";
 	import Frame from "../components/Frame.svelte";
+	import Gain from "./effects/Gain.svelte";
 
 	enum EffectOptions {
 		BitCrusher = "BitCrusher",
@@ -106,79 +107,6 @@
 
 {#if showControls && !empty}
 	<Frame title={effect.name} width={256} visible={true}>
-		{#each effect.controls as control}
-			{#if control.kind == "dial"}
-				<div class="flex flex-row">
-					<p class="w-1/2">{control.name}</p>
-					<p class="w-1/2 text-right">{control.min}</p>
-					<input
-						type="range"
-						min={control.min}
-						max={control.max}
-						bind:value={control.value}
-						on:input={() => {
-							emit("svelte-updatestrip", {
-								kind: "control",
-								control: control.kind,
-								strip,
-								index,
-								name: control.name,
-								value: control.value,
-							});
-						}}
-						class="w-1/2"
-					/>
-					<p class="w-1/2">{control.max}</p>
-				</div>
-			{/if}
-			{#if control.kind == "slider"}
-				<div class="flex flex-row">
-					<p class="w-1/2">{control.name}</p>
-					<p class="w-1/2 text-right">{control.min}</p>
-					<input
-						type="range"
-						min={control.min}
-						max={control.max}
-						bind:value={control.value}
-						on:input={() => {
-							emit("svelte-updatestrip", {
-								kind: "control",
-								control: control.kind,
-								strip,
-								index,
-								name: control.name,
-								value: control.value,
-							});
-						}}
-						class="w-1/2"
-					/>
-					<p class="w-1/2">{control.max}</p>
-				</div>
-			{/if}
-			{#if control.kind == "toggle"}
-				<div class="flex flex-row">
-					<p class="w-1/2">{control.name}</p>
-					<button
-						class="w-1/2"
-						on:click={() => {
-							control.value =
-								control.value + (1 % control.n_states);
-						}}
-						on:change={() => {
-							emit("svelte-updatestrip", {
-								kind: "control",
-								control: control.kind,
-								strip,
-								index,
-								name: control.name,
-								value: control.value,
-							});
-						}}
-					>
-						{control.value}
-					</button>
-				</div>
-			{/if}
-		{/each}
+		<Gain></Gain>
 	</Frame>
 {/if}
