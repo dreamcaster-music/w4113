@@ -107,6 +107,8 @@
 
 {#if showControls && !empty}
 	<Frame title={effect.name} width={256} visible={true}>
-		<Gain></Gain>
+		{#if effect.name === "Gain"}
+			<Gain {strip} {index} />
+		{/if}
 	</Frame>
 {/if}

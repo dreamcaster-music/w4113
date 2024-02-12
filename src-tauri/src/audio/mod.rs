@@ -1807,6 +1807,16 @@ pub fn listen_frontend() -> Result<(), String> {
         }
     });
 
+    app.listen_global(
+        "svelte-seteffectvalue",
+        |event| match svelte_seteffectvalue(event) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("{}", e);
+            }
+        },
+    );
+
     Ok(())
 }
 
@@ -1884,6 +1894,57 @@ fn svelte_seteffect(event: tauri::Event) -> Result<(), anyhow::Error> {
     crate::try_emit("rust-seteffect", json);
 
     Ok(())
+}
+
+fn svelte_seteffectvalue(event: tauri::Event) -> Result<(), anyhow::Error> {
+    let payload = match event.payload() {
+        Some(payload) => payload,
+        None => {
+            let err = anyhow::Error::msg("Payload is None");
+            error!("{}", err);
+            return Err(err);
+        }
+    };
+
+    let payload: serde_json::Value = serde_json::from_str(payload)?;
+    let strip = payload["strip"].as_u64().unwrap() as usize;
+    let index = payload["effect_index"].as_u64().unwrap() as usize;
+    let value_name = payload["value_name"].as_str().unwrap().to_string();
+    let value_kind = payload["value_kind"].as_str().unwrap().to_string();
+    //match
+    //debug!("Kind: {}\nStrip: {}\nIndex: {}\nName: {}\nValue: {}", kind, strip, index, name, value);
+
+    let mut strips = match STRIPS.write() {
+        Ok(strips) => strips,
+        Err(e) => {
+            let err = anyhow::Error::msg(format!("Error locking STRIPS: {}", e));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
+
+    // get the strip
+    let strip = match strips.get_mut(strip) {
+        Some(strip) => strip,
+        None => {
+            let err = anyhow::Error::msg(format!("Strip {} does not exist", strip));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
+
+    // get the effect
+    let effect = match strip.chain.get_mut(index) {
+        Some(effect) => effect,
+        None => {
+            let err = anyhow::Error::msg(format!("Effect {} does not exist", index));
+            error!("{}", err);
+            return Err(err);
+        }
+    };
+
+    //return effect.set_control(plugin::Control::Dial(name, value, 0.0, 0.0));
+    return Err(anyhow::Error::msg("Not implemented"));
 }
 
 fn svelte_removeeffect(event: tauri::Event) -> Result<(), anyhow::Error> {

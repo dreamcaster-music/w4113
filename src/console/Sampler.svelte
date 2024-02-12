@@ -1,22 +1,15 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api";
 	import { open } from "@tauri-apps/api/dialog";
-	import { writable } from "svelte/store";
 	import { info } from "tauri-plugin-log-api";
+	import { customSamples } from "../store";
 	import Frame from "./components/Frame.svelte";
 
 	export let visible: boolean = false;
 
-	// custom samples as a store array of strings
-	const customSamples = writable<string[]>([]);
-	let customSamplesState: string[];
 	customSamples.subscribe((value) => {
-		customSamplesState = value;
+		info("customSamples updated: " + value);
 	});
-
-	function addSample(sample: string) {
-		$customSamples.push(sample);
-	}
 </script>
 
 <Frame title="Reaver Super Sampler 7" width={700} {visible}>
@@ -69,14 +62,14 @@
 		5fznfr.wav
 	</button>
 
-	{#each customSamplesState as sample}
+	{#each $customSamples as sample}
 		<button
 			class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
 			on:click={() => {
-				invoke("play_sample", { path: "" });
+				invoke("play_sample", { path: sample });
 			}}
 		>
-			{sample}
+			{sample.split("/").slice(-1).toString()}
 		</button>
 	{/each}
 
@@ -92,13 +85,10 @@
 					},
 				],
 			}).then((result) => {
-				info("" + result);
 				//add result to customSamples array
 				if (result != null) {
 					let resultString = result.toString();
-					info("result[0]: " + result);
-					addSample(resultString);
-					info("customSamples: " + $customSamples);
+					customSamples.set([...$customSamples, resultString]);
 				}
 			});
 		}}
