@@ -1,15 +1,12 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api";
 	import { open } from "@tauri-apps/api/dialog";
-	import { info } from "tauri-plugin-log-api";
-	import { customSamples } from "../store";
+	import { writable } from "svelte/store";
 	import Frame from "./components/Frame.svelte";
 
 	export let visible: boolean = false;
 
-	customSamples.subscribe((value) => {
-		info("customSamples updated: " + value);
-	});
+	const customSamples = writable<string[]>([]);
 </script>
 
 <Frame title="Reaver Super Sampler 7" width={700} {visible}>
@@ -74,7 +71,7 @@
 	{/each}
 
 	<button
-		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-center"
 		on:click={() => {
 			open({
 				multiple: false,
@@ -93,6 +90,6 @@
 			});
 		}}
 	>
-		+ Custom Sample
+		+
 	</button>
 </Frame>
