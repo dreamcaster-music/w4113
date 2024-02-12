@@ -9,6 +9,10 @@
 
 	// custom samples as a store array of strings
 	const customSamples = writable<string[]>([]);
+	let customSamplesState: string[];
+	customSamples.subscribe((value) => {
+		customSamplesState = value;
+	});
 
 	function addSample(sample: string) {
 		$customSamples.push(sample);
@@ -65,7 +69,7 @@
 		5fznfr.wav
 	</button>
 
-	{#each $customSamples as sample}
+	{#each customSamplesState as sample}
 		<button
 			class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
 			on:click={() => {
