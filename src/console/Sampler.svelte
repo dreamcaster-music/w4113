@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api";
 	import { open } from "@tauri-apps/api/dialog";
-	import { error } from "tauri-plugin-log-api";
+	import { info } from "tauri-plugin-log-api";
 	import Frame from "./components/Frame.svelte";
 
 	export let visible: boolean = false;
-	let customSample: string[] = [];
+	let customSamples: string[] = [];
+
+	function addSample(sample: string) {
+		customSamples.push(sample);
+	}
 </script>
 
 <Frame title="Reaver Super Sampler 7" width={700} {visible}>
@@ -58,19 +62,38 @@
 		5fznfr.wav
 	</button>
 
+	{#each customSamples as sample}
+		<button
+			class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+			on:click={() => {
+				invoke("play_sample", { path: sample });
+			}}
+		>
+			{sample}
+		</button>
+	{/each}
+
 	<button
 		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
 		on:click={() => {
-			error("I have been clicked");
 			open({
-				multiple: true,
+				multiple: false,
 				filters: [
 					{
 						name: "Audio Files",
 						extensions: ["mp3", "wav"],
 					},
 				],
-			}).then((result) => {});
+			}).then((result) => {
+				info("" + result);
+				//add result to customSamples array
+				if (result != null) {
+					let resultString = result.toString();
+					info("result[0]: " + result);
+					addSample(resultString);
+					info("customSamples: " + customSamples);
+				}
+			});
 		}}
 	>
 		+ Custom Sample
