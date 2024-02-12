@@ -1,14 +1,17 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api";
 	import { open } from "@tauri-apps/api/dialog";
+	import { writable } from "svelte/store";
 	import { info } from "tauri-plugin-log-api";
 	import Frame from "./components/Frame.svelte";
 
 	export let visible: boolean = false;
-	let customSamples: string[] = [];
+
+	// custom samples as a store array of strings
+	const customSamples = writable<string[]>([]);
 
 	function addSample(sample: string) {
-		customSamples.push(sample);
+		$customSamples.push(sample);
 	}
 </script>
 
@@ -62,11 +65,11 @@
 		5fznfr.wav
 	</button>
 
-	{#each customSamples as sample}
+	{#each $customSamples as sample}
 		<button
 			class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
 			on:click={() => {
-				invoke("play_sample", { path: sample });
+				invoke("play_sample", { path: "" });
 			}}
 		>
 			{sample}
@@ -91,7 +94,7 @@
 					let resultString = result.toString();
 					info("result[0]: " + result);
 					addSample(resultString);
-					info("customSamples: " + customSamples);
+					info("customSamples: " + $customSamples);
 				}
 			});
 		}}
