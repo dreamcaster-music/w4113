@@ -1751,14 +1751,6 @@ pub fn play_sample(path: &str) {
             Input::Generator(Arc::new(Mutex::new(sample_generator))),
             Output::Stereo(0, 1),
         );
-        let effect1 = plugin::BitCrusher::new(1);
-        let effect2 = plugin::Delay::new(5, 0.0);
-        let effect3 = plugin::Gain::new(1.0);
-        let effect4 = plugin::Clip::new(1.0);
-        strip.set_effect(0, Box::new(effect1));
-        strip.set_effect(1, Box::new(effect2));
-        strip.set_effect(2, Box::new(effect3));
-        strip.set_effect(3, Box::new(effect4));
         let _ = add_strip(strip);
         play_sample(path);
     }

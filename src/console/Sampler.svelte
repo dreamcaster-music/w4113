@@ -22,4 +22,36 @@
 	>
 		pinkfloyd.mp3
 	</button>
+	<button
+		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+		on:click={() => {
+			invoke("play_sample", { path: "./assets/oof.mp3" });
+		}}
+	>
+		oof.mp3
+	</button>
+	<button
+		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+		on:click={() => {
+			invoke("play_sample", { path: "./assets/ahh.mp3" });
+		}}
+	>
+		ahh.mp3
+	</button>
+	<button
+		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+		on:click={() => {
+			invoke("play_sample", { path: "./assets/pipe.mp3" });
+		}}
+	>
+		pipe.mp3
+	</button>
+	<button
+		class="w-full text-accent border-1 border-accent p-1 m-2 select-text text-left"
+		on:click={() => {
+			invoke("play_sample", { path: "./assets/5fznfr.wav" });
+		}}
+	>
+		5fznfr.wav
+	</button>
 </Frame>
