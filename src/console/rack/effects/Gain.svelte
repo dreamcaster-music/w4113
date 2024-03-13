@@ -2,6 +2,7 @@
 	import { emit } from "@tauri-apps/api/event";
 
 	export let strip: number;
+	export let index: number;
 
 	let min = -12.0;
 	let max = 24.0;
